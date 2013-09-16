@@ -21,7 +21,7 @@ from teeth.overlord.models import Serializable
 
 class TeethError(Exception, Serializable):
     message = 'An error occurred'
-    details = 'An unexpected error occurred. Please try back later'
+    details = 'An unexpected error occurred. Please try back later.'
     status_code = 500
 
     def serialize(self, view):
@@ -35,6 +35,11 @@ class TeethError(Exception, Serializable):
 
 class InsufficientCapacityError(TeethError):
     message = 'Insufficient capacity'
-    details = ('There was not enough capacity available to fulfill your '
-               'request. Please try back later.')
+    details = 'There was not enough capacity available to fulfill your request. Please try back later.'
+    status_code = 500
+
+
+class AgentConnectionLostError(TeethError):
+    message = 'Agent connection lost'
+    details = 'The agent\'s connection was lost while performing your request.'
     status_code = 500
