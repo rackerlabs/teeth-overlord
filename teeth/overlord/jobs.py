@@ -22,6 +22,10 @@ from teeth.overlord import errors
 
 
 class Job(object):
+    """
+    TODO: implement reliable job execution, either by persisting these or by
+    using something like Celery.
+    """
     def execute():
         raise NotImplementedError()
 
