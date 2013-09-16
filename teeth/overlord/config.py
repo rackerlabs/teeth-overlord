@@ -23,6 +23,10 @@ class Config(object):
     CASSANDRA_CONSISTENCY = 'ONE'
     API_HOST = 'localhost'
     API_PORT = 8080
+    AGENT_ENDPOINT_AGENT_HOST = 'localhost'
+    AGENT_ENDPOINT_AGENT_PORT = 8081
+    AGENT_ENDPOINT_RPC_HOST = 'localhost'
+    AGENT_ENDPOINT_RPC_PORT = 8082
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():

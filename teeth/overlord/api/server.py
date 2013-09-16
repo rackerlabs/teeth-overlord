@@ -23,7 +23,7 @@ from teeth.overlord import models, jobs, errors
 
 class TeethAPI(object):
     app = Klein()
-    encoder = models.ModelEncoder('public')
+    encoder = models.ModelEncoder('public', indent=4)
 
     def __init__(self, config):
         self.config = config

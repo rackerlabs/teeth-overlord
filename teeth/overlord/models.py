@@ -34,8 +34,8 @@ class SerializationViews(object):
 
 
 class ModelEncoder(json.JSONEncoder):
-    def __init__(self, view):
-        json.JSONEncoder.__init__(self, indent=4)
+    def __init__(self, view, **kwargs):
+        json.JSONEncoder.__init__(self, **kwargs)
         self.view = view
 
     def default(self, o):
@@ -87,4 +87,23 @@ class Instance(Base):
         ])
 
 
-all_models = [Chassis, Instance]
+class AgentConnection(Base):
+    # This is funky, the ID isn't the primary key. We want to be able to
+    # overwrite these using nothing but the MAC address, so we use that as the
+    # primary key, but set an indexed 'id' field for consistency.
+    id = columns.UUID(index=True, default=uuid.uuid4)
+    primary_mac_address = columns.Ascii(primary_key=True)
+    agent_version = columns.Ascii(required=True)
+    endpoint_rpc_host = columns.Ascii(required=True)
+    endpoint_rpc_port = columns.Integer(required=True)
+
+    def serialize(self, view):
+        return OrderedDict([
+            ('id', str(self.id)),
+            ('primary_mac_address', self.primary_mac_address),
+            ('endpoint_rcp_host', self.endpoint_rpc_host),
+            ('endpoint_rpc_port', self.endpoint_rpc_port),
+        ])
+
+
+all_models = [Chassis, Instance, AgentConnection]
