@@ -1,0 +1,14 @@
+Twisted==13.1.0
+Werkzeug==0.9.4
+argparse==1.2.1
+cql==1.4.0
+cqlengine==0.8
+distribute==0.6.24
+klein==0.2.1
+mock==1.0.1
+pep8==1.4.6
+pyflakes==0.7.3
+simplejson==3.3.0
+thrift==0.9.1
+wsgiref==0.1.2
+zope.interface==4.0.5
