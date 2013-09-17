@@ -143,8 +143,7 @@ class AgentEndpoint(rest.RESTServer):
             return
 
         def _response(result):
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(result)
+            return self.return_ok(result)
 
         d = self.agent_protocols[connection_id].send_command(json.loads(request.content.read()))
         return d.addCallback(_response)

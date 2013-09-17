@@ -45,5 +45,10 @@ class RESTServer(object):
             request.setHeader('Content-Type', 'application/json')
             return self.encoder.encode(errors.TeethError())
 
+    def return_ok(self, request, result):
+        request.setResponseCode(200)
+        request.setHeader('Content-Type', 'application/json')
+        return self.encoder.encode(result)
+
     def listen(self):
         reactor.listenTCP(self.listen_port, Site(self.app.resource()), interface=self.listen_host)

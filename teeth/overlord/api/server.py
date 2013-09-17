@@ -38,8 +38,7 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
         def _retrieved(chassis):
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(chassis)
+            return self.return_ok(request, chassis)
 
         chassis_query = models.Chassis.objects.all()
         return threads.deferToThread(list, chassis_query).addCallback(_retrieved)
@@ -58,7 +57,6 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
         def _retrieved(instances):
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(instances)
+            return self.return_ok(request, instances)
 
         return threads.deferToThread(list, models.Instance.objects.all()).addCallback(_retrieved)
