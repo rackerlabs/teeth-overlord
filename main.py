@@ -18,6 +18,9 @@ limitations under the License.
 from teeth.overlord.api.server import TeethAPI
 from teeth.overlord.config import Config
 
+from twisted.internet import reactor
+
 config = Config()
 api = TeethAPI(config)
-api.run()
+api.listen()
+reactor.run()

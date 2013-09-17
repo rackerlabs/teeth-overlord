@@ -23,14 +23,14 @@ from twisted.internet.protocol import ServerFactory
 from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor, defer, threads
 
-from teeth.overlord import models, errors
+from teeth.overlord import models, encoding, errors, rest
 
 
 DEFAULT_PROTOCOL_VERSION = 'v1'
 
 
 class AgentEndpointHandler(LineReceiver):
-    encoder = models.ModelEncoder('public')
+    encoder = encoding.TeethJSONEncoder('public')
     endpoint = None
 
     def __init__(self):
@@ -120,12 +120,13 @@ class AgentEndpointHandlerFactory(ServerFactory):
         return protocol
 
 
-class AgentEndpoint(object):
+class AgentEndpoint(rest.RESTServer):
     app = Klein()
 
     def __init__(self, config):
-        self.encoder = models.ModelEncoder('public', indent=4)
-        self.config = config
+        rpc_port = config.AGENT_ENDPOINT_RPC_PORT
+        rpc_host = config.AGENT_ENDPOINT_RPC_HOST
+        super(AgentEndpoint, self).__init__(config, rpc_host, rpc_port)
         self.agent_protocols = {}
 
     def register_agent_protocol(self, connection_id, protocol):
@@ -148,12 +149,8 @@ class AgentEndpoint(object):
         d = self.agent_protocols[connection_id].send_command(json.loads(request.content.read()))
         return d.addCallback(_response)
 
-    def run(self):
+    def listen(self):
         agent_port = self.config.AGENT_ENDPOINT_AGENT_PORT
         agent_host = self.config.AGENT_ENDPOINT_AGENT_HOST
-        rpc_port = self.config.AGENT_ENDPOINT_RPC_PORT
-        rpc_host = self.config.AGENT_ENDPOINT_RPC_HOST
         reactor.listenTCP(agent_port, AgentEndpointHandlerFactory(self), interface=agent_host)
-        # Klein calls reactor.run() - we'll need to refactor to not use app.run() anymore
-        self.app.run(rpc_host, rpc_port)
-        # reactor.run()
+        super(AgentEndpoint, self).listen()

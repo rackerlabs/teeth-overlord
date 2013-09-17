@@ -16,34 +16,15 @@ limitations under the License.
 
 from klein import Klein
 from twisted.internet import threads
-from twisted.python import log
 
-from teeth.overlord import models, jobs, errors
+from teeth.overlord import models, jobs, rest
 
 
-class TeethAPI(object):
+class TeethAPI(rest.RESTServer):
     app = Klein()
-    encoder = models.ModelEncoder('public', indent=4)
 
     def __init__(self, config):
-        self.config = config
-
-    def get_absolute_url(self, request, path):
-        host = request.getHeader('host')
-        proto = request.getHeader('x-forwarded-proto') or 'http'
-        return "{proto}://{host}{path}".format(proto=proto, host=host, path=path)
-
-    def return_error(self, failure, request):
-        error = failure.value
-        log.err(failure)
-        if isinstance(error, errors.TeethError):
-            request.setResponseCode(error.status_code)
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(error)
-        else:
-            request.setResponseCode(500)
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(errors.TeethError())
+        super(TeethAPI, self).__init__(config, config.API_HOST, config.API_PORT)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
@@ -81,6 +62,3 @@ class TeethAPI(object):
             return self.encoder.encode(instances)
 
         return threads.deferToThread(list, models.Instance.objects.all()).addCallback(_retrieved)
-
-    def run(self):
-        self.app.run(self.config.API_HOST, self.config.API_PORT)

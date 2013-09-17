@@ -17,32 +17,12 @@ limitations under the License.
 import uuid
 from collections import OrderedDict
 
-import simplejson as json
 from cqlengine import columns
 from cqlengine.models import Model
 
+from teeth.overlord.encoding import Serializable
+
 KEYSPACE_NAME = 'teeth'
-
-
-class Serializable(object):
-    def serialize(self, view):
-        raise NotImplementedError()
-
-
-class SerializationViews(object):
-    PUBLIC = 'PUBLIC'
-
-
-class ModelEncoder(json.JSONEncoder):
-    def __init__(self, view, **kwargs):
-        json.JSONEncoder.__init__(self, **kwargs)
-        self.view = view
-
-    def default(self, o):
-        if isinstance(o, Serializable):
-            return o.serialize(self.view)
-        else:
-            return json.JSONEncoder.default(self, o)
 
 
 class Base(Model, Serializable):

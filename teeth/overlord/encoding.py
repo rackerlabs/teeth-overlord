@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Copyright 2013 Rackspace, Inc.
 
@@ -15,12 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from twisted.internet import reactor
+import simplejson as json
 
-from teeth.overlord.agent_endpoint import AgentEndpoint
-from teeth.overlord.config import Config
 
-config = Config()
-endpoint = AgentEndpoint(config)
-endpoint.listen()
-reactor.run()
+class Serializable(object):
+    def serialize(self, view):
+        raise NotImplementedError()
+
+
+class SerializationViews(object):
+    PUBLIC = 'PUBLIC'
+
+
+class TeethJSONEncoder(json.JSONEncoder):
+    def __init__(self, view, **kwargs):
+        json.JSONEncoder.__init__(self, **kwargs)
+        self.view = view
+
+    def default(self, o):
+        if isinstance(o, Serializable):
+            return o.serialize(self.view)
+        else:
+            return json.JSONEncoder.default(self, o)
