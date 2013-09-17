@@ -17,7 +17,7 @@ limitations under the License.
 
 from twisted.internet import reactor
 
-from teeth.overlord.agent_endpoint import AgentEndpoint
+from teeth.overlord.agent.endpoint import AgentEndpoint
 from teeth.overlord.config import Config
 
 config = Config()

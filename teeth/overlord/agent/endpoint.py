@@ -18,39 +18,22 @@ import simplejson as json
 import uuid
 
 from klein import Klein
-from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ServerFactory
-from twisted.internet.defer import maybeDeferred
-from twisted.internet import reactor, defer, threads
+from twisted.internet import reactor, threads
 
 from teeth.overlord import models, encoding, errors, rest
+from teeth.overlord.agent.protocol import TeethAgentProtocol
 
 
-DEFAULT_PROTOCOL_VERSION = 'v1'
-
-
-class AgentEndpointHandler(LineReceiver):
-    encoder = encoding.TeethJSONEncoder('public')
+class AgentEndpointHandler(TeethAgentProtocol):
     endpoint = None
 
     def __init__(self):
-        self.handlers = {}
+        TeethAgentProtocol.__init__(self, encoding.TeethJSONEncoder('public'))
         self.handlers['v1'] = {
             'handshake': self.handle_handshake,
         }
         self.connection = models.AgentConnection(id=uuid.uuid4())
-        self.pending_command_deferreds = {}
-
-    def lineReceived(self, line):
-        line = line.strip()
-        if not line:
-            return
-
-        message = json.loads(line)
-        if 'method' in message:
-            self.handle_command(message)
-        elif 'result' in message:
-            self.handle_response(message)
 
     def connectionLost(self, reason):
         self.endpoint.unregister_agent_protocol(self.connection.id)
@@ -58,42 +41,6 @@ class AgentEndpointHandler(LineReceiver):
             d.errback(errors.AgentConnectionLostError())
 
         threads.deferToThread(self.connection.delete)
-
-    def send_command(self, command):
-        message_id = str(uuid.uuid4())
-        d = defer.Deferred()
-        self.pending_command_deferreds[message_id] = d
-        self.sendLine(self.encoder.encode({
-            'id': message_id,
-            'version': DEFAULT_PROTOCOL_VERSION,
-            'method': command['method'],
-            'args': command.get('args', []),
-            'kwargs': command.get('kwargs', {}),
-        }))
-        return d
-
-    def handle_command(self, message):
-        message_id = message['id']
-        version = message['version']
-        args = message.get('args', [])
-        kwargs = message.get('kwargs', {})
-        d = maybeDeferred(self.handlers[version][message['method']], *args, **kwargs)
-        d.addCallback(self.send_response, version, message_id)
-
-    def send_response(self, result, version, message_id):
-        self.sendLine(self.encoder.encode({
-            'id': message_id,
-            'version': version,
-            'result': result,
-        }))
-
-    def handle_response(self, message):
-        d = self.pending_command_deferreds.pop(message['id'])
-        error = message.get('error', None)
-        if error:
-            d.errback(error)
-        else:
-            d.callback(message.get('result', None))
 
     def handle_handshake(self, primary_mac_address, agent_version):
         self.connection.primary_mac_address = primary_mac_address
@@ -130,7 +77,6 @@ class AgentEndpoint(rest.RESTServer):
         self.agent_protocols = {}
 
     def register_agent_protocol(self, connection_id, protocol):
-        print "Registered agent connection {}".format(str(connection_id))
         self.agent_protocols[str(connection_id)] = protocol
 
     def unregister_agent_protocol(self, connection_id):
