@@ -18,11 +18,11 @@ import simplejson as json
 import uuid
 
 from klein import Klein
+from teeth_agent.protocol import TeethAgentProtocol
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads
 
 from teeth.overlord import models, encoding, errors, rest
-from teeth.overlord.agent.protocol import TeethAgentProtocol
 
 
 class AgentEndpointHandler(TeethAgentProtocol):
