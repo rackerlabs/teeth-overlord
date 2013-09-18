@@ -15,12 +15,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import sys
+
 from twisted.internet import reactor
+from twisted.python import log
 
 from teeth.overlord.agent.endpoint import AgentEndpoint
 from teeth.overlord.config import Config
 
+
 config = Config()
+log.startLogging(sys.stdout)
 endpoint = AgentEndpoint(config)
 endpoint.listen()
 reactor.run()

@@ -80,7 +80,9 @@ class AgentEndpoint(rest.RESTServer):
         self.agent_protocols[str(connection_id)] = protocol
 
     def unregister_agent_protocol(self, connection_id):
-        del self.agent_protocols[str(connection_id)]
+        connection_id = str(connection_id)
+        if connection_id in self.agent_protocols:
+            del self.agent_protocols[connection_id]
 
     @app.route('/v1.0/agent_connections/<string:connection_id>/command')
     def send_agent_command(self, request, connection_id):
@@ -89,7 +91,7 @@ class AgentEndpoint(rest.RESTServer):
             return
 
         def _response(result):
-            return self.return_ok(result)
+            return self.return_ok(request, result)
 
         d = self.agent_protocols[connection_id].send_command(json.loads(request.content.read()))
         return d.addCallback(_response)

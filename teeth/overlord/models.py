@@ -81,7 +81,7 @@ class AgentConnection(Base):
         return OrderedDict([
             ('id', str(self.id)),
             ('primary_mac_address', self.primary_mac_address),
-            ('endpoint_rcp_host', self.endpoint_rpc_host),
+            ('endpoint_rpc_host', self.endpoint_rpc_host),
             ('endpoint_rpc_port', self.endpoint_rpc_port),
         ])
 
