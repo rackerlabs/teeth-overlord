@@ -32,7 +32,7 @@ class TeethAPI(rest.RESTServer):
             request.setHeader('Location', self.get_absolute_url(request, '/v1.0/chassis/' + str(chassis.id)))
             request.setResponseCode(201)
 
-        chassis = models.Chassis(primary_mac_address='foo')
+        chassis = models.Chassis(primary_mac_address='a:b:c:d')
         return threads.deferToThread(chassis.save).addCallback(_saved)
 
     @app.route('/v1.0/chassis', methods=['GET'])
@@ -46,7 +46,7 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/instances', methods=['POST'])
     def create_instance(self, request):
         instance = models.Instance()
-        job = jobs.CreateInstanceJob(instance)
+        job = jobs.CreateInstanceJob(instance, self.config)
 
         def _created(instance):
             request.setHeader('Location', self.get_absolute_url(request, '/v1.0/instances/' + str(instance.id)))
