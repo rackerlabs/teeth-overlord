@@ -46,6 +46,7 @@ class Chassis(Base):
         return OrderedDict([
             ('id', str(self.id)),
             ('state', self.state),
+            ('primary_mac_address', self.primary_mac_address),
         ])
 
 
