@@ -93,7 +93,12 @@ class AgentEndpoint(rest.RESTServer):
         def _response(result):
             return self.return_ok(request, result)
 
-        d = self.agent_protocols[connection_id].send_command(json.loads(request.content.read()))
+        content = json.loads(request.content.read())
+        method = content['method']
+        args = content.get('args', [])
+        kwargs = content.get('kwargs', {})
+
+        d = self.agent_protocols[connection_id].send_command(method, *args, **kwargs)
         return d.addCallback(_response)
 
     def listen(self):
