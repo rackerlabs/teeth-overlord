@@ -9,7 +9,7 @@ mock==1.0.1
 pep8==1.4.6
 pyflakes==0.7.3
 simplejson==3.3.0
--e git+git@github.com:russellhaering/teeth-agent.git@7f8cb6dd459ffbe51da81a1079ebf76a7a6e13c6#egg=teeth_agent-dev
+-e git+git@github.com:racker/teeth-agent.git@7f8cb6dd459ffbe51da81a1079ebf76a7a6e13c6#egg=teeth_agent-dev
 thrift==0.9.1
 treq==0.2.0
 wsgiref==0.1.2
