@@ -20,8 +20,8 @@ import sys
 from twisted.internet import reactor
 from twisted.python import log
 
-from teeth.overlord.api.server import TeethAPI
-from teeth.overlord.config import Config
+from teeth_overlord.api.server import TeethAPI
+from teeth_overlord.config import Config
 
 
 config = Config()

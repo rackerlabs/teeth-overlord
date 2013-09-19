@@ -17,9 +17,9 @@ limitations under the License.
 from twisted.internet import threads
 from cqlengine import BatchQuery
 
-from teeth.overlord import models
-from teeth.overlord import errors
-from teeth.overlord.agent.rpc import EndpointRPCClient
+from teeth_overlord import models
+from teeth_overlord import errors
+from teeth_overlord.agent.rpc import EndpointRPCClient
 
 
 class Job(object):

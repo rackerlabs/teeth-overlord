@@ -17,7 +17,7 @@ limitations under the License.
 from klein import Klein
 from twisted.internet import threads
 
-from teeth.overlord import models, jobs, rest
+from teeth_overlord import models, jobs, rest
 
 
 class TeethAPI(rest.RESTServer):

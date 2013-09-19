@@ -22,7 +22,7 @@ from teeth_agent.protocol import TeethAgentProtocol
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads
 
-from teeth.overlord import models, encoding, errors, rest
+from teeth_overlord import models, encoding, errors, rest
 
 
 class AgentEndpointHandler(TeethAgentProtocol):

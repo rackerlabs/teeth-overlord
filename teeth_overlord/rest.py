@@ -18,7 +18,7 @@ from twisted.python import log
 from twisted.web.server import Site
 from twisted.internet import reactor
 
-from teeth.overlord import errors, encoding
+from teeth_overlord import errors, encoding
 
 
 class RESTServer(object):

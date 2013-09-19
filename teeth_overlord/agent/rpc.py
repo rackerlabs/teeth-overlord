@@ -21,7 +21,7 @@ from twisted.internet import reactor
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
 
-from teeth.overlord.encoding import TeethJSONEncoder, SerializationViews
+from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
 
 
 class EndpointRPCClient(object):

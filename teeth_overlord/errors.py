@@ -16,7 +16,7 @@ limitations under the License.
 
 from collections import OrderedDict
 
-from teeth.overlord.models import Serializable
+from teeth_overlord.models import Serializable
 
 
 class TeethError(Exception, Serializable):
