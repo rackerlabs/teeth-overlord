@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import simplejson as json
-
 import treq
-from twisted.internet import reactor
-from twisted.web.client import Agent
-from twisted.web.http_headers import Headers
 
 from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
 
@@ -31,9 +26,9 @@ class EndpointRPCClient(object):
 
     def _get_command_url(self, connection):
         return 'http://{host}:{port}/v1.0/agent_connections/{connection_id}/command'.format(
-                host=connection.endpoint_rpc_host,
-                port=connection.endpoint_rpc_port,
-                connection_id=connection.id
+            host=connection.endpoint_rpc_host,
+            port=connection.endpoint_rpc_port,
+            connection_id=connection.id
         )
 
     def _get_command_body(self, method, *args, **kwargs):

@@ -21,6 +21,7 @@ from twisted.plugin import IPlugin
 
 from teeth_overlord.config import Config
 
+
 class TeethServiceOptions(usage.Options):
     optParameters = [
         ['config', 'c', None, 'Path to the config file to use.'],
@@ -38,7 +39,7 @@ class TeethServiceMaker(object):
         self.service_class = service_class
         self.tapname = tapname
         self.description = description
-    
+
     def makeService(self, options):
         config_path = options.get('config', None)
         if config_path:
