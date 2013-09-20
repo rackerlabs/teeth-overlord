@@ -5,6 +5,18 @@ APIs for inventory and instance management, as well as a line-oriented JSON
 protocol used to communicate with agents which run on servers which are in a
 ready state, waiting to be deployed by a customer.
 
+## Dependencies
+
+The Teeth Overlord services depend on a Cassandra instance. By default, they
+connect to localhost:9160.
+
+Once Cassandra is running, sync our schema to it:
+
+```bash
+
+python sync_models.py
+```
+
 ## teeth-agent-endpoint
 
 Exposes an endpoint that teeth agents can connect to in order to make and
