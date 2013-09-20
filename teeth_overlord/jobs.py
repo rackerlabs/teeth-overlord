@@ -58,7 +58,7 @@ class CreateInstanceJob(Job):
         def _with_connection(connection):
             return self.endpoint_rpc.prepare_image(connection, 'image-123').addCallback(lambda result: chassis)
 
-        return threads.deferToThread(connection_query.first).addCallback(_with_connection)
+        return self.endpoint_rpc.get_agent_connection(chassis)
 
     def mark_active(self, chassis):
         if not chassis:

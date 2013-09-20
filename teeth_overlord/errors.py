@@ -36,10 +36,17 @@ class TeethError(Exception, Serializable):
 class InsufficientCapacityError(TeethError):
     message = 'Insufficient capacity'
     details = 'There was not enough capacity available to fulfill your request. Please try back later.'
-    status_code = 500
+
+
+class AgentNotConnectedError(TeethError):
+    def __init__(self, chassis_id, primary_mac_address):
+        self.message = 'Agent not connected'
+        self.message = 'No agent is connected for chassis {chassis_id} (mac adddress {primary_mac_address}).'.format(
+            chassis_id=chassis_id,
+            primary_mac_address=primary_mac_address
+        )
 
 
 class AgentConnectionLostError(TeethError):
     message = 'Agent connection lost'
     details = 'The agent\'s connection was lost while performing your request.'
-    status_code = 500
