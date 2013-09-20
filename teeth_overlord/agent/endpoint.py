@@ -20,7 +20,7 @@ import uuid
 from klein import Klein
 from teeth_agent.protocol import TeethAgentProtocol
 from twisted.internet.protocol import ServerFactory
-from twisted.internet import reactor, threads
+from twisted.internet import reactor, threads, defer
 
 from teeth_overlord import models, encoding, errors, rest
 
@@ -73,7 +73,7 @@ class AgentEndpoint(rest.RESTServer):
     def __init__(self, config):
         rpc_port = config.AGENT_ENDPOINT_RPC_PORT
         rpc_host = config.AGENT_ENDPOINT_RPC_HOST
-        super(AgentEndpoint, self).__init__(config, rpc_host, rpc_port)
+        rest.RESTServer.__init__(self, config, rpc_host, rpc_port)
         self.agent_protocols = {}
 
     def register_agent_protocol(self, connection_id, protocol):
@@ -101,8 +101,11 @@ class AgentEndpoint(rest.RESTServer):
         d = self.agent_protocols[connection_id].send_command(method, *args, **kwargs)
         return d.addCallback(_response)
 
-    def listen(self):
+    def startService(self):
         agent_port = self.config.AGENT_ENDPOINT_AGENT_PORT
         agent_host = self.config.AGENT_ENDPOINT_AGENT_HOST
-        reactor.listenTCP(agent_port, AgentEndpointHandlerFactory(self), interface=agent_host)
-        super(AgentEndpoint, self).listen()
+        self.agent_listener = reactor.listenTCP(agent_port, AgentEndpointHandlerFactory(self), interface=agent_host)
+        rest.RESTServer.startService(self)
+
+    def stopService(self):
+        return defer.DeferredList([self.agent_listener.stopListening(), rest.RESTServer.stopService(self)])

@@ -24,7 +24,7 @@ class TeethAPI(rest.RESTServer):
     app = Klein()
 
     def __init__(self, config):
-        super(TeethAPI, self).__init__(config, config.API_HOST, config.API_PORT)
+        rest.RESTServer.__init__(self, config, config.API_HOST, config.API_PORT)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):

@@ -17,11 +17,12 @@ limitations under the License.
 from twisted.python import log
 from twisted.web.server import Site
 from twisted.internet import reactor
+from twisted.application.service import Service
 
 from teeth_overlord import errors, encoding
 
 
-class RESTServer(object):
+class RESTServer(Service):
     def __init__(self, config, host, port, view=encoding.SerializationViews.PUBLIC, indent=4):
         self.config = config
         self.encoder = encoding.TeethJSONEncoder(view, indent=indent)
@@ -50,5 +51,8 @@ class RESTServer(object):
         request.setHeader('Content-Type', 'application/json')
         return self.encoder.encode(result)
 
-    def listen(self):
-        reactor.listenTCP(self.listen_port, Site(self.app.resource()), interface=self.listen_host)
+    def startService(self):
+        self.listener = reactor.listenTCP(self.listen_port, Site(self.app.resource()), interface=self.listen_host)
+
+    def stopService(self):
+        return self.listener.stopListening()
