@@ -39,9 +39,10 @@ class InsufficientCapacityError(TeethError):
 
 
 class AgentNotConnectedError(TeethError):
+    message = 'Agent not connected'
+
     def __init__(self, chassis_id, primary_mac_address):
-        self.message = 'Agent not connected'
-        self.message = 'No agent is connected for chassis {chassis_id} (mac adddress {primary_mac_address}).'.format(
+        self.details = 'No agent is connected for chassis {chassis_id} (mac adddress {primary_mac_address}).'.format(
             chassis_id=chassis_id,
             primary_mac_address=primary_mac_address
         )
