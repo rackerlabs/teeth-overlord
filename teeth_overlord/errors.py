@@ -51,3 +51,19 @@ class AgentNotConnectedError(TeethError):
 class AgentConnectionLostError(TeethError):
     message = 'Agent connection lost'
     details = 'The agent\'s connection was lost while performing your request.'
+
+
+class UnsupportedContentTypeError(TeethError):
+    message = 'Unsupported Content-Type'
+    status_code = 400
+
+    def __init__(self, content_type):
+        self.details = 'Content-Type "{content_type}" is not supported'.format(content_type=content_type)
+
+
+class InvalidContentError(TeethError):
+    message = 'Invalid request body'
+    status_code = 400
+
+    def __init__(self, error):
+        self.details = error.message

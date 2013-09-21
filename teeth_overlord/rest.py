@@ -14,9 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import simplejson as json
 from structlog import get_logger
 from twisted.web.server import Site
 from twisted.internet import reactor
+from twisted.python.failure import Failure
+from werkzeug.http import parse_options_header
 
 from teeth_overlord import errors, encoding, service
 
@@ -34,9 +37,12 @@ class RESTServer(service.TeethService):
         proto = request.getHeader('x-forwarded-proto') or 'http'
         return "{proto}://{host}{path}".format(proto=proto, host=host, path=path)
 
-    def return_error(self, failure, request):
-        error = failure.value
-        self.log.err(failure)
+    def return_error(self, error, request):
+        self.log.err(error)
+
+        if isinstance(error, Failure):
+            error = error.value
+
         if isinstance(error, errors.TeethError):
             request.setResponseCode(error.status_code)
             request.setHeader('Content-Type', 'application/json')
@@ -50,6 +56,18 @@ class RESTServer(service.TeethService):
         request.setResponseCode(200)
         request.setHeader('Content-Type', 'application/json')
         return self.encoder.encode(result)
+
+    def parse_content(self, request):
+        content_type = request.getHeader('content-type')
+        if content_type:
+            content_type = parse_options_header(content_type)[0]
+            if content_type != 'application/json':
+                raise errors.UnsupportedContentTypeError(content_type)
+
+        try:
+            return json.loads(request.content.read())
+        except Exception as e:
+            raise errors.InvalidContentError(e)
 
     def startService(self):
         service.TeethService.startService(self)
