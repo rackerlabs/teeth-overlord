@@ -31,7 +31,7 @@ _global_config = None
 
 def _global_setup(config):
     global _global_config
-    if _global_config == None:
+    if _global_config is None:
         _global_config = config
         connection.setup(config.CASSANDRA_CLUSTER, consistency=config.CASSANDRA_CONSISTENCY)
         structlog.configure(

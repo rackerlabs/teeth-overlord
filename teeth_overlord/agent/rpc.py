@@ -49,7 +49,6 @@ class EndpointRPCClient(object):
         }
         return treq.post(url, data=body, headers=headers).addCallback(treq.json_content)
 
-
     def get_agent_connection(self, chassis):
         def _with_connection(connection):
             if not connection:
@@ -58,7 +57,5 @@ class EndpointRPCClient(object):
         connection_query = models.AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
         return threads.deferToThread(connection_query.first).addCallback(_with_connection)
 
-
     def prepare_image(self, connection, image_id):
         return self._command(connection, 'prepare_image', image_id)
-
