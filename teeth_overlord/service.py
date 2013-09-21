@@ -14,12 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import structlog
+from cqlengine import connection
 from zope.interface import implements
 from twisted.python import usage
-from twisted.application.service import IServiceMaker
+from twisted.application.service import IServiceMaker, Service
 from twisted.plugin import IPlugin
 
 from teeth_overlord.config import Config
+
+# Sometimes global setup is necessary. Make sure that if we try to do it twice:
+#   a. We don't actually do it twice
+#   b. The same config is used
+_global_config = None
+
+
+def _global_setup(config):
+    global _global_config
+    if _global_config == None:
+        _global_config = config
+        connection.setup(config.CASSANDRA_CLUSTER, consistency=config.CASSANDRA_CONSISTENCY)
+        structlog.configure(
+            processors=[structlog.twisted.EventAdapter()],
+            logger_factory=structlog.twisted.LoggerFactory(),
+        )
+    elif _global_config != config:
+        raise Exception('global_setup called twice with different configurations')
 
 
 class TeethServiceOptions(usage.Options):
@@ -46,3 +66,11 @@ class TeethServiceMaker(object):
             return self.service_class(Config.from_json_file(config_path))
         else:
             return self.service_class(Config())
+
+
+class TeethService(Service):
+    def __init__(self, config):
+        self.config = config
+
+    def startService(self):
+        _global_setup(self.config)

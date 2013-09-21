@@ -102,10 +102,10 @@ class AgentEndpoint(rest.RESTServer):
         return d.addCallback(_response)
 
     def startService(self):
+        rest.RESTServer.startService(self)
         agent_port = self.config.AGENT_ENDPOINT_AGENT_PORT
         agent_host = self.config.AGENT_ENDPOINT_AGENT_HOST
         self.agent_listener = reactor.listenTCP(agent_port, AgentEndpointHandlerFactory(self), interface=agent_host)
-        rest.RESTServer.startService(self)
 
     def stopService(self):
         return defer.DeferredList([self.agent_listener.stopListening(), rest.RESTServer.stopService(self)])

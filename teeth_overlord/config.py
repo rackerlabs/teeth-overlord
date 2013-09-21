@@ -15,7 +15,6 @@ limitations under the License.
 """
 
 import simplejson as json
-from cqlengine import connection
 
 
 class Config(object):
@@ -32,9 +31,6 @@ class Config(object):
         for key, value in kwargs.iteritems():
             if key in self:
                 self[key] = value
-
-        connection.setup(self.CASSANDRA_CLUSTER,
-                         consistency=self.CASSANDRA_CONSISTENCY)
 
     @classmethod
     def from_json_file(cls, config_path):

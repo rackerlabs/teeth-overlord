@@ -14,20 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from twisted.python import log
+from structlog import get_logger
 from twisted.web.server import Site
 from twisted.internet import reactor
-from twisted.application.service import Service
 
-from teeth_overlord import errors, encoding
+from teeth_overlord import errors, encoding, service
 
 
-class RESTServer(Service):
+class RESTServer(service.TeethService):
     def __init__(self, config, host, port, view=encoding.SerializationViews.PUBLIC, indent=4):
         self.config = config
         self.encoder = encoding.TeethJSONEncoder(view, indent=indent)
         self.listen_host = host
         self.listen_port = port
+        self.log = get_logger(port=port, host=host)
 
     def get_absolute_url(self, request, path):
         host = request.getHeader('host')
@@ -36,7 +36,7 @@ class RESTServer(Service):
 
     def return_error(self, failure, request):
         error = failure.value
-        log.err(failure)
+        self.log.err(failure)
         if isinstance(error, errors.TeethError):
             request.setResponseCode(error.status_code)
             request.setHeader('Content-Type', 'application/json')
@@ -52,6 +52,7 @@ class RESTServer(Service):
         return self.encoder.encode(result)
 
     def startService(self):
+        service.TeethService.startService(self)
         self.listener = reactor.listenTCP(self.listen_port, Site(self.app.resource()), interface=self.listen_host)
 
     def stopService(self):

@@ -53,8 +53,6 @@ class CreateInstanceJob(Job):
         return threads.deferToThread(batch.execute).addCallback(lambda result: chassis)
 
     def prepare_image(self, chassis):
-        connection_query = models.AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
-
         def _with_connection(connection):
             return self.endpoint_rpc.prepare_image(connection, 'image-123').addCallback(lambda result: chassis)
 
