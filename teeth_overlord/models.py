@@ -49,6 +49,14 @@ class Chassis(Base):
             ('primary_mac_address', self.primary_mac_address),
         ])
 
+    @classmethod
+    def deserialize(cls, params):
+        chassis = cls(
+            primary_mac_address=params['primary_mac_address'],
+        )
+        chassis.validate()
+        return chassis
+
 
 class InstanceState(object):
     BUILD = 'BUILD'
@@ -66,6 +74,12 @@ class Instance(Base):
             ('chassis_id', str(self.chassis_id)),
             ('state', self.state),
         ])
+
+    @classmethod
+    def deserialize(cls, params):
+        instance = cls()
+        instance.validate()
+        return instance
 
 
 class AgentConnection(Base):

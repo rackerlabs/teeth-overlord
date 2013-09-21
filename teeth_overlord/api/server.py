@@ -32,8 +32,11 @@ class TeethAPI(rest.RESTServer):
             request.setHeader('Location', self.get_absolute_url(request, '/v1.0/chassis/' + str(chassis.id)))
             request.setResponseCode(201)
 
-        chassis = models.Chassis(primary_mac_address='a:b:c:d')
-        return threads.deferToThread(chassis.save).addCallback(_saved)
+        try:
+            chassis = models.Chassis.deserialize(self.parse_content(request))
+            return threads.deferToThread(chassis.save).addCallback(_saved)
+        except Exception as e:
+            return self.return_error(e, request)
 
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
