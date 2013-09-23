@@ -29,7 +29,7 @@ from teeth_overlord.config import Config
 _global_config = None
 
 
-def _global_setup(config):
+def global_setup(config):
     global _global_config
     if _global_config is None:
         _global_config = config
@@ -73,4 +73,4 @@ class TeethService(Service):
         self.config = config
 
     def startService(self):
-        _global_setup(self.config)
+        global_setup(self.config)
