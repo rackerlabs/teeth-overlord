@@ -53,6 +53,7 @@ class EndpointRPCClient(object):
         def _with_connection(connection):
             if not connection:
                 raise errors.AgentNotConnectedError(chassis.id, chassis.primary_mac_address)
+            return connection
 
         connection_query = models.AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
         return threads.deferToThread(connection_query.first).addCallback(_with_connection)
