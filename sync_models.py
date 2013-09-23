@@ -19,11 +19,12 @@ limitations under the License.
 from cqlengine import connection
 from cqlengine.management import sync_table
 
-from teeth.overlord.models import all_models
-from teeth.overlord.config import Config
+from teeth_overlord.models import all_models
+from teeth_overlord.config import Config
+from teeth_overlord.service import global_setup
 
 
 if __name__ == '__main__':
-    config = Config()
+    global_setup(Config())
     for model in all_models:
         sync_table(model)
