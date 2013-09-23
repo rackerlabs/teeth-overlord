@@ -26,6 +26,8 @@ class Config(object):
     AGENT_ENDPOINT_AGENT_PORT = 8081
     AGENT_ENDPOINT_RPC_HOST = 'localhost'
     AGENT_ENDPOINT_RPC_PORT = 8082
+    JOBSERVER_HOST = 'localhost'
+    JOBSERVER_PORT = 8083
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
