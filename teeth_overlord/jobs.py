@@ -15,11 +15,12 @@ limitations under the License.
 """
 
 from abc import ABCMeta, abstractproperty, abstractmethod
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from klein import Klein
 from twisted.internet import threads
 from cqlengine import BatchQuery
+from structlog import get_logger
 
 from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest
 from teeth_overlord import errors
@@ -74,14 +75,26 @@ class Job(object):
         self.executor = executor
         self.params = request.params
         self.request = request
+        self.log = get_logger(request_id=str(self.request.id), attempt_id=str(uuid4()))
 
     @abstractproperty
     def job_type(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def execute(self):
+    def _execute(self):
         raise NotImplementedError()
+
+    def _on_success(self, result):
+        self.log.msg('successfully executed job request')
+        return threads.deferToThread(self.request.delete)
+
+    def _on_failure(self, failure):
+        self.log.err(failure, 'failed to execute job request')
+
+    def execute(self):
+        self.log.msg('executing job request')
+        return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
 
 
 class CreateInstance(Job):
@@ -125,11 +138,10 @@ class CreateInstance(Job):
         chassis.batch(batch).save()
         return threads.deferToThread(batch.execute).addCallback(lambda result: None)
 
-    def execute(self):
+    def _execute(self):
         return self.get_instance() \
                    .addCallback(self.find_chassis) \
                    .addCallback(self.reserve_chassis) \
                    .addCallback(self.get_agent_connection) \
                    .addCallback(self.prepare_image) \
-                   .addCallback(self.mark_active) \
-                   .addCallback(self.done)
+                   .addCallback(self.mark_active)
