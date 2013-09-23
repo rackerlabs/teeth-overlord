@@ -25,6 +25,7 @@ class TeethAPI(rest.RESTServer):
 
     def __init__(self, config):
         rest.RESTServer.__init__(self, config, config.API_HOST, config.API_PORT)
+        self.job_client = jobs.JobClient(config)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
@@ -49,13 +50,19 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/instances', methods=['POST'])
     def create_instance(self, request):
         instance = models.Instance()
-        job = jobs.CreateInstanceJob(instance, self.config)
 
-        def _created(instance):
+        def _execute_job(result):
+            return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
+
+        def _respond(result):
             request.setHeader('Location', self.get_absolute_url(request, '/v1.0/instances/' + str(instance.id)))
             request.setResponseCode(201)
+            return
 
-        return job.execute().addCallback(_created).addErrback(self.return_error, request)
+        return threads.deferToThread(instance.save) \
+                      .addCallback(_execute_job) \
+                      .addCallback(_respond) \
+                      .addErrback(self.return_error, request)
 
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
