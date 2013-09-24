@@ -8,7 +8,7 @@ password = "ADMIN"
 
 
 def set_next_boot_to_pxe(host, callback, errback):
-    executable = subprocess.check_output('which ipmi', shell=True).strip()
+    executable = subprocess.check_output('which ipmitool', shell=True).strip()
     arg_string = "-U {} -P {} -H {} chassis bootdev pxe".format(
         user, password, host)
 
@@ -23,7 +23,7 @@ def set_next_boot_to_pxe(host, callback, errback):
 
 
 def power_cycle(host, callback, errback):
-    executable = subprocess.check_output('which ipmi', shell=True).strip()
+    executable = subprocess.check_output('which ipmitool', shell=True).strip()
     arg_string = "-U {} -P {} -H {} chassis power cycle".format(
         user, password, host)
 
