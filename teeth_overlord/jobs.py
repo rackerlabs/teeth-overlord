@@ -17,10 +17,10 @@ limitations under the License.
 from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
 
-from twisted.internet import defer, reactor, threads, protocol
+from twisted.internet import defer, reactor, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
-from txredis.client import RedisClient
+from txredis import RedisClientFactory, RedisError
 
 from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest
 from teeth_overlord import errors
@@ -32,13 +32,15 @@ JOB_LIST_NAME = 'teeth.jobs'
 
 class RedisJobListener(object):
     listen_timeout_seconds = 1
+    redis_error_retry_delay = 1.0
+    redis_retry_initial_delay = 1.0
+    redis_retry_max_delay = 5.0
 
     def __init__(self, host, port, processor_fn):
         self.host = host
         self.port = port
         self.processor_fn = processor_fn
         self.log = get_logger(host=host, port=port)
-        self._redis_client_creator = protocol.ClientCreator(reactor, RedisClient)
         self._stop_cb = None
         self._stopping = True
 
@@ -54,21 +56,38 @@ class RedisJobListener(object):
         self.log.msg('received job request', request_id=request_id)
         return self.processor_fn(request_id)
 
-    def _next_item(self, connection):
+    # If redis is down, try not to spin too fast. Otherwise, log the error.
+    def _log_failure_and_delay(self, failure):
+        delay = 0
+        if not failure.check([RedisError, RuntimeError]):
+            delay = self.redis_error_retry_delay
+        else:
+            self.log.err(failure)
+
+        d = defer.Deferred()
+        reactor.callLater(delay, d.callback, None)
+        return d
+
+    def _next_item(self):
         if self._stopping:
-            connection.quit().addCallback(self._stop_cb.callback)
+            self._client_factory.client.quit().addErrback(self.log.err).addCallback(self._stop_cb.callback)
 
-        d = connection.bpop([JOB_LIST_NAME], timeout=self.listen_timeout_seconds)
+        d = self._client_factory.client.bpop([JOB_LIST_NAME], timeout=self.listen_timeout_seconds)
         d.addCallback(self._process_item)
-        d.addCallback(lambda result: self._next_item(connection))
+        d.addErrback(self._log_failure_and_delay)
+        d.addCallback(lambda result: reactor.callLater(0, self._next_item))
 
-    def _loop(self, connection):
+    def _loop(self):
         self._stop_cb = defer.Deferred()
-        self._next_item(connection)
+        self._next_item()
 
     def start(self):
         self._stopping = False
-        self._connect().addCallback(self._loop)
+        self._client_factory = RedisClientFactory()
+        self._client_factory.initialDelay = self.redis_retry_initial_delay
+        self._client_factory.maxDelay = self.redis_retry_max_delay
+        self._client_factory.deferred.addCallback(lambda first_client: self._loop())
+        reactor.connectTCP(self.host, self.port, self._client_factory)
 
     def stop(self):
         self._stopping = True
