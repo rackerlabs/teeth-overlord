@@ -17,22 +17,67 @@ limitations under the License.
 from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
 
-from klein import Klein
-from twisted.internet import threads
+from twisted.internet import defer, reactor, threads, protocol
 from cqlengine import BatchQuery
 from structlog import get_logger
+from txredis.client import RedisClient
 
 from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest
 from teeth_overlord import errors
 from teeth_overlord.agent.rpc import EndpointRPCClient
-from teeth_overlord.rest import RESTServer
+from teeth_overlord.service import TeethService
+
+JOB_LIST_NAME = 'teeth.jobs'
 
 
-class JobExecutor(RESTServer):
-    app = Klein()
+class RedisJobListener(object):
+    listen_timeout_seconds = 1
 
+    def __init__(self, host, port, processor_fn):
+        self.host = host
+        self.port = port
+        self.processor_fn = processor_fn
+        self.log = get_logger(host=host, port=port)
+        self._redis_client_creator = protocol.ClientCreator(reactor, RedisClient)
+        self._stop_cb = None
+        self._stopping = True
+
+    def _connect(self):
+        return self._redis_client_creator.connectTCP(self.host, self.port)
+
+    def _process_item(self, response):
+        if not response:
+            self.log.msg('empty response from redis')
+            return
+
+        list_name, request_id = response
+        self.log.msg('received job request', request_id=request_id)
+        return self.processor_fn(request_id)
+
+    def _next_item(self, connection):
+        if self._stopping:
+            connection.quit().addCallback(self._stop_cb.callback)
+
+        d = connection.bpop([JOB_LIST_NAME], timeout=self.listen_timeout_seconds)
+        d.addCallback(self._process_item)
+        d.addCallback(lambda result: self._next_item(connection))
+
+    def _loop(self, connection):
+        self._stop_cb = defer.Deferred()
+        self._next_item(connection)
+
+    def start(self):
+        self._stopping = False
+        self._connect().addCallback(self._loop)
+
+    def stop(self):
+        self._stopping = True
+        return self._stop_cb
+
+
+class JobExecutor(TeethService):
     def __init__(self, config):
-        RESTServer.__init__(self, config, config.JOBSERVER_HOST, config.JOBSERVER_PORT)
+        self.config = config
         self.endpoint_rpc_client = EndpointRPCClient(config)
         self._job_type_cache = {}
 
@@ -42,16 +87,26 @@ class JobExecutor(RESTServer):
 
         return self._job_type_cache[job_type]
 
-    @app.route('/v1.0/job_requests/<string:request_id>/execute', methods=['POST'])
-    def execute_job_request(self, request, request_id):
+    def _start_processor(self, address):
+        host, port = address.rsplit(':')
+        processor = RedisJobListener(host, int(port), self.execute_job_request)
+        processor.start()
+        return processor
+
+    def execute_job_request(self, request_id):
         def _with_request(job_request):
             cls = self._get_job_class(job_request.job_type)
             job = cls(self, job_request)
-            job.execute()
-            return
+            return job.execute()
 
-        request_id = UUID(request_id)
-        return threads.deferToThread(JobRequest.objects.get, id=request_id).addCallback(_with_request)
+        return threads.deferToThread(JobRequest.objects.get, id=UUID(request_id)).addCallback(_with_request)
+
+    def startService(self):
+        TeethService.startService(self)
+        self._processors = [self._start_processor(address) for address in self.config.REDIS_ADDRESSES]
+
+    def stopService(self):
+        return defer.DeferredList([processor.stop() for processor in self._processors])
 
 
 class JobClient(object):
@@ -90,7 +145,7 @@ class Job(object):
         return threads.deferToThread(self.request.delete)
 
     def _on_failure(self, failure):
-        self.log.err(failure, 'failed to execute job request')
+        self.log.err(failure)
 
     def execute(self):
         self.log.msg('executing job request')

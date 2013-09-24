@@ -28,6 +28,7 @@ class Config(object):
     AGENT_ENDPOINT_RPC_PORT = 8082
     JOBSERVER_HOST = 'localhost'
     JOBSERVER_PORT = 8083
+    REDIS_ADDRESSES = ['localhost:6379']
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
