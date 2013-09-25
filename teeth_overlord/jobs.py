@@ -16,6 +16,7 @@ limitations under the License.
 
 from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
+import random
 
 from twisted.internet import defer, reactor, threads
 from cqlengine import BatchQuery
@@ -125,14 +126,27 @@ class JobClient(object):
     def __init__(self, config):
         self.config = config
         self.executor = JobExecutor(config)
+        self.log = get_logger()
+        self.redis_instances = [self._get_redis_connection(address) for address in self.config.REDIS_ADDRESSES]
+
+    def _get_redis_connection(self, address):
+        host, port = address.rsplit(':')
+        return lazyConnection(host, int(port))
+
+    def _notify_workers(self, job_request):
+        idxs = range(len(self.redis_instances))
+        random.shuffle(idxs)
+        for i in idxs:
+            try:
+                return self.redis_instances[i].lpush(JOB_LIST_NAME, str(job_request.id)).addErrback(self.log.err)
+            except ConnectionError:
+                continue
+
+        return defer.fail(ConnectionError('Not connected to any redis instance')).addErrback(self.log.err)
 
     def submit_job(self, cls, **params):
         job_request = JobRequest(job_type=cls.job_type, params=params)
-
-        def _on_save(result):
-            return self.executor.execute_job_request(None, str(job_request.id))
-
-        return threads.deferToThread(job_request.save).addCallback(_on_save)
+        return threads.deferToThread(job_request.save).addCallback(self._notify_workers)
 
 
 class Job(object):
