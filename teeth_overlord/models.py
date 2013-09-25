@@ -106,7 +106,8 @@ class Chassis(Base):
     @classmethod
     def deserialize(cls, params):
         chassis = cls(
-            primary_mac_address=params['primary_mac_address'],
+            chassis_model_id=params.get('chassis_model_id'),
+            primary_mac_address=params.get('primary_mac_address')
         )
         chassis.validate()
         return chassis
