@@ -37,15 +37,59 @@ class ChassisState(object):
     ACTIVE = 'ACTIVE'
 
 
+class Flavor(Base):
+    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    name = columns.Text(required=True)
+
+    def serialize(self, view):
+        return OrderedDict([
+            ('id', str(self.id)),
+            ('name', self.name),
+        ])
+
+
+class FlavorProvider(Base):
+    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    flavor_id = columns.UUID(index=True, required=True)
+    chassis_model_id = columns.UUID(index=True, required=True)
+    schedule_priority = columns.Integer(required=True)
+
+    def serialize(self, view):
+        return OrderedDict([
+            ('id', str(self.id)),
+            ('name', self.name),
+            ('flavor_id', str(self.flavor_id)),
+            ('chassis_model_id', str(self.chassis_model_id)),
+            ('schedule_priority', self.schedule_priority),
+        ])
+
+
+class ChassisModel(Base):
+    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    name = columns.Text(required=True)
+    ipmi_default_password = columns.Text()
+    ipmi_default_user = columns.Text()
+
+    def serialize(self, view):
+        return OrderedDict([
+            ('id', str(self.id)),
+            ('name', self.name),
+        ])
+
+
 class Chassis(Base):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     state = columns.Ascii(index=True, default=ChassisState.READY)
+    chassis_model_id = columns.UUID(index=True, required=True)
+    ipmi_username = columns.Text(required=True)
+    ipmi_password = columns.Text(required=True)
     primary_mac_address = columns.Ascii(index=True, required=True)
 
     def serialize(self, view):
         return OrderedDict([
             ('id', str(self.id)),
             ('state', self.state),
+            ('chassis_model_id', str(self.chassis_model_id)),
             ('primary_mac_address', self.primary_mac_address),
         ])
 
@@ -113,4 +157,4 @@ class JobRequest(Base):
             ('params', self.params.to_python),
         ])
 
-all_models = [Chassis, Instance, AgentConnection, JobRequest]
+all_models = [Chassis, Instance, AgentConnection, JobRequest, Flavor, FlavorProvider, ChassisModel]
