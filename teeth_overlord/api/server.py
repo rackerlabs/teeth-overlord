@@ -27,6 +27,12 @@ class TeethAPI(rest.RESTServer):
         rest.RESTServer.__init__(self, config, config.API_HOST, config.API_PORT)
         self.job_client = jobs.JobClient(config)
 
+    def _crud_list(self, request, cls):
+        def _retrieved(objects):
+            return self.return_ok(request, objects)
+
+        return threads.deferToThread(list, cls.objects.all()).addCallback(_retrieved)
+
     @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
         def _saved(chassis_model):
@@ -41,12 +47,7 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/chassis_models', methods=['GET'])
     def list_chassis_model(self, request):
-        def _retrieved(chassis_model):
-            return self.return_ok(request, chassis_model)
-
-        chassis_model_query = models.ChassisModel.objects.all()
-        return threads.deferToThread(list, chassis_model_query).addCallback(_retrieved)
-
+        return self._crud_list(request, models.ChassisModel)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
@@ -62,11 +63,7 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
-        def _retrieved(chassis):
-            return self.return_ok(request, chassis)
-
-        chassis_query = models.Chassis.objects.all()
-        return threads.deferToThread(list, chassis_query).addCallback(_retrieved)
+        return self._crud_list(request, models.Chassis)
 
     @app.route('/v1.0/instances', methods=['POST'])
     def create_instance(self, request):
@@ -87,7 +84,4 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
-        def _retrieved(instances):
-            return self.return_ok(request, instances)
-
-        return threads.deferToThread(list, models.Instance.objects.all()).addCallback(_retrieved)
+        return self._crud_list(request, models.Instance)
