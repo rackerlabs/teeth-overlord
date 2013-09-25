@@ -20,7 +20,7 @@ from uuid import UUID, uuid4
 from twisted.internet import defer, reactor, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
-from txredis import RedisClientFactory, RedisError
+from txredisapi import lazyConnection, ConnectionError
 
 from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest
 from teeth_overlord import errors
@@ -30,43 +30,16 @@ from teeth_overlord.service import TeethService
 JOB_LIST_NAME = 'teeth.jobs'
 
 
-class ReconnectingRedisClientManager(object):
-    def __init__(self, host, port, retry_initial_delay=1.0, retry_max_delay=5.0):
-        self.host = host
-        self.port = port
-        self.retry_initial_delay = retry_initial_delay
-        self.retry_max_delay = retry_max_delay
-        self._client_factory = None
-
-    def start(self):
-        self._client_factory = RedisClientFactory()
-        self._client_factory.initialDelay = self.retry_initial_delay
-        self._client_factory.maxDelay = self.retry_max_delay
-        d = self._client_factory.deferred
-        reactor.connectTCP(self.host, self.port, self._client_factory)
-        return d
-
-    def stop(self):
-        # If no connection has been successfully established, calling
-        # stopTrying() on the factory is purported to cancel the attempt.
-        self._client_factory.stopTrying()
-        if self._client_factory.client:
-            return self._client_factory.client.quit()
-        else:
-            return defer.succeed(None)
-
-    def get_client(self):
-        return self._client_factory.client
-
-
 class RedisJobListener(object):
     listen_timeout_seconds = 1
     redis_error_retry_delay = 1.0
 
     def __init__(self, host, port, processor_fn):
+        self.host = host
+        self.port = port
         self.processor_fn = processor_fn
         self.log = get_logger(host=host, port=port)
-        self.redis = ReconnectingRedisClientManager(host, port)
+        self.redis = None
         self._stop_d = None
         self._stopping = True
 
@@ -82,7 +55,7 @@ class RedisJobListener(object):
     # If redis is down, try not to spin too fast. Otherwise, log the error.
     def _log_failure_and_delay(self, failure):
         delay = 0
-        if not failure.check([RedisError, RuntimeError]):
+        if not failure.check([ConnectionError]):
             delay = self.redis_error_retry_delay
         else:
             self.log.err(failure)
@@ -93,9 +66,9 @@ class RedisJobListener(object):
 
     def _next_item(self):
         if self._stopping:
-            self.redis.stop().addErrback(self.log.err).addCallback(self._stop_d.callback)
+            self.redis.quit().addErrback(self.log.err).addCallback(self._stop_d.callback)
 
-        d = self.redis.get_client().bpop([JOB_LIST_NAME], timeout=self.listen_timeout_seconds)
+        d = self.redis.blpop([JOB_LIST_NAME], self.listen_timeout_seconds)
         d.addCallback(self._process_item)
         d.addErrback(self._log_failure_and_delay)
         d.addCallback(lambda result: reactor.callLater(0, self._next_item))
@@ -106,7 +79,8 @@ class RedisJobListener(object):
 
     def start(self):
         self._stopping = False
-        self.redis.start().addCallback(lambda result: self._loop())
+        self.redis = lazyConnection(self.host, self.port)
+        self._loop()
 
     def stop(self):
         self._stopping = True
