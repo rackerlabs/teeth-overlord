@@ -27,6 +27,27 @@ class TeethAPI(rest.RESTServer):
         rest.RESTServer.__init__(self, config, config.API_HOST, config.API_PORT)
         self.job_client = jobs.JobClient(config)
 
+    @app.route('/v1.0/chassis_models', methods=['POST'])
+    def create_chassis_model(self, request):
+        def _saved(chassis_model):
+            request.setHeader('Location', self.get_absolute_url(request, '/v1.0/chassis_model/' + str(chassis_model.id)))
+            request.setResponseCode(201)
+
+        try:
+            chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
+            return threads.deferToThread(chassis_model.save).addCallback(_saved)
+        except Exception as e:
+            return self.return_error(e, request)
+
+    @app.route('/v1.0/chassis_models', methods=['GET'])
+    def list_chassis_model(self, request):
+        def _retrieved(chassis_model):
+            return self.return_ok(request, chassis_model)
+
+        chassis_model_query = models.ChassisModel.objects.all()
+        return threads.deferToThread(list, chassis_model_query).addCallback(_retrieved)
+
+
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
         def _saved(chassis):

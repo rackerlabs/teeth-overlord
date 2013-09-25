@@ -76,6 +76,16 @@ class ChassisModel(Base):
             ('name', self.name),
         ])
 
+    @classmethod
+    def deserialize(cls, params):
+        chassis_model = cls(
+            name=params.get('name'),
+            ipmi_default_password = params.get('ipmi_default_password'),
+            ipmi_default_user = params.get('ipmi_default_user')
+        )
+        chassis_model.validate()
+        return chassis_model
+
 
 class Chassis(Base):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
