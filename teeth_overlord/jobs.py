@@ -49,7 +49,7 @@ class RedisJobListener(object):
 
     def _process_item(self, response):
         if not response:
-            self.log.msg('empty response from redis')
+            # This is normal, it just means no job became available
             return
 
         list_name, request_id = response
@@ -91,6 +91,7 @@ class RedisJobListener(object):
 
     def stop(self):
         self._stopping = True
+        self._client_factory.stopTrying()
         return self._stop_cb
 
 
