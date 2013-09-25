@@ -57,6 +57,11 @@ class RESTServer(service.TeethService):
         request.setHeader('Content-Type', 'application/json')
         return self.encoder.encode(result)
 
+    def return_created(self, request, path):
+        request.setResponseCode(201)
+        request.setHeader('Location', self.get_absolut_url(request, path))
+        return
+
     def parse_content(self, request):
         content_type = request.getHeader('content-type')
         if content_type:

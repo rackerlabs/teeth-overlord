@@ -36,8 +36,7 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
         def _saved(chassis_model):
-            request.setHeader('Location', self.get_absolute_url(request, '/v1.0/chassis_model/' + str(chassis_model.id)))
-            request.setResponseCode(201)
+            return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
 
         try:
             chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
@@ -52,8 +51,7 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
         def _saved(chassis):
-            request.setHeader('Location', self.get_absolute_url(request, '/v1.0/chassis/' + str(chassis.id)))
-            request.setResponseCode(201)
+            return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
 
         try:
             chassis = models.Chassis.deserialize(self.parse_content(request))
@@ -73,9 +71,7 @@ class TeethAPI(rest.RESTServer):
             return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
 
         def _respond(result):
-            request.setHeader('Location', self.get_absolute_url(request, '/v1.0/instances/' + str(instance.id)))
-            request.setResponseCode(201)
-            return
+            return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
         return threads.deferToThread(instance.save) \
                       .addCallback(_execute_job) \
