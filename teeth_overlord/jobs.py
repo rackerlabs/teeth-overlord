@@ -30,22 +30,45 @@ from teeth_overlord.service import TeethService
 JOB_LIST_NAME = 'teeth.jobs'
 
 
+class ReconnectingRedisClientManager(object):
+    def __init__(self, host, port, retry_initial_delay=1.0, retry_max_delay=5.0):
+        self.host = host
+        self.port = port
+        self.retry_initial_delay = retry_initial_delay
+        self.retry_max_delay = retry_max_delay
+        self._client_factory = None
+
+    def start(self):
+        self._client_factory = RedisClientFactory()
+        self._client_factory.initialDelay = self.retry_initial_delay
+        self._client_factory.maxDelay = self.retry_max_delay
+        d = self._client_factory.deferred
+        reactor.connectTCP(self.host, self.port, self._client_factory)
+        return d
+
+    def stop(self):
+        # If no connection has been successfully established, calling
+        # stopTrying() on the factory is purported to cancel the attempt.
+        self._client_factory.stopTrying()
+        if self._client_factory.client:
+            return self._client_factory.client.quit()
+        else:
+            return defer.succeed(None)
+
+    def get_client(self):
+        return self._client_factory.client
+
+
 class RedisJobListener(object):
     listen_timeout_seconds = 1
     redis_error_retry_delay = 1.0
-    redis_retry_initial_delay = 1.0
-    redis_retry_max_delay = 5.0
 
     def __init__(self, host, port, processor_fn):
-        self.host = host
-        self.port = port
         self.processor_fn = processor_fn
         self.log = get_logger(host=host, port=port)
-        self._stop_cb = None
+        self.redis = ReconnectingRedisClientManager(host, port)
+        self._stop_d = None
         self._stopping = True
-
-    def _connect(self):
-        return self._redis_client_creator.connectTCP(self.host, self.port)
 
     def _process_item(self, response):
         if not response:
@@ -70,29 +93,24 @@ class RedisJobListener(object):
 
     def _next_item(self):
         if self._stopping:
-            self._client_factory.client.quit().addErrback(self.log.err).addCallback(self._stop_cb.callback)
+            self.redis.stop().addErrback(self.log.err).addCallback(self._stop_d.callback)
 
-        d = self._client_factory.client.bpop([JOB_LIST_NAME], timeout=self.listen_timeout_seconds)
+        d = self.redis.get_client().bpop([JOB_LIST_NAME], timeout=self.listen_timeout_seconds)
         d.addCallback(self._process_item)
         d.addErrback(self._log_failure_and_delay)
         d.addCallback(lambda result: reactor.callLater(0, self._next_item))
 
     def _loop(self):
-        self._stop_cb = defer.Deferred()
+        self._stop_d = defer.Deferred()
         self._next_item()
 
     def start(self):
         self._stopping = False
-        self._client_factory = RedisClientFactory()
-        self._client_factory.initialDelay = self.redis_retry_initial_delay
-        self._client_factory.maxDelay = self.redis_retry_max_delay
-        self._client_factory.deferred.addCallback(lambda first_client: self._loop())
-        reactor.connectTCP(self.host, self.port, self._client_factory)
+        self.redis.start().addCallback(lambda result: self._loop())
 
     def stop(self):
         self._stopping = True
-        self._client_factory.stopTrying()
-        return self._stop_cb
+        return self._stop_d
 
 
 class JobExecutor(TeethService):
