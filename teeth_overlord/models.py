@@ -101,4 +101,16 @@ class AgentConnection(Base):
         ])
 
 
-all_models = [Chassis, Instance, AgentConnection]
+class JobRequest(Base):
+    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    job_type = columns.Ascii(required=True)
+    params = columns.Map(columns.Ascii, columns.Ascii)
+
+    def serialize(self, view):
+        return OrderedDict([
+            ('id', str(self.id)),
+            ('job_type', self.job_type),
+            ('params', self.params.to_python),
+        ])
+
+all_models = [Chassis, Instance, AgentConnection, JobRequest]
