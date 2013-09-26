@@ -55,7 +55,7 @@ class RESTServer(service.TeethService):
     def return_ok(self, request, result):
         request.setResponseCode(200)
         request.setHeader('Content-Type', 'application/json')
-        return self.encoder.encode(result)
+        return self.encoder.encode(result) + '\n'
 
     def return_created(self, request, path):
         request.setResponseCode(201)
