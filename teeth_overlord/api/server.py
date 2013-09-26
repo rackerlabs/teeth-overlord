@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 from klein import Klein
-from twisted.internet import threads
+from twisted.internet import threads, defer
 from twisted.python import failure
 
 from teeth_overlord import models, jobs, rest
@@ -63,6 +63,30 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/flavors', methods=['GET'])
     def list_flavor(self, request):
         return self._crud_list(request, models.Flavor)
+
+    @app.route('/v1.0/flavor_providers', methods=['POST'])
+    def create_flavor_provider(self, request):
+        def _saved(flavor_provider):
+            return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
+
+        def _validated(results):
+            return threads.deferToThread(flavor_provider.save).addCallback(_saved)
+
+        try:
+            flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
+            d = defer.gatherResults([
+                threads.deferToThread(models.ChassisModel.get, id=flavor_provider.chassis_model_id),
+                threads.deferToThread(models.Flavor.get, id=flavor_provider.flavor_id),
+            ])
+            d.addCallback(_validated)
+            d.addErrback(self.return_error, request)
+            return d
+        except Exception as e:
+            return self.return_error(e, request)
+
+    @app.route('/v1.0/flavor_providers', methods=['GET'])
+    def list_flavor_provider(self, request):
+        return self._crud_list(request, models.FlavorProvider)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):

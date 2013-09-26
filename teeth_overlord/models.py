@@ -65,11 +65,20 @@ class FlavorProvider(Base):
     def serialize(self, view):
         return OrderedDict([
             ('id', str(self.id)),
-            ('name', self.name),
             ('flavor_id', str(self.flavor_id)),
             ('chassis_model_id', str(self.chassis_model_id)),
             ('schedule_priority', self.schedule_priority),
         ])
+
+    @classmethod
+    def deserialize(cls, params):
+        flavor_provider = cls(
+            flavor_id=params.get('flavor_id'),
+            chassis_model_id=params.get('chassis_model_id'),
+            schedule_priority=params.get('schedule_priority')
+        )
+        flavor_provider.validate()
+        return flavor_provider
 
 
 class ChassisModel(Base):
