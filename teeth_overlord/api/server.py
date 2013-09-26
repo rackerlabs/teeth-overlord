@@ -49,6 +49,21 @@ class TeethAPI(rest.RESTServer):
     def list_chassis_model(self, request):
         return self._crud_list(request, models.ChassisModel)
 
+    @app.route('/v1.0/flavors', methods=['POST'])
+    def create_flavor(self, request):
+        def _saved(flavor):
+            return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
+
+        try:
+            flavor = models.Flavor.deserialize(self.parse_content(request))
+            return threads.deferToThread(flavor.save).addCallback(_saved)
+        except Exception as e:
+            return self.return_error(e, request)
+
+    @app.route('/v1.0/flavors', methods=['GET'])
+    def list_flavor(self, request):
+        return self._crud_list(request, models.Flavor)
+
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
         def _saved(chassis):

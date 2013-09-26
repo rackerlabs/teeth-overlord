@@ -47,6 +47,14 @@ class Flavor(Base):
             ('name', self.name),
         ])
 
+    @classmethod
+    def deserialize(cls, params):
+        flavor = cls(
+            name=params.get('name')
+        )
+        flavor.validate()
+        return flavor
+
 
 class FlavorProvider(Base):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
