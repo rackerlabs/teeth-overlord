@@ -16,6 +16,7 @@ limitations under the License.
 
 from klein import Klein
 from twisted.internet import threads
+from twisted.python import failure
 
 from teeth_overlord import models, jobs, rest
 
@@ -53,11 +54,19 @@ class TeethAPI(rest.RESTServer):
         def _saved(chassis):
             return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
 
+        def _with_chassis_model(chassis_model, chassis):
+            chassis.ipmi_username = chassis_model.ipmi_default_username
+            chassis.ipmi_password = chassis_model.ipmi_default_password
+            return threads.deferToThread(chassis.save).addCallback(_saved)
+
         try:
             chassis = models.Chassis.deserialize(self.parse_content(request))
-            return threads.deferToThread(chassis.save).addCallback(_saved)
+            d = threads.deferToThread(models.ChassisModel.objects.get, id=chassis.chassis_model_id)
+            d.addCallback(_with_chassis_model, chassis)
+            d.addErrback(self.return_error, request)
+            return d
         except Exception as e:
-            return self.return_error(e, request)
+            return self.return_error(failure.Failure(e), request)
 
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
