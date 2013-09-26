@@ -59,7 +59,7 @@ class RESTServer(service.TeethService):
 
     def return_created(self, request, path):
         request.setResponseCode(201)
-        request.setHeader('Location', self.get_absolut_url(request, path))
+        request.setHeader('Location', self.get_absolute_url(request, path))
         return
 
     def parse_content(self, request):
