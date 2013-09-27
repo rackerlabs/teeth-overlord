@@ -18,7 +18,7 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
 import random
 
-from twisted.internet import defer, reactor, threads
+from twisted.internet import defer, reactor, task, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
 from txredisapi import lazyConnection, ConnectionError
@@ -157,6 +157,7 @@ class Job(object):
         self.params = request.params
         self.request = request
         self.log = get_logger(request_id=str(self.request.id), attempt_id=str(uuid4()))
+        self._heartbeater = task.LoopingCall(self._heartbeat)
 
     @abstractproperty
     def job_type(self):
@@ -168,10 +169,16 @@ class Job(object):
 
     def _on_success(self, result):
         self.log.msg('successfully executed job request')
+        self._heartbeater.stop()
         return threads.deferToThread(self.request.delete)
 
     def _on_failure(self, failure):
+        self._heartbeater.stop()
         self.log.err(failure)
+
+    def _heartbeat(self):
+        self.request.touch()
+        return threads.deferToThread(self.request.save).addErrback(self.log.err)
 
     def execute(self):
         if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
@@ -179,6 +186,7 @@ class Job(object):
             return defer.succeed(None)
 
         self.log.msg('executing job request')
+        self._heartbeater.start()
         return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
 
 
