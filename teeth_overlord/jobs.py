@@ -194,7 +194,8 @@ class Job(object):
 
         self.log.msg('executing job request')
         self.request.start()
-        self._heartbeater.start(0.3 * self.request.ttl_seconds) # Ideally we could set jitter on a LoopingCall
+        # Ideally we could set jitter on a LoopingCall
+        self._heartbeater.start(0.3 * self.request.ttl_seconds)
         return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
 
 
