@@ -23,7 +23,7 @@ from cqlengine import BatchQuery
 from structlog import get_logger
 from txredisapi import lazyConnection, ConnectionError
 
-from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest
+from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest, JobRequestState
 from teeth_overlord import errors
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
@@ -174,6 +174,10 @@ class Job(object):
         self.log.err(failure)
 
     def execute(self):
+        if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
+            self.log.msg('job request no longer valid, not executing', state=self.request.state)
+            return defer.succeed(None)
+
         self.log.msg('executing job request')
         return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
 
