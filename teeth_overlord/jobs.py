@@ -167,18 +167,25 @@ class Job(object):
     def _execute(self):
         raise NotImplementedError()
 
+    def _save_request(self):
+        return threads.deferToThread(self.request.save).addErrback(self.log.err)
+
     def _on_success(self, result):
         self.log.msg('successfully executed job request')
         self._heartbeater.stop()
-        return threads.deferToThread(self.request.delete)
+        self.request.complete()
+        self._save_request()
 
     def _on_failure(self, failure):
-        self._heartbeater.stop()
         self.log.err(failure)
+        self._heartbeater.stop()
+        # TODO: eventually we should put the job back into a READY state to re-run
+        self.request.fail()
+        self._save_request()
 
     def _heartbeat(self):
         self.request.touch()
-        return threads.deferToThread(self.request.save).addErrback(self.log.err)
+        self._save_request()
 
     def execute(self):
         if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
@@ -186,6 +193,7 @@ class Job(object):
             return defer.succeed(None)
 
         self.log.msg('executing job request')
+        self.request.start()
         self._heartbeater.start(0.3 * self.request.ttl_seconds) # Ideally we could set jitter on a LoopingCall
         return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
 
