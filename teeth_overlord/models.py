@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import uuid
 from collections import OrderedDict
+from datetime import datetime
+import uuid
 
 from cqlengine import columns
 from cqlengine.models import Model
@@ -173,10 +174,22 @@ class AgentConnection(Base):
         ])
 
 
+class JobRequestState(object):
+    READY = 'READY'
+    RUNNING = 'RUNNING'
+    COMPLETED = 'COMPLETED'
+    FAILED = 'FAILED'
+
+
 class JobRequest(Base):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
+    state = columns.Ascii(index=True, default=JobRequestState.READY)
+    submitted_at = columns.DateTime(default=datetime.now)
+    updated_at = columns.DateTime(default=datetime.now)
+    completed_at = columns.DateTime()
+    ttl_seconds = columns.Integer(default=90)
 
     def serialize(self, view):
         return OrderedDict([
@@ -184,5 +197,20 @@ class JobRequest(Base):
             ('job_type', self.job_type),
             ('params', self.params.to_python),
         ])
+
+    def touch(self):
+        self.updated_at = datetime.now()
+
+    def start(self):
+        self.state = JobRequestState.RUNNING
+        self.touch()
+
+    def fail(self):
+        self.state = JobRequestState.FAILED
+        self.touch()
+
+    def complete(self):
+        self.state = JobRequestState.COMPLETED
+        self.touch()
 
 all_models = [Chassis, Instance, AgentConnection, JobRequest, Flavor, FlavorProvider, ChassisModel]
