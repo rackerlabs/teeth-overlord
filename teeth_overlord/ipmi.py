@@ -1,4 +1,4 @@
-import subprocess
+import os
 
 from twisted.internet.utils import getProcessOutput
 from twisted.internet import reactor
@@ -8,28 +8,32 @@ password = "ADMIN"
 
 
 def set_next_boot_to_pxe(host):
-    executable = subprocess.check_output('which ipmitool', shell=True).strip()
-
     args = [
-        executable,
+        "ipmitool",
         "-U", user,
         "-P", password,
         "-H", host,
         "chassis", "bootdev", "pxe"]
 
-    d = getProcessOutput(executable, args=args)
+    d = getProcessOutput(
+        "ipmitool",
+        args=args,
+        env={'PATH': os.environ['PATH']})
+
     return d
 
 
 def power_cycle(host):
-    executable = subprocess.check_output('which ipmitool', shell=True).strip()
-
     args = [
-        executable,
+        "ipmitool",
         "-U", user,
         "-P", password,
         "-H", host,
         "chassis", "power", "cycle"]
 
-    d = getProcessOutput(executable, args=args)
+    d = getProcessOutput(
+        "ipmitool",
+        args=args,
+        env={'PATH': os.environ['PATH']})
+
     return d
