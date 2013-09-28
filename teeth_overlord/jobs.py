@@ -56,7 +56,7 @@ class RedisJobListener(object):
     # If redis is down, try not to spin too fast. Otherwise, log the error.
     def _log_failure_and_delay(self, failure):
         delay = 0
-        if not failure.check([ConnectionError]):
+        if failure.check([ConnectionError]):
             delay = self.redis_error_retry_delay
         else:
             self.log.err(failure)
