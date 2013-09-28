@@ -16,6 +16,7 @@ limitations under the License.
 
 from collections import OrderedDict
 from datetime import datetime
+import struct
 import uuid
 
 from cqlengine import columns
@@ -24,6 +25,14 @@ from cqlengine.models import Model
 from teeth_overlord.encoding import Serializable
 
 KEYSPACE_NAME = 'teeth'
+
+
+# Hack until cqlengine supports Cassandra 2.0. See: http://stackoverflow.com/a/18992934
+class C2DateTime(columns.DateTime):
+    def to_python(self, val):
+        if isinstance(val, basestring):
+            val = struct.unpack('!Q', val)[0] / 1000.0
+        return super(C2DateTime, self).to_python(val)
 
 
 class Base(Model, Serializable):
@@ -186,9 +195,8 @@ class JobRequest(Base):
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
     state = columns.Ascii(index=True, default=JobRequestState.READY)
-    submitted_at = columns.DateTime(default=datetime.now)
-    updated_at = columns.DateTime(default=datetime.now)
-    completed_at = columns.DateTime()
+    submitted_at = C2DateTime(default=datetime.now)
+    updated_at = C2DateTime(default=datetime.now)
     ttl_seconds = columns.Integer(default=90)
 
     def serialize(self, view):
