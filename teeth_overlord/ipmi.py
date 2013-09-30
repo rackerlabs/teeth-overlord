@@ -14,6 +14,10 @@ def _run_ipmitool(ars):
 
 
 def set_next_boot_to_pxe(chassis):
+    """
+    When run the chassis will boot from network next time
+    """
+
     args = [
         "ipmitool",
         "-U", chassis.ipmi_username,
@@ -25,6 +29,10 @@ def set_next_boot_to_pxe(chassis):
 
 
 def power_cycle(chassis):
+    """
+    Power cycle the chassis
+    """
+
     args = [
         "ipmitool",
         "-U", chassis.ipmi_username,
