@@ -3,7 +3,7 @@ import os
 from twisted.internet.utils import getProcessOutput
 
 
-def _run_ipmitool(ars):
+def _run_ipmitool(args):
 
     d = getProcessOutput(
         "ipmitool",
