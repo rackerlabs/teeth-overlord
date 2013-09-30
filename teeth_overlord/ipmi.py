@@ -1,39 +1,35 @@
 import os
 
 from twisted.internet.utils import getProcessOutput
-from twisted.internet import reactor
-
-user = "ADMIN"
-password = "ADMIN"
 
 
-def set_next_boot_to_pxe(host):
+def _run_ipmitool(ars):
+
+    d = getProcessOutput(
+        "ipmitool",
+        args=args,
+        env={'PATH': os.environ['PATH']})
+
+    return d
+
+
+def set_next_boot_to_pxe(chassis):
     args = [
         "ipmitool",
-        "-U", user,
-        "-P", password,
-        "-H", host,
+        "-U", chassis.ipmi_username,
+        "-P", chassis.ipmi_password,
+        "-H", chassis.decom_lan_ip,
         "chassis", "bootdev", "pxe"]
 
-    d = getProcessOutput(
-        "ipmitool",
-        args=args,
-        env={'PATH': os.environ['PATH']})
-
-    return d
+    return _run_ipmitool(args)
 
 
-def power_cycle(host):
+def power_cycle(chassis):
     args = [
         "ipmitool",
-        "-U", user,
-        "-P", password,
-        "-H", host,
+        "-U", chassis.ipmi_username,
+        "-P", chassis.ipmi_password,
+        "-H", chassis.decom_lan_ip,
         "chassis", "power", "cycle"]
 
-    d = getProcessOutput(
-        "ipmitool",
-        args=args,
-        env={'PATH': os.environ['PATH']})
-
-    return d
+    return _run_ipmitool(args)
