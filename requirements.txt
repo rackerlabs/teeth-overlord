@@ -12,7 +12,6 @@ structlog==0.3.0
 -e git+git@github.com:racker/teeth-agent.git@d65e3bcb1ee36e614e3807a45a5ae75054b3df83#egg=teeth_agent-dev
 thrift==0.9.1
 treq==0.2.0
-txredisapi==1.0
 wsgiref==0.1.2
 zope.interface==4.0.5
 txetcd=0.0.2
