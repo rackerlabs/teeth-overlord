@@ -16,82 +16,34 @@ limitations under the License.
 
 from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
-import random
 
-from twisted.internet import defer, reactor, task, threads
+from twisted.internet import defer, task, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
-from txredisapi import lazyConnection, ConnectionError
+from txetcd import EtcdClient
+from txetcd.queue import EtcdTaskQueue
 
 from teeth_overlord.models import Chassis, ChassisState, Instance, InstanceState, JobRequest, JobRequestState
 from teeth_overlord import errors
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
 
-JOB_LIST_NAME = 'teeth.jobs'
+JOB_QUEUE_NAME = 'teeth/jobs'
 
 
-class RedisJobListener(object):
-    listen_timeout_seconds = 1
-    redis_error_retry_delay = 1.0
-
-    def __init__(self, host, port, processor_fn):
-        self.host = host
-        self.port = port
-        self.processor_fn = processor_fn
-        self.log = get_logger(host=host, port=port)
-        self.redis = None
-        self._stop_d = None
-        self._stopping = True
-
-    def _process_item(self, response):
-        if not response:
-            # This is normal, it just means no job became available
-            return
-
-        list_name, request_id = response
-        self.log.msg('received job request', request_id=request_id)
-        return self.processor_fn(request_id)
-
-    # If redis is down, try not to spin too fast. Otherwise, log the error.
-    def _log_failure_and_delay(self, failure):
-        delay = 0
-        if failure.check([ConnectionError]):
-            delay = self.redis_error_retry_delay
-        else:
-            self.log.err(failure)
-
-        d = defer.Deferred()
-        reactor.callLater(delay, d.callback, None)
-        return d
-
-    def _next_item(self):
-        if self._stopping:
-            self.redis.quit().addErrback(self.log.err).addCallback(self._stop_d.callback)
-
-        d = self.redis.blpop([JOB_LIST_NAME], self.listen_timeout_seconds)
-        d.addCallback(self._process_item)
-        d.addErrback(self._log_failure_and_delay)
-        d.addCallback(lambda result: reactor.callLater(0, self._next_item))
-
-    def _loop(self):
-        self._stop_d = defer.Deferred()
-        self._next_item()
-
-    def start(self):
-        self._stopping = False
-        self.redis = lazyConnection(self.host, self.port)
-        self._loop()
-
-    def stop(self):
-        self._stopping = True
-        return self._stop_d
+def parse_etcd_seeds(addresses):
+    return [tuple(address.rsplit(':')) for address in addresses]
 
 
 class JobExecutor(TeethService):
     def __init__(self, config):
         self.config = config
+        self.log = get_logger()
         self.endpoint_rpc_client = EndpointRPCClient(config)
+        self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
+        self._queue = EtcdTaskQueue(self.etcd_client, JOB_QUEUE_NAME)
+        self._looper = task.LoopingCall(self._take_next_task)
+        self._pending_calls = set()
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
@@ -100,49 +52,42 @@ class JobExecutor(TeethService):
 
         return self._job_type_cache[job_type]
 
-    def _start_processor(self, address):
-        host, port = address.rsplit(':')
-        processor = RedisJobListener(host, int(port), self.execute_job_request)
-        processor.start()
-        return processor
+    def _load_job_request(self, task):
+        d = threads.deferToThread(JobRequest.objects.get, id=UUID(task.value))
+        return d.addCallback(lambda job_request: (job_request, task))
 
-    def execute_job_request(self, request_id):
-        def _with_request(job_request):
-            cls = self._get_job_class(job_request.job_type)
-            job = cls(self, job_request)
-            return job.execute()
+    def _execute_job_request(self, (job_request, task)):
+        cls = self._get_job_class(job_request.job_type)
+        job = cls(self, job_request, task)
+        d = job.execute()
+        self._pending_calls.add(d)
+        d.addBoth(lambda result: self._pending_calls.remove(d))
 
-        return threads.deferToThread(JobRequest.objects.get, id=UUID(request_id)).addCallback(_with_request)
+    def _take_next_task(self):
+        d = self._queue.take()
+        d.addCallback(self._load_job_request)
+        d.addCallback(self._execute_job_request)
+        return d.addErrback(self.log.err)
 
     def startService(self):
         TeethService.startService(self)
-        self._processors = [self._start_processor(address) for address in self.config.REDIS_ADDRESSES]
+        self._looper.start(0)
 
     def stopService(self):
-        return defer.DeferredList([processor.stop() for processor in self._processors])
+        self._looper.stop()
+        return defer.gatherResults(list(self._pending_calls))
 
 
 class JobClient(object):
     def __init__(self, config):
         self.config = config
-        self.executor = JobExecutor(config)
         self.log = get_logger()
-        self.redis_instances = [self._get_redis_connection(address) for address in self.config.REDIS_ADDRESSES]
-
-    def _get_redis_connection(self, address):
-        host, port = address.rsplit(':')
-        return lazyConnection(host, int(port))
+        self.endpoint_rpc_client = EndpointRPCClient(config)
+        self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
+        self._queue = EtcdTaskQueue(self.etcd_client, JOB_QUEUE_NAME)
 
     def _notify_workers(self, job_request):
-        idxs = range(len(self.redis_instances))
-        random.shuffle(idxs)
-        for i in idxs:
-            try:
-                return self.redis_instances[i].lpush(JOB_LIST_NAME, str(job_request.id)).addErrback(self.log.err)
-            except ConnectionError:
-                continue
-
-        return defer.fail(ConnectionError('Not connected to any redis instance')).addErrback(self.log.err)
+        return self._queue.push(str(job_request.id))
 
     def submit_job(self, cls, **params):
         job_request = JobRequest(job_type=cls.job_type, params=params)
@@ -152,12 +97,12 @@ class JobClient(object):
 class Job(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, executor, request):
+    def __init__(self, executor, request, task):
         self.executor = executor
         self.params = request.params
         self.request = request
+        self.task = task
         self.log = get_logger(request_id=str(self.request.id), attempt_id=str(uuid4()))
-        self._heartbeater = task.LoopingCall(self._heartbeat)
 
     @abstractproperty
     def job_type(self):
@@ -172,20 +117,15 @@ class Job(object):
 
     def _on_success(self, result):
         self.log.msg('successfully executed job request')
-        self._heartbeater.stop()
         self.request.complete()
-        self._save_request()
+        d = self._save_request()
+        d.addBoth(lambda result: self.task.complete())
 
     def _on_failure(self, failure):
         self.log.err(failure)
-        self._heartbeater.stop()
-        # TODO: eventually we should put the job back into a READY state to re-run
         self.request.fail()
-        self._save_request()
-
-    def _heartbeat(self):
-        self.request.touch()
-        self._save_request()
+        d = self._save_request()
+        d.addBoth(lambda result: self.task.abort())
 
     def execute(self):
         if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
@@ -194,8 +134,7 @@ class Job(object):
 
         self.log.msg('executing job request')
         self.request.start()
-        # Ideally we could set jitter on a LoopingCall
-        self._heartbeater.start(0.3 * self.request.ttl_seconds)
+        self._save_request()
         return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
 
 

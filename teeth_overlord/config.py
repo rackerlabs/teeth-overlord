@@ -29,6 +29,7 @@ class Config(object):
     JOBSERVER_HOST = 'localhost'
     JOBSERVER_PORT = 8083
     REDIS_ADDRESSES = ['localhost:6379']
+    ETCD_ADDRESSES = ['localhost:4001']
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
