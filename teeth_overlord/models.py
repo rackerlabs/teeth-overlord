@@ -111,7 +111,6 @@ class Chassis(Base):
     chassis_model_id = columns.UUID(index=True, required=True)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
-    decom_lan_ip = columns.Text()
     primary_mac_address = columns.Ascii(index=True, required=True)
 
     def serialize(self, view):
