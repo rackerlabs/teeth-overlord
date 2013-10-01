@@ -14,4 +14,4 @@ thrift==0.9.1
 treq==0.2.0
 wsgiref==0.1.2
 zope.interface==4.0.5
-txetcd=0.0.2
+txetcd=0.0.3
