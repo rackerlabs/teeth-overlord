@@ -31,6 +31,11 @@ class TeethJSONEncoder(json.JSONEncoder):
         json.JSONEncoder.__init__(self, **kwargs)
         self.view = view
 
+    def encode(self, o):
+        # Note: if indent is None, newlines are still inserted, so we should too
+        if self.indent is not None:
+            return super(TeethJSONEncoder, self).encode(o) + '\n'
+
     def default(self, o):
         if isinstance(o, Serializable):
             return o.serialize(self.view)
