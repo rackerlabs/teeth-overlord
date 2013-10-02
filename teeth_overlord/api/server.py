@@ -16,7 +16,6 @@ limitations under the License.
 
 from klein import Klein
 from twisted.internet import threads, defer
-from twisted.python import failure
 
 from teeth_overlord import models, jobs, rest
 
@@ -152,3 +151,10 @@ class TeethAPI(rest.RESTServer):
         List Instances.
         """
         return self._crud_list(request, models.Instance)
+
+    @app.handle_errors
+    def return_error(self, request, failure):
+        """
+        Pass any errors to the parent class's error handler.
+        """
+        return rest.RESTServer.return_error(self, request, failure)
