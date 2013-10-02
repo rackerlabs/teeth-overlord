@@ -45,11 +45,8 @@ class TeethAPI(rest.RESTServer):
         def _saved(chassis_model):
             return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
 
-        try:
-            chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
-            return threads.deferToThread(chassis_model.save).addCallback(_saved)
-        except Exception as e:
-            return self.return_error(e, request)
+        chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
+        return threads.deferToThread(chassis_model.save).addCallback(_saved)
 
     @app.route('/v1.0/chassis_models', methods=['GET'])
     def list_chassis_model(self, request):
@@ -66,11 +63,8 @@ class TeethAPI(rest.RESTServer):
         def _saved(flavor):
             return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
 
-        try:
-            flavor = models.Flavor.deserialize(self.parse_content(request))
-            return threads.deferToThread(flavor.save).addCallback(_saved)
-        except Exception as e:
-            return self.return_error(e, request)
+        flavor = models.Flavor.deserialize(self.parse_content(request))
+        return threads.deferToThread(flavor.save).addCallback(_saved)
 
     @app.route('/v1.0/flavors', methods=['GET'])
     def list_flavor(self, request):
@@ -90,17 +84,14 @@ class TeethAPI(rest.RESTServer):
         def _validated(results):
             return threads.deferToThread(flavor_provider.save).addCallback(_saved)
 
-        try:
-            flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
-            d = defer.gatherResults([
-                threads.deferToThread(models.ChassisModel.get, id=flavor_provider.chassis_model_id),
-                threads.deferToThread(models.Flavor.get, id=flavor_provider.flavor_id),
-            ])
-            d.addCallback(_validated)
-            d.addErrback(self.return_error, request)
-            return d
-        except Exception as e:
-            return self.return_error(e, request)
+        flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
+        d = defer.gatherResults([
+            threads.deferToThread(models.ChassisModel.get, id=flavor_provider.chassis_model_id),
+            threads.deferToThread(models.Flavor.get, id=flavor_provider.flavor_id),
+        ])
+        d.addCallback(_validated)
+        d.addErrback(self.return_error, request)
+        return d
 
     @app.route('/v1.0/flavor_providers', methods=['GET'])
     def list_flavor_provider(self, request):
@@ -124,14 +115,11 @@ class TeethAPI(rest.RESTServer):
             chassis.ipmi_password = chassis_model.ipmi_default_password
             return threads.deferToThread(chassis.save).addCallback(_saved)
 
-        try:
-            chassis = models.Chassis.deserialize(self.parse_content(request))
-            d = threads.deferToThread(models.ChassisModel.objects.get, id=chassis.chassis_model_id)
-            d.addCallback(_with_chassis_model, chassis)
-            d.addErrback(self.return_error, request)
-            return d
-        except Exception as e:
-            return self.return_error(failure.Failure(e), request)
+        chassis = models.Chassis.deserialize(self.parse_content(request))
+        d = threads.deferToThread(models.ChassisModel.objects.get, id=chassis.chassis_model_id)
+        d.addCallback(_with_chassis_model, chassis)
+        d.addErrback(self.return_error, request)
+        return d
 
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
