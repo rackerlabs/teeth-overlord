@@ -59,6 +59,7 @@ class AgentEndpointProtocol(RPCProtocol):
         d.addErrback(self._command_failed, command)
 
     def handle_handshake(self, id=None, version=None):
+        self._log.msg('received handshake', primary_mac_address=id, agent_version=version)
         self.connection.primary_mac_address = id
         self.connection.agent_version = version
         self.connection.endpoint_rpc_host = self.endpoint.config.AGENT_ENDPOINT_RPC_HOST
