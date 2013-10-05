@@ -32,9 +32,13 @@ class TeethJSONEncoder(json.JSONEncoder):
         self.view = view
 
     def encode(self, o):
+        delimiter = ''
+
         # Note: if indent is None, newlines are still inserted, so we should too
         if self.indent is not None:
-            return super(TeethJSONEncoder, self).encode(o) + '\n'
+            delimiter = '\n'
+
+        return super(TeethJSONEncoder, self).encode(o) + delimiter
 
     def default(self, o):
         if isinstance(o, Serializable):
