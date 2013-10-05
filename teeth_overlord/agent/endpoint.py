@@ -18,33 +18,49 @@ import simplejson as json
 import uuid
 
 from klein import Klein
-from teeth_agent.protocol import TeethAgentProtocol
+from teeth_agent.protocol import RPCProtocol
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
 from teeth_overlord import models, encoding, errors, rest
 
 
-class AgentEndpointHandler(TeethAgentProtocol):
-    endpoint = None
-
-    def __init__(self):
-        TeethAgentProtocol.__init__(self, encoding.TeethJSONEncoder('public'))
+class AgentEndpointProtocol(RPCProtocol):
+    def __init__(self, endpoint, address):
+        RPCProtocol.__init__(self, encoding.TeethJSONEncoder('public'), address)
+        self.connection = models.AgentConnection(id=uuid.uuid4())
+        self.endpoint = endpoint
+        self.handlers = {}
         self.handlers['v1'] = {
             'handshake': self.handle_handshake,
         }
-        self.connection = models.AgentConnection(id=uuid.uuid4())
+        self.on('command', self._on_command)
 
     def connectionLost(self, reason):
         self.endpoint.unregister_agent_protocol(self.connection.id)
-        for d in self.pending_command_deferreds.values():
-            d.errback(errors.AgentConnectionLostError())
-
         threads.deferToThread(self.connection.delete)
 
-    def handle_handshake(self, primary_mac_address, agent_version):
-        self.connection.primary_mac_address = primary_mac_address
-        self.connection.agent_version = agent_version
+    def _command_failed(self, failure, command):
+        self._log.err(failure)
+        self.send_error_response({'msg': failure.getErrorMessage()}, command)
+
+    def _on_command(self, topic, command):
+        if command.version not in self.handlers:
+            command.protocol.fatal_error('unknown command version')
+            return
+
+        if command.method not in self.handlers[command.version]:
+            command.protocol.fatal_error('unknown command method')
+            return
+
+        handler = self.handlers[command.version][command.method]
+        d = defer.maybeDeferred(handler, **command.params)
+        d.addCallback(self.send_response, command)
+        d.addErrback(self._command_failed, command)
+
+    def handle_handshake(self, id=None, version=None):
+        self.connection.primary_mac_address = id
+        self.connection.agent_version = version
         self.connection.endpoint_rpc_host = self.endpoint.config.AGENT_ENDPOINT_RPC_HOST
         self.connection.endpoint_rpc_port = self.endpoint.config.AGENT_ENDPOINT_RPC_PORT
         self.endpoint.register_agent_protocol(self.connection.id, self)
@@ -55,15 +71,15 @@ class AgentEndpointHandler(TeethAgentProtocol):
         return threads.deferToThread(self.connection.save).addCallback(_saved)
 
 
-class AgentEndpointHandlerFactory(ServerFactory):
-    protocol = AgentEndpointHandler
+class AgentEndpointProtocolFactory(ServerFactory):
+    protocol = AgentEndpointProtocol
 
     def __init__(self, endpoint):
         self.endpoint = endpoint
 
     def buildProtocol(self, address):
-        protocol = ServerFactory.buildProtocol(self, address)
-        protocol.endpoint = self.endpoint
+        protocol = AgentEndpointProtocol(self.endpoint, address)
+        protocol.factory = self
         return protocol
 
 
@@ -105,7 +121,7 @@ class AgentEndpoint(rest.RESTServer):
         rest.RESTServer.startService(self)
         agent_port = self.config.AGENT_ENDPOINT_AGENT_PORT
         agent_host = self.config.AGENT_ENDPOINT_AGENT_HOST
-        self.agent_listener = reactor.listenTCP(agent_port, AgentEndpointHandlerFactory(self), interface=agent_host)
+        self.agent_listener = reactor.listenTCP(agent_port, AgentEndpointProtocolFactory(self), interface=agent_host)
 
     def stopService(self):
         return defer.DeferredList([self.agent_listener.stopListening(), rest.RESTServer.stopService(self)])
