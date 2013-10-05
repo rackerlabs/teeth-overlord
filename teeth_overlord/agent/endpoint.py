@@ -22,7 +22,7 @@ from teeth_agent.protocol import RPCProtocol
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
-from teeth_overlord import models, encoding, errors, rest
+from teeth_overlord import models, encoding, rest
 
 
 class AgentEndpointProtocol(RPCProtocol):
