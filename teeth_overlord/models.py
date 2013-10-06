@@ -27,20 +27,27 @@ from teeth_overlord.encoding import Serializable
 KEYSPACE_NAME = 'teeth'
 
 
-# Hack until cqlengine supports Cassandra 2.0. See: http://stackoverflow.com/a/18992934
 class C2DateTime(columns.DateTime):
+    """
+    Hack until cqlengine supports Cassandra 2.0. See:
+    http://stackoverflow.com/a/18992934
+    """
+
     def to_python(self, val):
+        """Turn the raw database value into a Python DateTime."""
         if isinstance(val, basestring):
             val = struct.unpack('!Q', val)[0] / 1000.0
         return super(C2DateTime, self).to_python(val)
 
 
 class Base(Model, Serializable):
+    """Base class for all Teeth models."""
     __abstract__ = True
     __keyspace__ = KEYSPACE_NAME
 
 
 class ChassisState(object):
+    """Possible states that a Chassis may be in."""
     CLEAN = 'CLEAN'
     READY = 'READY'
     BUILD = 'BUILD'
@@ -48,10 +55,16 @@ class ChassisState(object):
 
 
 class Flavor(Base):
+    """
+    Model for flavors. Users choose a Flavor when they create an instance.
+    """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     name = columns.Text(required=True)
 
     def serialize(self, view):
+        """
+        Turn a Flavor into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('name', self.name),
@@ -59,6 +72,9 @@ class Flavor(Base):
 
     @classmethod
     def deserialize(cls, params):
+        """
+        Turn a dict into a Flavor.
+        """
         flavor = cls(
             name=params.get('name')
         )
@@ -67,12 +83,26 @@ class Flavor(Base):
 
 
 class FlavorProvider(Base):
+    """
+    Model which joins Flavors to ChassisModels.
+
+    When an instance is created, a list of FlavorProviders will be
+    looked up based on the specified flavor. The included
+    `schedule_priority` can be used to select the highest priority
+    ChassisModel capable of providing the specified flavor.
+    Theoretically, this could allow a certain chassis model to
+    provide multiple flavors, or a flavor to be provided by multiple
+    chassis models.
+    """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     flavor_id = columns.UUID(index=True, required=True)
     chassis_model_id = columns.UUID(index=True, required=True)
     schedule_priority = columns.Integer(required=True)
 
     def serialize(self, view):
+        """
+        Turn a FlavorProvider into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('flavor_id', str(self.flavor_id)),
@@ -82,6 +112,9 @@ class FlavorProvider(Base):
 
     @classmethod
     def deserialize(cls, params):
+        """
+        Turn a dict into a FlavorProvider.
+        """
         flavor_provider = cls(
             flavor_id=params.get('flavor_id'),
             chassis_model_id=params.get('chassis_model_id'),
@@ -92,12 +125,21 @@ class FlavorProvider(Base):
 
 
 class ChassisModel(Base):
+    """
+    Model which represents a Chassis Model. For example, a Dell R720.
+
+    ChassisModels include default IPMI credentials, which will be used
+    when initializing new hardware.
+    """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     name = columns.Text(required=True)
     ipmi_default_password = columns.Text()
     ipmi_default_username = columns.Text()
 
     def serialize(self, view):
+        """
+        Turn a ChassisModel into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('name', self.name),
@@ -105,6 +147,9 @@ class ChassisModel(Base):
 
     @classmethod
     def deserialize(cls, params):
+        """
+        Turn a dict into a ChassisModel.
+        """
         chassis_model = cls(
             name=params.get('name'),
             ipmi_default_password=params.get('ipmi_default_password'),
@@ -115,6 +160,9 @@ class ChassisModel(Base):
 
 
 class Chassis(Base):
+    """
+    Model for an individual Chassis.
+    """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     state = columns.Ascii(index=True, default=ChassisState.READY)
     chassis_model_id = columns.UUID(index=True, required=True)
@@ -123,6 +171,9 @@ class Chassis(Base):
     primary_mac_address = columns.Ascii(index=True, required=True)
 
     def serialize(self, view):
+        """
+        Turn a Chassis into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('state', self.state),
@@ -132,6 +183,9 @@ class Chassis(Base):
 
     @classmethod
     def deserialize(cls, params):
+        """
+        Turn a dict into a Chassis.
+        """
         chassis = cls(
             chassis_model_id=params.get('chassis_model_id'),
             primary_mac_address=params.get('primary_mac_address')
@@ -141,16 +195,25 @@ class Chassis(Base):
 
 
 class InstanceState(object):
+    """
+    Possible states than an Instance can be in.
+    """
     BUILD = 'BUILD'
     ACTIVE = 'ACTIVE'
 
 
 class Instance(Base):
+    """
+    Model for an Instance.
+    """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     chassis_id = columns.UUID()
     state = columns.Ascii(default=InstanceState.BUILD)
 
     def serialize(self, view):
+        """
+        Turn an Instance into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('chassis_id', str(self.chassis_id)),
@@ -159,15 +222,22 @@ class Instance(Base):
 
     @classmethod
     def deserialize(cls, params):
+        """
+        Turn a dict into an Instance.
+        """
         instance = cls()
         instance.validate()
         return instance
 
 
 class AgentConnection(Base):
-    # This is funky, the ID isn't the primary key. We want to be able to
-    # overwrite these using nothing but the MAC address, so we use that as the
-    # primary key, but set an indexed 'id' field for consistency.
+    """
+    Model for an AgentConnection.
+
+    Notably, the `id` field isn't the primary key. We want to be able to
+    overwrite these using nothing but the MAC address, so we use that as
+    the primary key, but set an indexed `id` field for consistency.
+    """
     id = columns.UUID(index=True, default=uuid.uuid4)
     primary_mac_address = columns.Ascii(primary_key=True)
     agent_version = columns.Ascii(required=True)
@@ -175,6 +245,9 @@ class AgentConnection(Base):
     endpoint_rpc_port = columns.Integer(required=True)
 
     def serialize(self, view):
+        """
+        Turn an AgentConnection into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('primary_mac_address', self.primary_mac_address),
@@ -184,6 +257,9 @@ class AgentConnection(Base):
 
 
 class JobRequestState(object):
+    """
+    Possible states that JobRequest can be in.
+    """
     READY = 'READY'
     RUNNING = 'RUNNING'
     COMPLETED = 'COMPLETED'
@@ -191,6 +267,9 @@ class JobRequestState(object):
 
 
 class JobRequest(Base):
+    """
+    Model for a Job Request.
+    """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
@@ -200,6 +279,9 @@ class JobRequest(Base):
     ttl_seconds = columns.Integer(default=90)
 
     def serialize(self, view):
+        """
+        Turn a JobRequest into a dict.
+        """
         return OrderedDict([
             ('id', str(self.id)),
             ('job_type', self.job_type),
@@ -207,17 +289,37 @@ class JobRequest(Base):
         ])
 
     def touch(self):
+        """
+        Update the `udpated_at` field.
+
+        Note: this does not save the JobRequest.
+        """
         self.updated_at = datetime.now()
 
     def start(self):
+        """
+        Mark the job as `RUNNING` and update the `udpated_at` field.
+
+        Note: this does not save the JobRequest.
+        """
         self.state = JobRequestState.RUNNING
         self.touch()
 
     def fail(self):
+        """
+        Mark the job as `FAILED` and update the `udpated_at` field.
+
+        Note: this does not save the JobRequest.
+        """
         self.state = JobRequestState.FAILED
         self.touch()
 
     def complete(self):
+        """
+        Mark the job as `COMPLETED` and update the `udpated_at` field.
+
+        Note: this does not save the JobRequest.
+        """
         self.state = JobRequestState.COMPLETED
         self.touch()
 

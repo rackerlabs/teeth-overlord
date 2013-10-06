@@ -30,6 +30,11 @@ _global_config = None
 
 
 def global_setup(config):
+    """
+    Perform global cofiguration. In a given process, this should only
+    ever be called with a single configuration instance. Doing otherwise
+    will result in a runtime exception.
+    """
     global _global_config
     if _global_config is None:
         _global_config = config
@@ -43,12 +48,18 @@ def global_setup(config):
 
 
 class TeethServiceOptions(usage.Options):
+    """
+    Options that can be passed to a Teeth service.
+    """
     optParameters = [
         ['config', 'c', None, 'Path to the config file to use.'],
     ]
 
 
 class TeethServiceMaker(object):
+    """
+    A common IServiceMaker capable of instantiating any TeethService.
+    """
     implements(IServiceMaker, IPlugin)
 
     tapname = 'teeth-public-api'
@@ -61,6 +72,7 @@ class TeethServiceMaker(object):
         self.description = description
 
     def makeService(self, options):
+        """Create a new service instance."""
         config_path = options.get('config', None)
         if config_path:
             return self.service_class(Config.from_json_file(config_path))
@@ -69,8 +81,12 @@ class TeethServiceMaker(object):
 
 
 class TeethService(Service):
+    """
+    Base class for all Teeth services.
+    """
     def __init__(self, config):
         self.config = config
 
     def startService(self):
+        """Start the service."""
         global_setup(self.config)
