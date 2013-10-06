@@ -23,6 +23,16 @@ from teeth_overlord import errors
 
 
 class EndpointRPCClient(object):
+    """
+    Client for interacting with agents via an AgentEndpoint.
+
+    Users of this client call :meth:`get_agent_connection` to locate a
+    connection made by the agent to an endpoint, then call other methods
+    on this class, passing in the agent connection as well as any
+    method-specific parameters. This client will perform a call to the
+    REST API exposed by the Agent Endpoint, which will in turn perform
+    the desired command on the agent and return the result.
+    """
     def __init__(self, config):
         self.encoder = TeethJSONEncoder(SerializationViews.PUBLIC)
         self.config = config
@@ -50,13 +60,20 @@ class EndpointRPCClient(object):
         return treq.post(url, data=body, headers=headers).addCallback(treq.json_content)
 
     def get_agent_connection(self, chassis):
+        """
+        Retrieve an agent connection for the specified Chassis.
+        """
         def _with_connection(connection):
             if not connection:
                 raise errors.AgentNotConnectedError(chassis.id, chassis.primary_mac_address)
             return connection
 
-        connection_query = models.AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
+        connection_query = models.AgentConnection.objects
+        connection_query = connection_query.filter(primary_mac_address=chassis.primary_mac_address)
         return threads.deferToThread(connection_query.first).addCallback(_with_connection)
 
     def prepare_image(self, connection, image_id):
+        """
+        Call the `prepare_image` method on the agent.
+        """
         return self._command(connection, 'prepare_image', image_id)

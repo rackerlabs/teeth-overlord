@@ -22,6 +22,9 @@ from teeth_overlord import models, jobs, rest
 
 
 class TeethAPI(rest.RESTServer):
+    """
+    The primary Teeth Overlord API.
+    """
     app = Klein()
 
     def __init__(self, config):
@@ -36,6 +39,9 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
+        """
+        Create a ChassisModel.
+        """
         def _saved(chassis_model):
             return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
 
@@ -47,10 +53,16 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/chassis_models', methods=['GET'])
     def list_chassis_model(self, request):
+        """
+        List ChassisModels.
+        """
         return self._crud_list(request, models.ChassisModel)
 
     @app.route('/v1.0/flavors', methods=['POST'])
     def create_flavor(self, request):
+        """
+        Create a Flavor.
+        """
         def _saved(flavor):
             return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
 
@@ -62,10 +74,16 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/flavors', methods=['GET'])
     def list_flavor(self, request):
+        """
+        List Flavors.
+        """
         return self._crud_list(request, models.Flavor)
 
     @app.route('/v1.0/flavor_providers', methods=['POST'])
     def create_flavor_provider(self, request):
+        """
+        Create a FlavorProvider, which maps a Flavor to a ChassisModel.
+        """
         def _saved(flavor_provider):
             return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
 
@@ -86,10 +104,18 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/flavor_providers', methods=['GET'])
     def list_flavor_provider(self, request):
+        """
+        List FlavorProviders.
+        """
         return self._crud_list(request, models.FlavorProvider)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
+        """
+        Create a Chassis.
+
+        TODO: actually bootstrap the chassis to a `READY` state, change teh passwords, etc.
+        """
         def _saved(chassis):
             return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
 
@@ -109,10 +135,16 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
+        """
+        List Chassis.
+        """
         return self._crud_list(request, models.Chassis)
 
     @app.route('/v1.0/instances', methods=['POST'])
     def create_instance(self, request):
+        """
+        Create an Instance.
+        """
         instance = models.Instance()
 
         def _execute_job(result):
@@ -128,4 +160,7 @@ class TeethAPI(rest.RESTServer):
 
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
+        """
+        List Instances.
+        """
         return self._crud_list(request, models.Instance)

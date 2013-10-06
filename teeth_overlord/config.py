@@ -18,6 +18,9 @@ import simplejson as json
 
 
 class Config(object):
+    """
+    Configuration for Teeth Overlord services.
+    """
     CASSANDRA_CLUSTER = ['127.0.0.1:9160']
     CASSANDRA_CONSISTENCY = 'ONE'
     API_HOST = 'localhost'
@@ -37,4 +40,9 @@ class Config(object):
 
     @classmethod
     def from_json_file(cls, config_path):
+        """
+        Load a configuration from the specified JSON file. Keys should
+        be upper case strings matching the config keys, and values
+        should be of the same type as the default values above.
+        """
         return cls(**json.loads(open(config_path, 'r').read()))
