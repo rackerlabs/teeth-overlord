@@ -20,11 +20,13 @@ from teeth_overlord.models import Serializable
 
 
 class TeethError(Exception, Serializable):
+    """Base class for errors generated in teeth."""
     message = 'An error occurred'
     details = 'An unexpected error occurred. Please try back later.'
     status_code = 500
 
     def serialize(self, view):
+        """Turn a TeethError into a dict."""
         return OrderedDict([
             ('type', self.__class__.__name__),
             ('code', self.status_code),
@@ -34,26 +36,43 @@ class TeethError(Exception, Serializable):
 
 
 class InsufficientCapacityError(TeethError):
+    """
+    Error which occurs when not enough capacity is available to
+    fulfill a request.
+    """
     message = 'Insufficient capacity'
     details = 'There was not enough capacity available to fulfill your request. Please try back later.'
 
 
 class AgentNotConnectedError(TeethError):
+    """
+    Error which occurs when an RPC call is attempted against a chassis
+    for which no agent is connected.
+    """
     message = 'Agent not connected'
 
     def __init__(self, chassis_id, primary_mac_address):
-        self.details = 'No agent is connected for chassis {chassis_id} (mac adddress {primary_mac_address}).'.format(
+        self.details = ('No agent is connected for chassis {chassis_id} (mac adddress '
+                        '{primary_mac_address}).').format(
             chassis_id=chassis_id,
             primary_mac_address=primary_mac_address
         )
 
 
 class AgentConnectionLostError(TeethError):
+    """
+    Error which occurs when an agent's connection is lsot while an RPC
+    call is in progress.
+    """
     message = 'Agent connection lost'
     details = 'The agent\'s connection was lost while performing your request.'
 
 
 class UnsupportedContentTypeError(TeethError):
+    """
+    Error which occurs when a user supplies an unsupported
+    `Content-Type` (ie, anything other than `application/json`).
+    """
     message = 'Unsupported Content-Type'
     status_code = 400
 
@@ -62,6 +81,11 @@ class UnsupportedContentTypeError(TeethError):
 
 
 class InvalidContentError(TeethError):
+    """
+    Error which occurs when a user supplies invalid content, either
+    because that content cannot be parsed according to the advertised
+    `Content-Type`, or due to a content validation error.
+    """
     message = 'Invalid request body'
     status_code = 400
 

@@ -111,7 +111,8 @@ class RESTServer(service.TeethService):
         Start the REST API on the configured host and port.
         """
         service.TeethService.startService(self)
-        self.listener = reactor.listenTCP(self.listen_port, Site(self.app.resource()), interface=self.listen_host)
+        site = Site(self.app.resource())
+        self.listener = reactor.listenTCP(self.listen_port, site, interface=self.listen_host)
 
     def stopService(self):
         """
