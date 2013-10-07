@@ -226,7 +226,7 @@ class Instance(Base):
         """
         Turn a dict into an Instance.
         """
-        instance = cls()
+        instance = cls(flavor_id=params.get('flavor_id'))
         instance.validate()
         return instance
 
