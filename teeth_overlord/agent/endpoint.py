@@ -37,6 +37,7 @@ class AgentEndpointProtocol(RPCProtocol):
         self.handlers = {}
         self.handlers['v1'] = {
             'handshake': self.handle_handshake,
+            'ping': self.handle_ping,
         }
         self.on('command', self._on_command)
 
@@ -94,6 +95,12 @@ class AgentEndpointProtocol(RPCProtocol):
             return self.connection
 
         return threads.deferToThread(self.connection.save).addCallback(_saved)
+
+    def handle_ping(self, **kwargs):
+        """
+        Handle a ping from the agent.
+        """
+        return kwargs
 
 
 class AgentEndpointProtocolFactory(ServerFactory):
