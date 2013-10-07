@@ -9,7 +9,7 @@ klein==0.2.1
 logilab-common==0.60.0
 simplejson==3.3.0
 structlog==0.3.0
--e git+git@github.com:racker/teeth-agent.git@d65e3bcb1ee36e614e3807a45a5ae75054b3df83#egg=teeth_agent-dev
+-e git+git@github.com:racker/teeth-agent.git@88575c5878bf915ede5c299a3eefba65d8376d10#egg=teeth_agent-dev
 thrift==0.9.1
 treq==0.2.0
 wsgiref==0.1.2
