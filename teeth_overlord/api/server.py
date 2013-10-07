@@ -154,10 +154,12 @@ class TeethAPI(rest.RESTServer):
 
         try:
             instances = models.Instance.deserialize(self.parse_content(request))
-            return threads.deferToThread(instance.save) \
-                          .addCallback(_execute_job) \
-                          .addCallback(_respond) \
-                          .addErrback(self.return_error, request)
+            d = threads.deferToThread(instance.save)
+            d.addCallback(_execute_job)
+            d.addCallback(_respond)
+            d.addErrback(self.return_error, request)
+            return d
+
         except Exception as e:
             return self.return_error(e, request)
 
