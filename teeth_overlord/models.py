@@ -209,6 +209,7 @@ class Instance(Base):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     chassis_id = columns.UUID()
     state = columns.Ascii(default=InstanceState.BUILD)
+    flavor_id = columns.UUID()
 
     def serialize(self, view):
         """

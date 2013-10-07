@@ -145,7 +145,15 @@ class TeethAPI(rest.RESTServer):
         """
         Create an Instance.
         """
+        flavor_name = request.args.get('flavor')
+
+        if flavor is None:
+            return self.return_error(failure.Failure("must provide flavor type"), request)
+
         instance = models.Instance()
+
+        def _connect_with_flavor(flavor):
+            instance.flavor_id = flavor.id
 
         def _execute_job(result):
             return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
@@ -154,6 +162,8 @@ class TeethAPI(rest.RESTServer):
             return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
         return threads.deferToThread(instance.save) \
+                      .addCallback(Flavor.objects.filter(name=flavor_name).first) \
+                      .addCallback(_connect_with_flavor) \
                       .addCallback(_execute_job) \
                       .addCallback(_respond) \
                       .addErrback(self.return_error, request)
