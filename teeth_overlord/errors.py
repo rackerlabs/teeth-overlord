@@ -68,6 +68,16 @@ class AgentConnectionLostError(TeethError):
     details = 'The agent\'s connection was lost while performing your request.'
 
 
+class AgentExecutionError(TeethError):
+    """
+    Exception class which represents errors that occurred in the agent.
+    """
+    message = 'Error executing command'
+
+    def __init__(self, details):
+        self.details = details
+
+
 class UnsupportedContentTypeError(TeethError):
     """
     Error which occurs when a user supplies an unsupported
