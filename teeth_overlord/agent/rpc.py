@@ -44,16 +44,15 @@ class EndpointRPCClient(object):
             connection_id=connection.id
         )
 
-    def _get_command_body(self, method, *args, **kwargs):
+    def _get_command_body(self, method, params):
         return self.encoder.encode({
             'method': method,
-            'args': args,
-            'kwargs': kwargs,
+            'params': params,
         })
 
-    def _command(self, connection, method, *args, **kwargs):
+    def _command(self, connection, method, params):
         url = self._get_command_url(connection)
-        body = self._get_command_body(method, *args, **kwargs)
+        body = self._get_command_body(method, params)
         headers = {
             'Content-Type': 'application/json'
         }
@@ -76,4 +75,6 @@ class EndpointRPCClient(object):
         """
         Call the `prepare_image` method on the agent.
         """
-        return self._command(connection, 'prepare_image', image_id)
+        return self._command(connection, 'prepare_image', {
+            'image_id': image_id,
+        })
