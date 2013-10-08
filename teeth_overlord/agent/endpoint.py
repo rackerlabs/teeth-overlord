@@ -46,6 +46,7 @@ class AgentEndpointProtocol(RPCProtocol):
         The connection was lost, remove this connection from the local
         registry and delete it from the database.
         """
+        self._log.msg('connection lost')
         self.endpoint.unregister_agent_protocol(self.connection.id)
         threads.deferToThread(self.connection.delete)
 
