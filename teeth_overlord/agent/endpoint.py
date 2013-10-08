@@ -22,7 +22,7 @@ from teeth_agent.protocol import RPCProtocol
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
-from teeth_overlord import models, encoding, rest
+from teeth_overlord import models, encoding, rest, errors
 
 
 class AgentEndpointProtocol(RPCProtocol):
@@ -160,16 +160,19 @@ class AgentEndpoint(rest.RESTServer):
             request.setResponseCode(404)
             return
 
-        def _response(result):
-            return self.return_ok(request, result)
+        def _on_success(response):
+            return self.return_ok(request, {'result': response.result})
+
+        def _on_failure(response):
+            return self.return_error(request, errors.AgentExecutionError(response.error))
 
         content = json.loads(request.content.read())
         method = content['method']
-        args = content.get('args', [])
-        kwargs = content.get('kwargs', {})
+        params = content.get('params', {})
 
-        d = self.agent_protocols[connection_id].send_command(method, *args, **kwargs)
-        return d.addCallback(_response)
+        d = self.agent_protocols[connection_id].send_command(method, params)
+        d.addCallbacks(_on_success, _on_failure)
+        return d
 
     def startService(self):
         """
