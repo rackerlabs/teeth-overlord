@@ -5,7 +5,7 @@ argparse==1.2.1
 astroid==1.0.0
 cql==1.4.0
 cqlengine==0.8
--e git+git@github.com:twisted/klein.git@7fd0a3f416ec1136ba0fc2729ef9a5c3ae7e4467#egg=klein-dev
+-e git+git@github.com:twisted/klein.git@396658cf14e33ad08a73fa887719cabf823abba7#egg=klein-dev
 logilab-common==0.60.0
 simplejson==3.3.0
 structlog==0.3.0
