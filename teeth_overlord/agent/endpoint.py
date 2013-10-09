@@ -18,7 +18,7 @@ import simplejson as json
 import uuid
 
 from klein import Klein
-from teeth_agent.protocol import RPCProtocol
+from teeth_agent.protocol import RPCProtocol, require_parameters
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
@@ -56,7 +56,11 @@ class AgentEndpointProtocol(RPCProtocol):
         it to the agent.
         """
         self._log.err(failure)
-        self.send_error_response({'msg': failure.getErrorMessage()}, command)
+
+        if hasattr(failure.value, 'fatal') and failure.value.fatal:
+            command.protocol.fatal_error(failure.getErrorMessage())
+        else:
+            self.send_error_response({'msg': failure.getErrorMessage()}, command)
 
     def _on_command(self, topic, command):
         """
@@ -76,6 +80,7 @@ class AgentEndpointProtocol(RPCProtocol):
         d.addCallback(self.send_response, command)
         d.addErrback(self._command_failed, command)
 
+    @require_parameters('id', 'version', fatal=True)
     def handle_handshake(self, id=None, version=None):
         """
         Handle a handshake from the agent. The agent will pass in its
