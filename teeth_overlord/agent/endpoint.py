@@ -18,6 +18,7 @@ import simplejson as json
 import uuid
 
 from klein import Klein
+from structlog import get_logger
 from teeth_agent.protocol import RPCProtocol, require_parameters
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
@@ -33,11 +34,13 @@ class AgentEndpointProtocol(RPCProtocol):
     def __init__(self, endpoint, address):
         RPCProtocol.__init__(self, encoding.TeethJSONEncoder('public'), address)
         self.connection = None
+        self.agent_logger = get_logger()
         self.endpoint = endpoint
         self.handlers = {}
         self.handlers['v1'] = {
             'handshake': self.handle_handshake,
             'ping': self.handle_ping,
+            'log': self.handle_log,
         }
         self.on('command', self._on_command)
 
@@ -98,6 +101,9 @@ class AgentEndpointProtocol(RPCProtocol):
         self.connection.endpoint_rpc_host = self.endpoint.config.AGENT_ENDPOINT_RPC_HOST
         self.connection.endpoint_rpc_port = self.endpoint.config.AGENT_ENDPOINT_RPC_PORT
         self.endpoint.register_agent_protocol(self.connection.id, self)
+        self.agent_logger = self.agent_logger.bind(connection_id=self.connection.id,
+                                                   primary_mac_address=id,
+                                                   agent_version=version)
 
         def _saved(result):
             return self.connection
@@ -109,6 +115,16 @@ class AgentEndpointProtocol(RPCProtocol):
         Handle a ping from the agent.
         """
         return kwargs
+
+    @require_parameters('message', 'time')
+    def handle_log(self, **kwargs):
+        """
+        Handle log messages from the agent.
+
+        TODO: put these in the database? Or just treat them as a normal
+              log message?
+        """
+        self.agent_logger.msg(**kwargs)
 
 
 class AgentEndpointProtocolFactory(ServerFactory):
