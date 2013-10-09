@@ -32,7 +32,7 @@ class AgentEndpointProtocol(RPCProtocol):
     """
     def __init__(self, endpoint, address):
         RPCProtocol.__init__(self, encoding.TeethJSONEncoder('public'), address)
-        self.connection = models.AgentConnection(id=uuid.uuid4())
+        self.connection = None
         self.endpoint = endpoint
         self.handlers = {}
         self.handlers['v1'] = {
@@ -47,8 +47,9 @@ class AgentEndpointProtocol(RPCProtocol):
         registry and delete it from the database.
         """
         self._log.msg('connection lost')
-        self.endpoint.unregister_agent_protocol(self.connection.id)
-        threads.deferToThread(self.connection.delete)
+        if self.connection:
+            self.endpoint.unregister_agent_protocol(self.connection.id)
+            threads.deferToThread(self.connection.delete)
 
     def _command_failed(self, failure, command):
         """
@@ -91,6 +92,7 @@ class AgentEndpointProtocol(RPCProtocol):
         any chassis running an old version of the agent.
         """
         self._log.msg('received handshake', primary_mac_address=id, agent_version=version)
+        self.connection = models.AgentConnection(id=uuid.uuid4())
         self.connection.primary_mac_address = id
         self.connection.agent_version = version
         self.connection.endpoint_rpc_host = self.endpoint.config.AGENT_ENDPOINT_RPC_HOST
