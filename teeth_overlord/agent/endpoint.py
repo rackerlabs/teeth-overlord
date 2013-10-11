@@ -19,7 +19,7 @@ import uuid
 
 from klein import Klein
 from structlog import get_logger
-from teeth_agent.protocol import RPCProtocol, require_parameters
+from teeth_agent.protocol import RPCProtocol, RPCError, require_parameters
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
@@ -83,6 +83,20 @@ class AgentEndpointProtocol(RPCProtocol):
         d = defer.maybeDeferred(handler, command)
         d.addCallback(self.send_response, command)
         d.addErrback(self._command_failed, command)
+
+    def send_command(self, method, params):
+        """
+        Extend `RPCProtocol.send_command()` to wrap failures in an AgentExecutionError.
+        """
+        def _on_failure(failure):
+            if failure.check(RPCError):
+                raise errors.AgentExecutionError(failure.value.error)
+            else:
+                raise errors.AgentExecutionError(failure.getErrorMessage())
+
+        d = super(AgentEndpointProtocol, self).send_command(method, params)
+        d.addErrback(_on_failure)
+        return d
 
     @require_parameters('id', 'version', fatal=True)
     def handle_handshake(self, command):
@@ -189,16 +203,20 @@ class AgentEndpoint(rest.RESTServer):
         def _on_success(response):
             return self.return_ok(request, {'result': response.result})
 
-        def _on_failure(response):
-            return self.return_error(request, errors.AgentExecutionError(response.error))
-
         content = json.loads(request.content.read())
         method = content['method']
         params = content.get('params', {})
 
         d = self.agent_protocols[connection_id].send_command(method, params)
-        d.addCallbacks(_on_success, _on_failure)
+        d.addCallback(_on_success)
         return d
+
+    @app.handle_errors
+    def return_error(self, request, failure):
+        """
+        Pass any errors to the parent class's error handler.
+        """
+        return rest.RESTServer.return_error(self, request, failure)
 
     def startService(self):
         """
