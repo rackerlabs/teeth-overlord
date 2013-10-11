@@ -80,12 +80,12 @@ class AgentEndpointProtocol(RPCProtocol):
             return
 
         handler = self.handlers[command.version][command.method]
-        d = defer.maybeDeferred(handler, **command.params)
+        d = defer.maybeDeferred(handler, command)
         d.addCallback(self.send_response, command)
         d.addErrback(self._command_failed, command)
 
     @require_parameters('id', 'version', fatal=True)
-    def handle_handshake(self, id=None, version=None):
+    def handle_handshake(self, command):
         """
         Handle a handshake from the agent. The agent will pass in its
         primary MAC address as its ID (so that we can map the agent to
@@ -94,6 +94,8 @@ class AgentEndpointProtocol(RPCProtocol):
         Eventually we will probably want to do a rolling rebuild of
         any chassis running an old version of the agent.
         """
+        id = command.params['id']
+        version = command.params['version']
         self._log.msg('received handshake', primary_mac_address=id, agent_version=version)
         self.connection = models.AgentConnection(id=uuid.uuid4())
         self.connection.primary_mac_address = id
@@ -110,21 +112,21 @@ class AgentEndpointProtocol(RPCProtocol):
 
         return threads.deferToThread(self.connection.save).addCallback(_saved)
 
-    def handle_ping(self, **kwargs):
+    def handle_ping(self, command):
         """
         Handle a ping from the agent.
         """
-        return kwargs
+        return command.params
 
     @require_parameters('message', 'time')
-    def handle_log(self, **kwargs):
+    def handle_log(self, command):
         """
         Handle log messages from the agent.
 
         TODO: put these in the database? Or just treat them as a normal
               log message?
         """
-        self.agent_logger.msg(**kwargs)
+        self.agent_logger.msg(**command.params)
 
 
 class AgentEndpointProtocolFactory(ServerFactory):
