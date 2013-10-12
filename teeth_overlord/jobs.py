@@ -210,8 +210,12 @@ class CreateInstance(Job):
         TODO: eventually we may want to make scheduling very
               extensible.
         """
-        ready_query = Chassis.objects.filter(state=ChassisState.READY).filter(id=flavor_provider.chassis_model_id)
-        return threads.deferToThread(ready_query.first).addCallback(lambda chassis: (instance, chassis))
+        ready_query = Chassis.objects.filter(
+            state=ChassisState.READY).filter(
+            id=flavor_provider.chassis_model_id)
+
+        return (threads.deferToThread(ready_query.first).addCallback(
+                lambda chassis: (instance, chassis)))
 
     def reserve_chassis(self, (instance, chassis)):
         """
