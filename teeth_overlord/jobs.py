@@ -203,7 +203,7 @@ class CreateInstance(Job):
         return (threads.deferToThread(ready_query.first).addCallback(
             lambda flavor_provider: (instance, flavor_provider)))
 
-    def find_chassis(self, (instance, flavor_provider):
+    def find_chassis(self, (instance, flavor_provider)):
         """
         Select an appropriate chassis for the instance to run on.
 
