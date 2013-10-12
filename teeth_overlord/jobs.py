@@ -24,7 +24,7 @@ from txetcd import EtcdClient
 from txetcd.queue import EtcdTaskQueue
 
 from teeth_overlord.models import (Chassis, ChassisState, Instance, InstanceState, JobRequest,
-                                   JobRequestState)
+                                   JobRequestState, FlavorProvider)
 from teeth_overlord import errors
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
