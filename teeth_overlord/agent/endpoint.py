@@ -18,11 +18,12 @@ import simplejson as json
 import uuid
 
 from klein import Klein
-from teeth_agent.protocol import RPCProtocol
+from structlog import get_logger
+from teeth_agent.protocol import RPCProtocol, require_parameters
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
-from teeth_overlord import models, encoding, rest
+from teeth_overlord import models, encoding, rest, errors
 
 
 class AgentEndpointProtocol(RPCProtocol):
@@ -32,11 +33,14 @@ class AgentEndpointProtocol(RPCProtocol):
     """
     def __init__(self, endpoint, address):
         RPCProtocol.__init__(self, encoding.TeethJSONEncoder('public'), address)
-        self.connection = models.AgentConnection(id=uuid.uuid4())
+        self.connection = None
+        self.agent_logger = get_logger()
         self.endpoint = endpoint
         self.handlers = {}
         self.handlers['v1'] = {
             'handshake': self.handle_handshake,
+            'ping': self.handle_ping,
+            'log': self.handle_log,
         }
         self.on('command', self._on_command)
 
@@ -45,8 +49,10 @@ class AgentEndpointProtocol(RPCProtocol):
         The connection was lost, remove this connection from the local
         registry and delete it from the database.
         """
-        self.endpoint.unregister_agent_protocol(self.connection.id)
-        threads.deferToThread(self.connection.delete)
+        self._log.msg('connection lost')
+        if self.connection:
+            self.endpoint.unregister_agent_protocol(self.connection.id)
+            threads.deferToThread(self.connection.delete)
 
     def _command_failed(self, failure, command):
         """
@@ -54,7 +60,11 @@ class AgentEndpointProtocol(RPCProtocol):
         it to the agent.
         """
         self._log.err(failure)
-        self.send_error_response({'msg': failure.getErrorMessage()}, command)
+
+        if hasattr(failure.value, 'fatal') and failure.value.fatal:
+            command.protocol.fatal_error(failure.getErrorMessage())
+        else:
+            self.send_error_response({'msg': failure.getErrorMessage()}, command)
 
     def _on_command(self, topic, command):
         """
@@ -70,11 +80,12 @@ class AgentEndpointProtocol(RPCProtocol):
             return
 
         handler = self.handlers[command.version][command.method]
-        d = defer.maybeDeferred(handler, **command.params)
+        d = defer.maybeDeferred(handler, command)
         d.addCallback(self.send_response, command)
         d.addErrback(self._command_failed, command)
 
-    def handle_handshake(self, id=None, version=None):
+    @require_parameters('id', 'version', fatal=True)
+    def handle_handshake(self, command):
         """
         Handle a handshake from the agent. The agent will pass in its
         primary MAC address as its ID (so that we can map the agent to
@@ -83,17 +94,39 @@ class AgentEndpointProtocol(RPCProtocol):
         Eventually we will probably want to do a rolling rebuild of
         any chassis running an old version of the agent.
         """
+        id = command.params['id']
+        version = command.params['version']
         self._log.msg('received handshake', primary_mac_address=id, agent_version=version)
+        self.connection = models.AgentConnection(id=uuid.uuid4())
         self.connection.primary_mac_address = id
         self.connection.agent_version = version
         self.connection.endpoint_rpc_host = self.endpoint.config.AGENT_ENDPOINT_RPC_HOST
         self.connection.endpoint_rpc_port = self.endpoint.config.AGENT_ENDPOINT_RPC_PORT
         self.endpoint.register_agent_protocol(self.connection.id, self)
+        self.agent_logger = self.agent_logger.bind(connection_id=self.connection.id,
+                                                   primary_mac_address=id,
+                                                   agent_version=version)
 
         def _saved(result):
             return self.connection
 
         return threads.deferToThread(self.connection.save).addCallback(_saved)
+
+    def handle_ping(self, command):
+        """
+        Handle a ping from the agent.
+        """
+        return command.params
+
+    @require_parameters('message', 'time')
+    def handle_log(self, command):
+        """
+        Handle log messages from the agent.
+
+        TODO: put these in the database? Or just treat them as a normal
+              log message?
+        """
+        self.agent_logger.msg(**command.params)
 
 
 class AgentEndpointProtocolFactory(ServerFactory):
@@ -153,16 +186,19 @@ class AgentEndpoint(rest.RESTServer):
             request.setResponseCode(404)
             return
 
-        def _response(result):
-            return self.return_ok(request, result)
+        def _on_success(response):
+            return self.return_ok(request, {'result': response.result})
+
+        def _on_failure(response):
+            return self.return_error(request, errors.AgentExecutionError(response.error))
 
         content = json.loads(request.content.read())
         method = content['method']
-        args = content.get('args', [])
-        kwargs = content.get('kwargs', {})
+        params = content.get('params', {})
 
-        d = self.agent_protocols[connection_id].send_command(method, *args, **kwargs)
-        return d.addCallback(_response)
+        d = self.agent_protocols[connection_id].send_command(method, params)
+        d.addCallbacks(_on_success, _on_failure)
+        return d
 
     def startService(self):
         """

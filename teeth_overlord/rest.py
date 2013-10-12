@@ -18,7 +18,6 @@ import simplejson as json
 from structlog import get_logger
 from twisted.web.server import Site
 from twisted.internet import reactor
-from twisted.python.failure import Failure
 from werkzeug.http import parse_options_header
 
 from teeth_overlord import errors, encoding, service
@@ -48,20 +47,17 @@ class RESTServer(service.TeethService):
         proto = request.getHeader('x-forwarded-proto') or 'http'
         return "{proto}://{host}{path}".format(proto=proto, host=host, path=path)
 
-    def return_error(self, error, request):
+    def return_error(self, request, failure):
         """
-        Return the given Error. Errors may be subclasses of `Exception`
-        or `Failure`, in which case the underlying Exception will be
-        extracted.
+        Return the given Failure.
 
         If the underlying Exception is `TeethError`, it will be
         serialized and returned appropriately. Otherwise a generic 500
         will be returned.
         """
-        self.log.err(error)
+        self.log.err(failure)
 
-        if isinstance(error, Failure):
-            error = error.value
+        error = failure.value
 
         if isinstance(error, errors.TeethError):
             request.setResponseCode(error.status_code)

@@ -5,13 +5,13 @@ argparse==1.2.1
 astroid==1.0.0
 cql==1.4.0
 cqlengine==0.8
-klein==0.2.1
+-e git+git@github.com:twisted/klein.git@396658cf14e33ad08a73fa887719cabf823abba7#egg=klein-dev
 logilab-common==0.60.0
 simplejson==3.3.0
 structlog==0.3.0
--e git+git@github.com:racker/teeth-agent.git@d65e3bcb1ee36e614e3807a45a5ae75054b3df83#egg=teeth_agent-dev
+-e git+git@github.com:racker/teeth-agent.git@da5690ce24c16402e482ee30975f96ef87f3ee05#egg=teeth_agent-dev
 thrift==0.9.1
 treq==0.2.0
 wsgiref==0.1.2
 zope.interface==4.0.5
-txetcd=0.0.3
+txetcd==0.0.3
