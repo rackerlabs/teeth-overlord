@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from uuid import uuid4
+
 import treq
 from twisted.internet import threads
 from teeth_overlord import models
@@ -76,5 +78,6 @@ class EndpointRPCClient(object):
         Call the `prepare_image` method on the agent.
         """
         return self._command(connection, 'prepare_image', {
+            'task_id': str(uuid4()),
             'image_id': image_id,
         })
