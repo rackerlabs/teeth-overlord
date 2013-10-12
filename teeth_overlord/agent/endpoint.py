@@ -19,7 +19,7 @@ import uuid
 
 from klein import Klein
 from structlog import get_logger
-from teeth_agent.protocol import RPCProtocol, RPCError, require_parameters
+from teeth_agent.protocol import RPCProtocol, require_parameters
 from twisted.internet.protocol import ServerFactory
 from twisted.internet import reactor, threads, defer
 
