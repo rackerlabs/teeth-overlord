@@ -197,8 +197,11 @@ class CreateInstance(Job):
         Find the join object that will give the information about which chassies are available
 
         """
-        ready_query = FlavorProvider.objects.filter(id=instance.flavor_id).order_by('priority')
-        return threads.deferToThread(ready_query.first).addCallback(lambda flavor_provider: (instance, flavor_provider))
+        ready_query = FlavorProvider.objects.filter(
+            id=instance.flavor_id).order_by('priority')
+
+        return (threads.deferToThread(ready_query.first).addCallback(
+            lambda flavor_provider: (instance, flavor_provider)))
 
     def find_chassis(self, (instance, flavor_provider):
         """
