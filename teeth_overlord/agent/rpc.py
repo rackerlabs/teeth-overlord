@@ -52,13 +52,28 @@ class EndpointRPCClient(object):
             'params': params,
         })
 
+    def _handle_response(self, response):
+        def _with_content(obj):
+            if response.code == 200:
+                return obj
+            elif 'message' in response:
+                raise errors.AgentExecutionError(response['message'])
+            else:
+                raise errors.AgentExecutionError('Unknown error calling agent endpoint')
+
+        d = treq.json_content(response)
+        d.addCallback(_with_content)
+        return d
+
     def _command(self, connection, method, params):
         url = self._get_command_url(connection)
         body = self._get_command_body(method, params)
         headers = {
             'Content-Type': 'application/json'
         }
-        return treq.post(url, data=body, headers=headers).addCallback(treq.json_content)
+        d = treq.post(url, data=body, headers=headers)
+        d.addCallback(treq.json_content)
+        return d
 
     def get_agent_connection(self, chassis):
         """
