@@ -152,16 +152,12 @@ class TeethAPI(rest.RESTServer):
         def _respond(result):
             return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
-        try:
-            instances = models.Instance.deserialize(self.parse_content(request))
-            d = threads.deferToThread(instance.save)
-            d.addCallback(_execute_job)
-            d.addCallback(_respond)
-            d.addErrback(self.return_error, request)
-            return d
-
-        except Exception as e:
-            return self.return_error(e, request)
+        instances = models.Instance.deserialize(self.parse_content(request))
+        d = threads.deferToThread(instance.save)
+        d.addCallback(_execute_job)
+        d.addCallback(_respond)
+        d.addErrback(self.return_error, request)
+        return d
 
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
