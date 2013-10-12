@@ -192,7 +192,7 @@ class CreateInstance(Job):
         instance_id = self.request.params['instance_id']
         return threads.deferToThread(Instance.objects.get, id=UUID(instance_id))
 
-    def find_flavor_provider(self, instance)
+    def find_flavor_provider(self, instance):
         """
         Find the join object that will give the information about which chassies are available
 

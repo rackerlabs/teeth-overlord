@@ -139,7 +139,7 @@ class TeethAPI(rest.RESTServer):
         def _respond(result):
             return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
-        instances = models.Instance.deserialize(self.parse_content(request))
+        instance = models.Instance.deserialize(self.parse_content(request))
         d = threads.deferToThread(instance.save)
         d.addCallback(_execute_job)
         d.addCallback(_respond)
