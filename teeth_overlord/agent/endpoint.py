@@ -89,10 +89,7 @@ class AgentEndpointProtocol(RPCProtocol):
         Extend `RPCProtocol.send_command()` to wrap failures in an AgentExecutionError.
         """
         def _on_failure(failure):
-            if failure.check(RPCError):
-                raise errors.AgentExecutionError(failure.value.error)
-            else:
-                raise errors.AgentExecutionError(failure.getErrorMessage())
+            raise errors.AgentExecutionError(failure.getErrorMessage())
 
         d = super(AgentEndpointProtocol, self).send_command(method, params)
         d.addErrback(_on_failure)
