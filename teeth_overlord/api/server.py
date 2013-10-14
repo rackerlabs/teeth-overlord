@@ -101,7 +101,6 @@ class TeethAPI(rest.RESTServer):
             threads.deferToThread(models.Flavor.get, id=flavor_provider.flavor_id),
         ])
         d.addCallback(_validated)
-        d.addErrback(self.return_error, request)
         return d
 
     @app.route('/v1.0/flavor_providers', methods=['GET'])
@@ -129,7 +128,6 @@ class TeethAPI(rest.RESTServer):
         chassis = models.Chassis.deserialize(self.parse_content(request))
         d = threads.deferToThread(models.ChassisModel.objects.get, id=chassis.chassis_model_id)
         d.addCallback(_with_chassis_model, chassis)
-        d.addErrback(self.return_error, request)
         return d
 
     @app.route('/v1.0/chassis', methods=['GET'])
@@ -155,7 +153,6 @@ class TeethAPI(rest.RESTServer):
         d = threads.deferToThread(instance.save)
         d.addCallback(_execute_job)
         d.addCallback(_respond)
-        d.addErrback(self.return_error, request)
         return d
 
     @app.route('/v1.0/instances', methods=['GET'])
