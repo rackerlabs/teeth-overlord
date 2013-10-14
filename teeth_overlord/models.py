@@ -217,6 +217,7 @@ class Instance(Base):
         """
         return OrderedDict([
             ('id', str(self.id)),
+            ('flavor_id', str(self.flavor_id)),
             ('chassis_id', str(self.chassis_id)),
             ('state', self.state),
         ])
