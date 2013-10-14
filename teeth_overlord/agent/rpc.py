@@ -75,6 +75,9 @@ class EndpointRPCClient(object):
         d.addCallback(treq.json_content)
         return d
 
+    def _new_task_id(self):
+        return str(uuid4())
+
     def get_agent_connection(self, chassis):
         """
         Retrieve an agent connection for the specified Chassis.
@@ -88,11 +91,30 @@ class EndpointRPCClient(object):
         connection_query = connection_query.filter(primary_mac_address=chassis.primary_mac_address)
         return threads.deferToThread(connection_query.first).addCallback(_with_connection)
 
+    def cache_images(self, connection, image_ids):
+        """
+        Attempt to cache the specified images. Images are specified in
+        priority order, and may not all be cached.
+        """
+        return self._command(connection, 'standby.cache_images', {
+            'task_id': self._new_task_id(),
+            'image_ids': image_ids,
+        })
+
     def prepare_image(self, connection, image_id):
         """
         Call the `prepare_image` method on the agent.
         """
-        return self._command(connection, 'prepare_image', {
-            'task_id': str(uuid4()),
+        return self._command(connection, 'standby.prepare_image', {
+            'task_id': self._new_task_id(),
+            'image_id': image_id,
+        })
+
+    def run_image(self, connection, image_id):
+        """
+        Run the specified image.
+        """
+        return self._command(connection, 'standby.run_image', {
+            'task_id': self._new_task_id(),
             'image_id': image_id,
         })
