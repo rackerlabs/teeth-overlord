@@ -197,11 +197,11 @@ class CreateInstance(Job):
         Find the join object that will give the information about which chassies are available
 
         """
-        ready_query = FlavorProvider.objects.filter(
-            id=instance.flavor_id).order_by('priority')
+        ready_query = FlavorProvider.objects.filter(id=instance.flavor_id).order_by('schedule_priority')
 
-        return (threads.deferToThread(ready_query.first).addCallback(
-            lambda flavor_provider: (instance, flavor_provider)))
+        d = threads.deferToThread(ready_query.first)
+        d.addCallback(lambda flavor_provider: (instance, flavor_provider))
+        return d
 
     def find_chassis(self, (instance, flavor_provider)):
         """
@@ -210,12 +210,12 @@ class CreateInstance(Job):
         TODO: eventually we may want to make scheduling very
               extensible.
         """
-        ready_query = Chassis.objects.filter(
-            state=ChassisState.READY).filter(
-            id=flavor_provider.chassis_model_id)
+        ready_query = Chassis.objects.filter(state=ChassisState.READY)
+        ready_query = ready_query.filter(id=flavor_provider.chassis_model_id)
 
-        return (threads.deferToThread(ready_query.first).addCallback(
-                lambda chassis: (instance, chassis)))
+        d = threads.deferToThread(ready_query.first)
+        d.addCallback(lambda chassis: (instance, chassis))
+        return d
 
     def reserve_chassis(self, (instance, chassis)):
         """
@@ -270,9 +270,11 @@ class CreateInstance(Job):
         return threads.deferToThread(batch.execute).addCallback(lambda result: None)
 
     def _execute(self):
-        return self.get_instance() \
-                   .addCallback(self.find_chassis) \
-                   .addCallback(self.reserve_chassis) \
-                   .addCallback(self.get_agent_connection) \
-                   .addCallback(self.prepare_image) \
-                   .addCallback(self.mark_active)
+        d = self.get_instance()
+        d.addCallback(self.find_flavor_provider)
+        d.addCallback(self.find_chassis)
+        d.addCallback(self.reserve_chassis)
+        d.addCallback(self.get_agent_connection)
+        d.addCallback(self.prepare_image)
+        d.addCallback(self.mark_active)
+        return d
