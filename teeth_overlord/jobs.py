@@ -197,21 +197,32 @@ class CreateInstance(Job):
         Find the join object that will give the information about which chassies are available
 
         """
-        ready_query = FlavorProvider.objects.filter(id=instance.flavor_id).order_by('schedule_priority')
+        ready_query = FlavorProvider.objects.filter(flavor_id=instance.flavor_id)
 
-        d = threads.deferToThread(ready_query.first)
-        d.addCallback(lambda flavor_provider: (instance, flavor_provider))
+        d = threads.deferToThread(list, ready_query)
+        d.addCallback(lambda flavor_providers: (instance, flavor_providers))
         return d
 
-    def find_chassis(self, (instance, flavor_provider)):
+    def find_chassis(self, (instance, flavor_providers)):
         """
         Select an appropriate chassis for the instance to run on.
 
         TODO: eventually we may want to make scheduling very
               extensible.
         """
+        if len(flavor_providers) == 0:
+            raise errors.InsufficientCapacityError()
+
+        # Choose the highest priority flavor provider
+        flavor_provider = sorted(flavor_providers,
+                                 key=lambda flavor_provider: flavor_provider.schedule_priority,
+                                 reverse=True)[0]
+
+        self.log.msg('Selected ChassisModel', chassis_model_id=str(flavor_provider.chassis_model_id))
+
         ready_query = Chassis.objects.filter(state=ChassisState.READY)
-        ready_query = ready_query.filter(id=flavor_provider.chassis_model_id)
+        ready_query = ready_query.filter(chassis_model_id=flavor_provider.chassis_model_id)
+        ready_query = ready_query.allow_filtering()
 
         d = threads.deferToThread(ready_query.first)
         d.addCallback(lambda chassis: (instance, chassis))
