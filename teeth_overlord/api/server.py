@@ -144,7 +144,6 @@ class TeethAPI(rest.RESTServer):
         """
         Create an Instance.
         """
-        instance = models.Instance()
 
         def _execute_job(result):
             return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
@@ -152,10 +151,12 @@ class TeethAPI(rest.RESTServer):
         def _respond(result):
             return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
-        return threads.deferToThread(instance.save) \
-                      .addCallback(_execute_job) \
-                      .addCallback(_respond) \
-                      .addErrback(self.return_error, request)
+        instance = models.Instance.deserialize(self.parse_content(request))
+        d = threads.deferToThread(instance.save)
+        d.addCallback(_execute_job)
+        d.addCallback(_respond)
+        d.addErrback(self.return_error, request)
+        return d
 
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
