@@ -24,7 +24,7 @@ from txetcd import EtcdClient
 from txetcd.queue import EtcdTaskQueue
 
 from teeth_overlord.models import (Chassis, ChassisState, Instance, InstanceState, JobRequest,
-                                   JobRequestState)
+                                   JobRequestState, FlavorProvider)
 from teeth_overlord import errors
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
@@ -192,15 +192,30 @@ class CreateInstance(Job):
         instance_id = self.request.params['instance_id']
         return threads.deferToThread(Instance.objects.get, id=UUID(instance_id))
 
-    def find_chassis(self, instance):
+    def find_flavor_provider(self, instance):
+        """
+        Find the join object that will give the information about which chassies are available
+
+        """
+        ready_query = FlavorProvider.objects.filter(
+            id=instance.flavor_id).order_by('priority')
+
+        return (threads.deferToThread(ready_query.first).addCallback(
+            lambda flavor_provider: (instance, flavor_provider)))
+
+    def find_chassis(self, (instance, flavor_provider)):
         """
         Select an appropriate chassis for the instance to run on.
 
         TODO: eventually we may want to make scheduling very
               extensible.
         """
-        ready_query = Chassis.objects.filter(state=ChassisState.READY)
-        return threads.deferToThread(ready_query.first).addCallback(lambda chassis: (instance, chassis))
+        ready_query = Chassis.objects.filter(
+            state=ChassisState.READY).filter(
+            id=flavor_provider.chassis_model_id)
+
+        return (threads.deferToThread(ready_query.first).addCallback(
+                lambda chassis: (instance, chassis)))
 
     def reserve_chassis(self, (instance, chassis)):
         """
