@@ -16,8 +16,9 @@ limitations under the License.
 
 from klein import Klein
 from twisted.internet import threads, defer
+from cqlengine.query import DoesNotExist
 
-from teeth_overlord import models, jobs, rest
+from teeth_overlord import models, jobs, rest, errors
 
 
 class TeethAPI(rest.RESTServer):
@@ -35,6 +36,17 @@ class TeethAPI(rest.RESTServer):
             return self.return_ok(request, objects)
 
         return threads.deferToThread(list, cls.objects.all()).addCallback(_retrieved)
+
+    def _crud_fetch(self, request, cls, id):
+        def _retrieved(obj):
+            return self.return_ok(request, obj)
+
+        def _on_failure(failure):
+            if failure.check(DoesNotExist):
+                raise errors.RequestedObjectNotFoundError(cls, id)
+            return failure
+
+        return threads.deferToThread(cls.get, id=id).addCallbacks(_retrieved, _on_failure)
 
     @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
@@ -151,6 +163,13 @@ class TeethAPI(rest.RESTServer):
         List Instances.
         """
         return self._crud_list(request, models.Instance)
+
+    @app.route('/v1.0/instances/<string:instance_id>', methods=['GET'])
+    def fetch_instance(self, request, instance_id):
+        """
+        Retrieve an instance.
+        """
+        return self._crud_fetch(request, models.Instance, instance_id)
 
     @app.handle_errors
     def return_error(self, request, failure):

@@ -101,3 +101,15 @@ class InvalidContentError(TeethError):
 
     def __init__(self, error):
         self.details = error.message
+
+
+class RequestedObjectNotFoundError(TeethError):
+    """
+    Error which is returned when a requested object is not found.
+    """
+    message = 'Requested object not found'
+    status_code = 404
+
+    def __init__(self, cls, id):
+        super(RequestedObjectNotFoundError, self).__init__(cls, id)
+        self.details = '{type} with id {id} not found.'.format(type=cls.__name__, id=id)
