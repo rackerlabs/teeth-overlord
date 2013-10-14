@@ -207,9 +207,11 @@ class Instance(Base):
     Model for an Instance.
     """
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    project_id = columns.Ascii(required=True)
+    name = columns.Text(required=True)
+    flavor_id = columns.UUID()
     chassis_id = columns.UUID()
     state = columns.Ascii(default=InstanceState.BUILD)
-    flavor_id = columns.UUID()
 
     def serialize(self, view):
         """
@@ -217,6 +219,8 @@ class Instance(Base):
         """
         return OrderedDict([
             ('id', str(self.id)),
+            ('project_id', str(self.project_id)),
+            ('name', str(self.name)),
             ('flavor_id', str(self.flavor_id)),
             ('chassis_id', str(self.chassis_id)),
             ('state', self.state),
@@ -227,7 +231,11 @@ class Instance(Base):
         """
         Turn a dict into an Instance.
         """
-        instance = cls(flavor_id=params.get('flavor_id'))
+        instance = cls(
+            project_id=params.get('project_id'),
+            name=params.get('name'),
+            flavor_id=params.get('flavor_id'),
+        )
         instance.validate()
         return instance
 
