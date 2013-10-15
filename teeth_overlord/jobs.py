@@ -265,6 +265,15 @@ class CreateInstance(Job):
         """
         client = self.executor.endpoint_rpc_client
         d = client.prepare_image(connection, 'image-123')
+        d.addCallback(lambda result: (instance, chassis, connection))
+        return d
+
+    def run_image(self, (instance, chassis, connection)):
+        """
+        Send a command to the agent to run the selected image.
+        """
+        client = self.executor.endpoint_rpc_client
+        d = client.run_image(connection, 'image-123')
         d.addCallback(lambda result: (instance, chassis))
         return d
 
@@ -287,5 +296,6 @@ class CreateInstance(Job):
         d.addCallback(self.reserve_chassis)
         d.addCallback(self.get_agent_connection)
         d.addCallback(self.prepare_image)
+        d.addCallback(self.run_image)
         d.addCallback(self.mark_active)
         return d
