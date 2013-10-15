@@ -264,7 +264,7 @@ class CreateInstance(Job):
               required to prep a chassis.
         """
         client = self.executor.endpoint_rpc_client
-        d = client.prepare_image(connection, 'image-123')
+        d = client.prepare_image(connection, str(instance.image_id))
         d.addCallback(lambda result: (instance, chassis, connection))
         return d
 
@@ -273,7 +273,7 @@ class CreateInstance(Job):
         Send a command to the agent to run the selected image.
         """
         client = self.executor.endpoint_rpc_client
-        d = client.run_image(connection, 'image-123')
+        d = client.run_image(connection, str(instance.image_id))
         d.addCallback(lambda result: (instance, chassis))
         return d
 

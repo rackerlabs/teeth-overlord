@@ -209,7 +209,8 @@ class Instance(Base):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     project_id = columns.Ascii(required=True)
     name = columns.Text(required=True)
-    flavor_id = columns.UUID()
+    flavor_id = columns.UUID(required=True)
+    image_id = columns.UUID(required=True)
     chassis_id = columns.UUID()
     state = columns.Ascii(default=InstanceState.BUILD)
 
@@ -235,6 +236,7 @@ class Instance(Base):
             project_id=params.get('project_id'),
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
+            image_id=params.get('image_id'),
         )
         instance.validate()
         return instance
