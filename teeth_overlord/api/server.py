@@ -51,7 +51,15 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
         """
-        Create a ChassisModel.
+        Create a ChassisModel. Example::
+
+            {
+                "name": "Supermicro  1027R-WRFT+",
+                "default_impi_username": "ADMIN",
+                "default_ipmi_password": "ADMIN"
+            }
+
+        Returns 201 with a Location header upon success.
         """
         def _saved(chassis_model):
             return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
@@ -62,14 +70,29 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/chassis_models', methods=['GET'])
     def list_chassis_model(self, request):
         """
-        List ChassisModels.
+        List ChassisModels. Example::
+
+            [
+                {
+                    "id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                    "name": "Supermicro  1027R-WRFT+"
+                }
+            ]
+
+        Returns 200 along with a list of ChassisModels upon success.
         """
         return self._crud_list(request, models.ChassisModel)
 
     @app.route('/v1.0/flavors', methods=['POST'])
     def create_flavor(self, request):
         """
-        Create a Flavor.
+        Create a Flavor. Example::
+
+            {
+                "name": "Extra Fast Server",
+            }
+
+        Returns 201 with a Location header upon success.
         """
         def _saved(flavor):
             return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
@@ -80,14 +103,38 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/flavors', methods=['GET'])
     def list_flavor(self, request):
         """
-        List Flavors.
+        List Flavors. Example::
+
+            [
+                {
+                    "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                    "name": "Extra Fast Server"
+                }
+            ]
+
+        Returns 200 with a list of Flavors upon success.
         """
         return self._crud_list(request, models.Flavor)
 
     @app.route('/v1.0/flavor_providers', methods=['POST'])
     def create_flavor_provider(self, request):
         """
-        Create a FlavorProvider, which maps a Flavor to a ChassisModel.
+        Create a FlavorProvider, which maps a Flavor to a ChassisModel. Example::
+
+            {
+                "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                "schedule_priority": 100,
+            }
+
+        When a user creates an instance, we use FlavorProviders to
+        determine which chassis are able to provide the requested
+        flavor. When multiple chassis of different models are able
+        to provide the same flavor, we will prefer chassis of the
+        model which provides the flavor with a higher
+        `schedule_priority`.
+
+        Returns 201 with a Location header upon success.
         """
         def _saved(flavor_provider):
             return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
@@ -106,16 +153,39 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/flavor_providers', methods=['GET'])
     def list_flavor_provider(self, request):
         """
-        List FlavorProviders.
+        List FlavorProviders. Example::
+
+            [
+                {
+                    "id": "e5061fd0-371b-46ca-b07b-f415f92eb04f",
+                    "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                    "schedule_priority": 100
+                }
+            ]
+
+        Returns 200 with a list of FlavorProviders upon success.
         """
         return self._crud_list(request, models.FlavorProvider)
 
     @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
         """
-        Create a Chassis.
+        Create a Chassis. Example::
 
-        TODO: actually bootstrap the chassis to a `READY` state, change teh passwords, etc.
+            {
+                "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                "primary_mac_address": "bc:76:4e:20:03:5f",
+            }
+
+        When we rack and connect a new physical server, this call should
+        be used to add it to inventory and bootstrap it to a `READY`
+        state.
+
+        TODO: actually bootstrap the chassis to a `READY` state, change
+        the passwords, etc.
+
+        Returns 201 with a Location header upon success.
         """
         def _saved(chassis):
             return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
@@ -133,16 +203,50 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
         """
-        List Chassis.
+        List Chassis. Example::
+
+            [
+                {
+                    "id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
+                    "state": "ACTIVE",
+                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                    "primary_mac_address": "bc:76:4e:20:03:5f"
+                },
+                {
+                    "id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
+                    "state": "BUILD",
+                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                    "primary_mac_address": "bc:76:4e:20:12:44"
+                },
+                {
+                    "id": "e2c328c7-fcb5-4989-8bbd-bdd5877dc219",
+                    "state": "READY",
+                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                    "primary_mac_address": "40:6c:8f:19:14:17"
+                }
+            ]
+
+        Returns 200 with a list of Chassis upon success.
         """
         return self._crud_list(request, models.Chassis)
 
     @app.route('/v1.0/instances', methods=['POST'])
     def create_instance(self, request):
         """
-        Create an Instance.
-        """
+        Create an Instance. Example::
 
+            {
+                "project_id": "545251",
+                "name": "web0",
+                "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f"
+            }
+
+        Note that "project_id" is intended to correspond to an OpenStack
+        tenant ID.
+
+        Returns 201 with a Location header upon success.
+        """
         def _execute_job(result):
             return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
 
@@ -158,14 +262,46 @@ class TeethAPI(rest.RESTServer):
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
         """
-        List Instances.
+        List Instances. Example::
+
+            [
+                {
+                    "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
+                    "project_id": "1234567",
+                    "name": "Test Instance B",
+                    "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                    "chassis_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
+                    "state": "ACTIVE"
+                },
+                {
+                    "id": "f002190f-522b-4a0a-95ee-8fe72824de7a",
+                    "project_id": "1234567",
+                    "name": "Test Instance C",
+                    "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                    "chassis_id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
+                    "state": "BUILD"
+                }
+            ]
+
+        Returns 200 with a list of Instances upon success.
         """
         return self._crud_list(request, models.Instance)
 
     @app.route('/v1.0/instances/<string:instance_id>', methods=['GET'])
     def fetch_instance(self, request, instance_id):
         """
-        Retrieve an instance.
+        Retrieve an instance. Example::
+
+            {
+                "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
+                "project_id": "1234567",
+                "name": "Test Instance B",
+                "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                "chassis_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
+                "state": "ACTIVE"
+            }
+
+        Returns 200 with the requested Instance upon success.
         """
         return self._crud_fetch(request, models.Instance, instance_id)
 
