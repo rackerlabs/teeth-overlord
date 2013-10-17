@@ -32,6 +32,7 @@ class Config(object):
     JOBSERVER_HOST = 'localhost'
     JOBSERVER_PORT = 8083
     ETCD_ADDRESSES = ['localhost:4001']
+    MARCONI_URL = 'http://localhost:8888'
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():

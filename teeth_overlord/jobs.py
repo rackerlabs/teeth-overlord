@@ -21,7 +21,8 @@ from twisted.internet import defer, task, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
 from txetcd import EtcdClient
-from txetcd.queue import EtcdTaskQueue
+from txmarconi.client import MarconiClient
+
 
 from teeth_overlord.models import (Chassis, ChassisState, Instance, InstanceState, JobRequest,
                                    JobRequestState, FlavorProvider)
@@ -29,7 +30,32 @@ from teeth_overlord import errors
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
 
-JOB_QUEUE_NAME = 'teeth/jobs'
+
+JOB_QUEUE_NAME = 'teeth_jobs'
+
+# Use a very high TTL on Marconi messages - we never really want them to
+# expire. If we give up on a message, we'll expire it ourselves.
+JOB_TTL = 60 * 60 * 24 * 14
+
+# Claim messages for 2 minutes. This tries to establish a balance between how
+# long a message can become "stuck" if we die while processing it, while not
+# requiring overly frequent updates. In particular, if updates are required
+# frequently (say, every few seconds), it is easy to miss an update and end up
+# losing our claim to someone else.
+CLAIM_TTL = 60
+
+# When a temporal job failure occurs, we back off exponentially.
+INITIAL_RETRY_DELAY = 60
+MAX_RETRY_DELAY = 3600
+BACKOFF_FACTOR = 1.5
+JITTER = .2
+
+# Failing to process a job should return it to the queue with as long a grace
+# period as we can manage.
+CLAIM_GRACE = 60 * 60 * 12
+
+# Poll frequently. Help keep build times low.
+POLLING_INTERVAL = 0.1
 
 
 def parse_etcd_seeds(addresses):
@@ -44,13 +70,14 @@ class JobExecutor(TeethService):
     """
     A service which executes job requests from a queue.
     """
+
     def __init__(self, config):
         self.config = config
         self.log = get_logger()
         self.endpoint_rpc_client = EndpointRPCClient(config)
         self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
-        self._queue = EtcdTaskQueue(self.etcd_client, JOB_QUEUE_NAME)
-        self._looper = task.LoopingCall(self._take_next_task)
+        self.queue = MarconiClient(base_url=config.MARCONI_URL)
+        self._looper = task.LoopingCall(self._take_next_message)
         self._pending_calls = set()
         self._job_type_cache = {}
 
@@ -61,19 +88,20 @@ class JobExecutor(TeethService):
 
         return self._job_type_cache[job_type]
 
-    def _load_job_request(self, task):
-        d = threads.deferToThread(JobRequest.objects.get, id=UUID(task.value))
-        return d.addCallback(lambda job_request: (job_request, task))
+    def _load_job_request(self, message):
+        d = threads.deferToThread(JobRequest.objects.get, id=UUID(message.body['job_request_id']))
+        return d.addCallback(lambda job_request: (job_request, message))
 
-    def _execute_job_request(self, (job_request, task)):
+    def _execute_job_request(self, (job_request, message)):
         cls = self._get_job_class(job_request.job_type)
-        job = cls(self, job_request, task)
+        job = cls(self, job_request, message)
         d = job.execute()
         self._pending_calls.add(d)
         d.addBoth(lambda result: self._pending_calls.remove(d))
 
-    def _take_next_task(self):
-        d = self._queue.take()
+    def _take_next_message(self):
+        d = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE,
+                                     polling_interval=POLLING_INTERVAL)
         d.addCallback(self._load_job_request)
         d.addCallback(self._execute_job_request)
         return d.addErrback(self.log.err)
@@ -102,11 +130,11 @@ class JobClient(object):
         self.config = config
         self.log = get_logger()
         self.endpoint_rpc_client = EndpointRPCClient(config)
-        self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
-        self._queue = EtcdTaskQueue(self.etcd_client, JOB_QUEUE_NAME)
+        self.queue = MarconiClient(base_url=config.MARCONI_URL)
 
     def _notify_workers(self, job_request):
-        return self._queue.push(str(job_request.id))
+        body = {'job_request_id': str(job_request.id)}
+        return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)
 
     def submit_job(self, cls, **params):
         """
@@ -125,11 +153,11 @@ class Job(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, executor, request, task):
+    def __init__(self, executor, request, message):
         self.executor = executor
         self.params = request.params
         self.request = request
-        self.task = task
+        self.message = message
         self.log = get_logger(request_id=str(self.request.id), attempt_id=str(uuid4()))
 
     @abstractproperty
@@ -147,17 +175,27 @@ class Job(object):
     def _save_request(self):
         return threads.deferToThread(self.request.save).addErrback(self.log.err)
 
+    def _update_claim(self, ttl=CLAIM_TTL):
+        return self.executor.queue.update_claim(self.message, ttl).addErrback(self.log.err)
+
+    def _release_claim(self):
+        return self.executor.queue.release_claim(self.message).addErrback(self.log.err)
+
+    def _delete_message(self):
+        return self.executor.queue.delete_message(self.message).addErrback(self.log.err)
+
     def _on_success(self, result):
         self.log.msg('successfully executed job request')
         self.request.complete()
         d = self._save_request()
-        d.addBoth(lambda result: self.task.complete())
+        d.addBoth(lambda result: self._delete_message())
 
     def _on_failure(self, failure):
         self.log.err(failure)
-        self.request.fail()
+        self.request.reset()
         d = self._save_request()
-        d.addBoth(lambda result: self.task.abort())
+        # TODO: implement back-off and eventually "giving up"
+        d.addBoth(lambda result: self._update_claim(ttl=INITIAL_RETRY_DELAY))
 
     def execute(self):
         """
@@ -167,7 +205,7 @@ class Job(object):
         """
         if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
             self.log.msg('job request no longer valid, not executing', state=self.request.state)
-            return defer.succeed(None)
+            return self._delete_message()
 
         self.log.msg('executing job request')
         self.request.start()

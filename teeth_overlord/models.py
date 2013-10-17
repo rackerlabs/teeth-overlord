@@ -317,6 +317,15 @@ class JobRequest(Base):
         self.state = JobRequestState.RUNNING
         self.touch()
 
+    def reset(self):
+        """
+        Mark mark the job as `READY` and update the `updated_at` field.
+
+        Note: this does not save the JobRequest.
+        """
+        self.state = JobRequestState.READY
+        self.touch()
+
     def fail(self):
         """
         Mark the job as `FAILED` and update the `udpated_at` field.
