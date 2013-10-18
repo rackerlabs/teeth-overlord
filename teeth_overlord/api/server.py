@@ -21,6 +21,25 @@ from cqlengine.query import DoesNotExist
 from teeth_overlord import models, jobs, rest, errors
 
 
+def _validate_relation(instance, field_name, cls):
+    id = getattr(instance, field_name)
+
+    def _on_failure(failure):
+        failure.trap(cls.DoesNotExist)
+        msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
+                                                                  type_name=cls.__name__)
+        raise errors.InvalidContentError(msg)
+
+    d = threads.deferToThread(cls.get, id=id)
+    d.addErrback(_on_failure)
+    return d
+
+
+def _unwrap_first_error(failure):
+    failure.trap(defer.FirstError)
+    return failure.value.subFailure
+
+
 class TeethAPI(rest.RESTServer):
     """
     The primary Teeth Overlord API.
@@ -247,6 +266,10 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
+
+        def _save_instance(result, instance):
+            return threads.deferToThread(instance.save)
+
         def _execute_job(result):
             return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
 
@@ -254,7 +277,10 @@ class TeethAPI(rest.RESTServer):
             return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
         instance = models.Instance.deserialize(self.parse_content(request))
-        d = threads.deferToThread(instance.save)
+        d = defer.gatherResults([
+            _validate_relation(instance, 'flavor_id', models.Flavor),
+        ]).addErrback(_unwrap_first_error)
+        d.addCallback(_save_instance, instance)
         d.addCallback(_execute_job)
         d.addCallback(_respond)
         return d
