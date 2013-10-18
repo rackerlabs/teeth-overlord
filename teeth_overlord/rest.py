@@ -100,7 +100,7 @@ class RESTServer(service.TeethService):
         try:
             return json.loads(request.content.read())
         except Exception as e:
-            raise errors.InvalidContentError(e)
+            raise errors.InvalidContentError(e.message)
 
     def startService(self):
         """

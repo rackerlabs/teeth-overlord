@@ -99,8 +99,8 @@ class InvalidContentError(TeethError):
     message = 'Invalid request body'
     status_code = 400
 
-    def __init__(self, error):
-        self.details = error.message
+    def __init__(self, details):
+        self.details = details
 
 
 class RequestedObjectNotFoundError(TeethError):
