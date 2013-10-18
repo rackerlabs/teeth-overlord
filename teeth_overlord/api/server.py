@@ -155,18 +155,21 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
-        def _saved(flavor_provider):
+        def _save(results):
+            return threads.deferToThread(flavor_provider.save)
+
+        def _respond(flavor_provider):
             return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
 
-        def _validated(results):
-            return threads.deferToThread(flavor_provider.save).addCallback(_saved)
-
         flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
+
         d = defer.gatherResults([
-            threads.deferToThread(models.ChassisModel.get, id=flavor_provider.chassis_model_id),
-            threads.deferToThread(models.Flavor.get, id=flavor_provider.flavor_id),
-        ])
-        d.addCallback(_validated)
+            _validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel),
+            _validate_relation(flavor_provider, 'flavor_id', models.Flavor),
+        ]).addErrback(_unwrap_first_error)
+
+        d.addCallback(_save)
+        d.addCallback(_respond)
         return d
 
     @app.route('/v1.0/flavor_providers', methods=['GET'])
