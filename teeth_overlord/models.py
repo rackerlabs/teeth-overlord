@@ -286,9 +286,9 @@ class JobRequest(Base):
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
     state = columns.Ascii(index=True, default=JobRequestState.READY)
+    failed_attempts = columns.Integer(default=0)
     submitted_at = C2DateTime(default=datetime.now)
     updated_at = C2DateTime(default=datetime.now)
-    ttl_seconds = columns.Integer(default=90)
 
     def serialize(self, view):
         """
@@ -323,6 +323,8 @@ class JobRequest(Base):
 
         Note: this does not save the JobRequest.
         """
+        if self.state != JobRequestState.READY:
+            self.failed_attempts += 1
         self.state = JobRequestState.READY
         self.touch()
 
