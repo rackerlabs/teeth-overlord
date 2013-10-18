@@ -190,12 +190,22 @@ class Job(object):
         d = self._save_request()
         d.addBoth(lambda result: self._delete_message())
 
-    def _on_failure(self, failure):
+    def _on_error(self, failure):
         self.log.err(failure)
+        return self._reset_request()
+
+    def _reset_request(self):
         self.request.reset()
-        d = self._save_request()
-        # TODO: implement back-off and eventually "giving up"
-        d.addBoth(lambda result: self._update_claim(ttl=INITIAL_RETRY_DELAY))
+        if self.request.failed_attempts >= self.max_retries:
+            self.log.msg('job request exceeded retry limit', max_retries=self.max_retries)
+            self.request.fail()
+            d = self._save_request()
+            d.addBoth(lambda result: self._delete_message())
+            return d
+        else:
+            d = self._save_request()
+            d.addBoth(lambda result: self._update_claim(ttl=INITIAL_RETRY_DELAY))
+            return d
 
     def execute(self):
         """
@@ -207,10 +217,14 @@ class Job(object):
             self.log.msg('job request no longer valid, not executing', state=self.request.state)
             return self._delete_message()
 
+        if self.request.state == JobRequestState.RUNNING:
+            self.log.msg('job request was found in RUNNING state, assuming it failed')
+            return self._reset_request()
+
         self.log.msg('executing job request')
         self.request.start()
-        self._save_request()
-        return self._execute().addCallback(self._on_success).addErrback(self._on_failure)
+        self._save_request().addBoth(lambda result: self._update_claim())
+        return self._execute().addCallback(self._on_success).addErrback(self._on_error)
 
 
 class CreateInstance(Job):
@@ -222,6 +236,7 @@ class CreateInstance(Job):
     parameters.
     """
     job_type = 'create_instance'
+    max_retries = 10
 
     def get_instance(self):
         """
