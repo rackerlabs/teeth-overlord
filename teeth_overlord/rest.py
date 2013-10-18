@@ -59,14 +59,12 @@ class RESTServer(service.TeethService):
 
         error = failure.value
 
-        if isinstance(error, errors.TeethError):
-            request.setResponseCode(error.status_code)
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(error)
-        else:
-            request.setResponseCode(500)
-            request.setHeader('Content-Type', 'application/json')
-            return self.encoder.encode(errors.TeethError())
+        if not failure.check(errors.TeethError):
+            error = errors.TeethError()
+
+        request.setResponseCode(error.status_code)
+        request.setHeader('Content-Type', 'application/json')
+        return self.encoder.encode(error)
 
     def return_ok(self, request, result):
         """
