@@ -23,7 +23,6 @@ from structlog import get_logger
 from txetcd import EtcdClient
 from txmarconi.client import MarconiClient
 
-
 from teeth_overlord.models import (Chassis, ChassisState, Instance, InstanceState, JobRequest,
                                    JobRequestState, FlavorProvider)
 from teeth_overlord import errors
@@ -89,8 +88,17 @@ class JobExecutor(TeethService):
         return self._job_type_cache[job_type]
 
     def _load_job_request(self, message):
+        def _load_error(failure):
+            if failure.check(JobRequest.DoesNotExist):
+                self.log.msg('removing message corresponding to non-existent JobRequest',
+                             message_href=message.href,
+                             job_request_id=message.body['job_request_id'])
+                return self.queue.delete_message(message).addCallback(lambda result: failure)
+            else:
+                return failure
+
         d = threads.deferToThread(JobRequest.objects.get, id=UUID(message.body['job_request_id']))
-        return d.addCallback(lambda job_request: (job_request, message))
+        return d.addCallbacks(lambda job_request: (job_request, message), _load_error)
 
     def _execute_job_request(self, (job_request, message)):
         cls = self._get_job_class(job_request.job_type)
