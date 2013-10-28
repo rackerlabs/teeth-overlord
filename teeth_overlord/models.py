@@ -223,6 +223,7 @@ class Instance(Base):
             ('project_id', str(self.project_id)),
             ('name', str(self.name)),
             ('flavor_id', str(self.flavor_id)),
+            ('image_id', str(self.image_id)),
             ('chassis_id', str(self.chassis_id)),
             ('state', self.state),
         ])
