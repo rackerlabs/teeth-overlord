@@ -20,14 +20,19 @@ from uuid import UUID, uuid4
 from twisted.internet import defer, task, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
-from txetcd import EtcdClient
+from txetcd.client import EtcdClient
 from txmarconi.client import MarconiClient
 
-from teeth_overlord.models import (Chassis, ChassisState, Instance, InstanceState, JobRequest,
-                                   JobRequestState, FlavorProvider)
-from teeth_overlord import errors
+from teeth_overlord.models import (
+    ChassisState,
+    Instance,
+    InstanceState,
+    JobRequest,
+    JobRequestState
+)
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
+from teeth_overlord.scheduler import TeethInstanceScheduler
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
@@ -75,6 +80,7 @@ class JobExecutor(TeethService):
         self.log = get_logger()
         self.endpoint_rpc_client = EndpointRPCClient(config)
         self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
+        self.scheduler = TeethInstanceScheduler(self.etcd_client)
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
         self._looper = task.LoopingCall(self._take_next_message)
         self._pending_calls = set()
@@ -137,7 +143,6 @@ class JobClient(object):
     def __init__(self, config):
         self.config = config
         self.log = get_logger()
-        self.endpoint_rpc_client = EndpointRPCClient(config)
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
 
     def _notify_workers(self, job_request):
@@ -253,59 +258,13 @@ class CreateInstance(Job):
         instance_id = self.request.params['instance_id']
         return threads.deferToThread(Instance.objects.get, id=UUID(instance_id))
 
-    def find_flavor_provider(self, instance):
+    def reserve_chassis(self, instance):
         """
-        Find the join object that will give the information about which chassies are available
-
+        Reserve a chassis for use by the instance.
         """
-        ready_query = FlavorProvider.objects.filter(flavor_id=instance.flavor_id)
-
-        d = threads.deferToThread(list, ready_query)
-        d.addCallback(lambda flavor_providers: (instance, flavor_providers))
-        return d
-
-    def find_chassis(self, (instance, flavor_providers)):
-        """
-        Select an appropriate chassis for the instance to run on.
-
-        TODO: eventually we may want to make scheduling very
-              extensible.
-        """
-        if len(flavor_providers) == 0:
-            raise errors.InsufficientCapacityError()
-
-        # Choose the highest priority flavor provider
-        flavor_provider = sorted(flavor_providers,
-                                 key=lambda flavor_provider: flavor_provider.schedule_priority,
-                                 reverse=True)[0]
-
-        self.log.msg('Selected ChassisModel', chassis_model_id=str(flavor_provider.chassis_model_id))
-
-        ready_query = Chassis.objects.filter(state=ChassisState.READY)
-        ready_query = ready_query.filter(chassis_model_id=flavor_provider.chassis_model_id)
-        ready_query = ready_query.allow_filtering()
-
-        d = threads.deferToThread(ready_query.first)
+        d = self.executor.scheduler.reserve_chassis(instance)
         d.addCallback(lambda chassis: (instance, chassis))
         return d
-
-    def reserve_chassis(self, (instance, chassis)):
-        """
-        Mark the selected chassis as belonging to this instance, and
-        put it into a `BUILD` state.
-
-        TODO: locking.
-        """
-        if not chassis:
-            raise errors.InsufficientCapacityError()
-
-        batch = BatchQuery()
-        instance.chassis_id = chassis.id
-        instance.state = InstanceState.BUILD
-        instance.batch(batch).save()
-        chassis.state = ChassisState.BUILD
-        chassis.batch(batch).save()
-        return threads.deferToThread(batch.execute).addCallback(lambda result: (instance, chassis))
 
     def get_agent_connection(self, (instance, chassis)):
         """
@@ -352,8 +311,6 @@ class CreateInstance(Job):
 
     def _execute(self):
         d = self.get_instance()
-        d.addCallback(self.find_flavor_provider)
-        d.addCallback(self.find_chassis)
         d.addCallback(self.reserve_chassis)
         d.addCallback(self.get_agent_connection)
         d.addCallback(self.prepare_image)
