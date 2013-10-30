@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from random import choice
+
 from twisted.internet import defer, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
@@ -34,15 +36,13 @@ class TeethInstanceScheduler(object):
         """
         Locate and reserve a chassis for the specified instance.
         """
-        d = self._retrieve_eligible_chassis_list(instance)
+        d = self._retrieve_eligible_chassis(instance)
         d.addCallback(self._mark_chassis_reserved)
         return d
 
-    def _retrieve_eligible_chassis_list(self, instance):
+    def _retrieve_eligible_chassis(self, instance):
         """
-        Retrieve a list of Chassis in order of their suitability for the
-        instance. No guarantees are made regarding the size of the list: it
-        could empty or very large.
+        Retrieve an available Chassis suitable for the instance.
         """
         d = self._find_flavor_providers(instance)
         d.addCallback(self._find_chassis_for_flavor_providers)
@@ -61,7 +61,7 @@ class TeethInstanceScheduler(object):
 
     def _find_chassis_for_flavor_providers(self, (instance, flavor_providers)):
         """
-        Retrieve a list of Chassis that
+        Retrieve a Chassis capable of providing the requested flavor.
         """
         d = defer.Deferred()
 
@@ -72,7 +72,7 @@ class TeethInstanceScheduler(object):
 
         def _with_chassis_list(chassis_list, flavor_providers):
             if len(chassis_list) > 0:
-                d.callback((instance, chassis_list))
+                d.callback((instance, choice(chassis_list)))
                 return
 
             _retrieve_chassis_list(flavor_providers[1:])
@@ -94,30 +94,30 @@ class TeethInstanceScheduler(object):
         _retrieve_chassis_list(flavor_providers)
         return d
 
-    def _mark_chassis_reserved(self, (instance, chassis_list)):
+    def _mark_chassis_reserved(self, (instance, chassis)):
         """
         Mark the selected chassis as belonging to this instance, and
         put it into a `BUILD` state.
         """
 
-        chassis = chassis_list[0]
-
-        def _with_lock(lock):
+        def _refetch_chassis(lock):
             refetch_query = Chassis.objects.filter(id=chassis.id)
-            return threads.deferToThread(refetch_query.get).addCallback(_with_latest_chassis, lock)
+            return threads.deferToThread(refetch_query.get).addCallback(lambda result: (chassis, lock))
 
-        def _with_latest_chassis(chassis, lock):
+        def _save_chassis_and_instance((chassis, lock)):
             batch = BatchQuery()
             instance.chassis_id = chassis.id
             instance.state = InstanceState.BUILD
             instance.batch(batch).save()
             chassis.state = ChassisState.BUILD
             chassis.batch(batch).save()
-            return threads.deferToThread(batch.execute).addCallback(lambda result: chassis)
+            return threads.deferToThread(batch.execute).addCallback(lambda result: (chassis, lock))
 
-        def _unlock(result, lock):
-            return lock.release()
+        def _unlock((chassis, lock)):
+            return lock.release().addCallback(lambda result: chassis)
 
         d = self.lock_manager.lock('/chassis/{chassis_id}'.format(chassis_id=str(chassis.id)))
-        d.addCallback(_with_lock)
+        d.addCallback(_refetch_chassis)
+        d.addCallback(_save_chassis_and_instance)
+        d.addCallback(_unlock)
         return d
