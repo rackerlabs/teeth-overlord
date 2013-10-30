@@ -36,8 +36,21 @@ class TeethInstanceScheduler(object):
         """
         Locate and reserve a chassis for the specified instance.
         """
-        d = self._retrieve_eligible_chassis(instance)
-        d.addCallback(self._mark_chassis_reserved)
+        d = defer.Deferred()
+
+        def _on_failure(failure):
+            if failure.check(errors.ChassisAlreadyReservedError):
+                _attempt_reservation()
+            else:
+                d.errback(failure)
+
+        def _attempt_reservation():
+            d1 = self._retrieve_eligible_chassis(instance)
+            d1.addCallback(self._mark_chassis_reserved, instance)
+            d1.addCallbacks(d.callback, _on_failure)
+
+        _attempt_reservation()
+
         return d
 
     def _retrieve_eligible_chassis(self, instance):
@@ -54,12 +67,9 @@ class TeethInstanceScheduler(object):
         capable of providing the requested flavor.
         """
         flavor_provider_query = FlavorProvider.objects.filter(flavor_id=instance.flavor_id)
+        return threads.deferToThread(list, flavor_provider_query)
 
-        d = threads.deferToThread(list, flavor_provider_query)
-        d.addCallback(lambda flavor_providers: (instance, flavor_providers))
-        return d
-
-    def _find_chassis_for_flavor_providers(self, (instance, flavor_providers)):
+    def _find_chassis_for_flavor_providers(self, flavor_providers):
         """
         Retrieve a Chassis capable of providing the requested flavor.
         """
@@ -72,7 +82,7 @@ class TeethInstanceScheduler(object):
 
         def _with_chassis_list(chassis_list, flavor_providers):
             if len(chassis_list) > 0:
-                d.callback((instance, choice(chassis_list)))
+                d.callback(choice(chassis_list))
                 return
 
             _retrieve_chassis_list(flavor_providers[1:])
@@ -94,7 +104,7 @@ class TeethInstanceScheduler(object):
         _retrieve_chassis_list(flavor_providers)
         return d
 
-    def _mark_chassis_reserved(self, (instance, chassis)):
+    def _mark_chassis_reserved(self, chassis, instance):
         """
         Mark the selected chassis as belonging to this instance, and
         put it into a `BUILD` state.
