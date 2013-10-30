@@ -21,6 +21,7 @@ from twisted.internet import defer, task, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
 from txetcd.client import EtcdClient
+from txetcd.locking import EtcdLockManager
 from txmarconi.client import MarconiClient
 
 from teeth_overlord.models import (
@@ -80,7 +81,8 @@ class JobExecutor(TeethService):
         self.log = get_logger()
         self.endpoint_rpc_client = EndpointRPCClient(config)
         self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
-        self.scheduler = TeethInstanceScheduler(self.etcd_client)
+        self.lock_manager = EtcdLockManager(self.etcd_client, '/teeth/locks')
+        self.scheduler = TeethInstanceScheduler(self.lock_manager)
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
         self._looper = task.LoopingCall(self._take_next_message)
         self._pending_calls = set()

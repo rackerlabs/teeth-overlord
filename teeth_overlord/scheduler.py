@@ -26,8 +26,8 @@ class TeethInstanceScheduler(object):
     """
     Schedule instances onto chassis.
     """
-    def __init__(self, etcd_client):
-        self.etcd_client = etcd_client
+    def __init__(self, lock_manager):
+        self.lock_manager = lock_manager
         self.log = get_logger()
 
     def reserve_chassis(self, instance):
@@ -100,31 +100,24 @@ class TeethInstanceScheduler(object):
         put it into a `BUILD` state.
         """
 
-        """
+        chassis = chassis_list[0]
+
         def _with_lock(lock):
             refetch_query = Chassis.objects.filter(id=chassis.id)
-            threads.deferToThread(refetch_query.get).addCallback(_with_latest_chassis, lock)
+            return threads.deferToThread(refetch_query.get).addCallback(_with_latest_chassis, lock)
 
-        def _with_latest_chassis(chassis, lock)
-
-
-        def _unlock(result, lock):
+        def _with_latest_chassis(chassis, lock):
             batch = BatchQuery()
             instance.chassis_id = chassis.id
             instance.state = InstanceState.BUILD
             instance.batch(batch).save()
             chassis.state = ChassisState.BUILD
             chassis.batch(batch).save()
-            return threads.deferToThread(batch.execute).addCallback(lambda result: (instance, chassis))
-        """
-        #d = self.lock_manager.lock('/chassis/{chassis_id}'.format(chassis_id=str(chassis.id)))
-        #d.addCallback(_with_lock)
-        #return d
-        chassis = chassis_list[0]
-        batch = BatchQuery()
-        instance.chassis_id = chassis.id
-        instance.state = InstanceState.BUILD
-        instance.batch(batch).save()
-        chassis.state = ChassisState.BUILD
-        chassis.batch(batch).save()
-        return threads.deferToThread(batch.execute).addCallback(lambda result: chassis)
+            return threads.deferToThread(batch.execute).addCallback(lambda result: chassis)
+
+        def _unlock(result, lock):
+            return lock.release()
+
+        d = self.lock_manager.lock('/chassis/{chassis_id}'.format(chassis_id=str(chassis.id)))
+        d.addCallback(_with_lock)
+        return d
