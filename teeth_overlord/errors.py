@@ -35,6 +35,18 @@ class TeethError(Exception, Serializable):
         ])
 
 
+class ChassisAlreadyReservedError(TeethError):
+    """
+    Error which occurs when the scheduler recommends a chassis, but
+    someone else reserves it first. This should generally be handled
+    by requesting another chassis from the scheduler.
+    """
+    message = 'Chassis already reserved'
+
+    def __init__(self, chassis):
+        self.details = 'Chassis {chassis_id} is already reserved.'.format(chassis_id=str(chassis.id))
+
+
 class InsufficientCapacityError(TeethError):
     """
     Error which occurs when not enough capacity is available to

@@ -105,6 +105,9 @@ class TeethInstanceScheduler(object):
             return threads.deferToThread(refetch_query.get).addCallback(lambda result: (chassis, lock))
 
         def _save_chassis_and_instance((chassis, lock)):
+            if chassis.state != ChassisState.READY:
+                return defer.fail(errors.ChassisAlreadyReservedError(chassis))
+
             batch = BatchQuery()
             instance.chassis_id = chassis.id
             instance.state = InstanceState.BUILD
