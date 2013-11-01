@@ -19,6 +19,7 @@ from twisted.internet import threads, defer
 from cqlengine.query import DoesNotExist
 
 from teeth_overlord import models, jobs, rest, errors
+from teeth_overlord.images.base import get_image_provider
 
 
 def _validate_relation(instance, field_name, cls):
@@ -49,6 +50,7 @@ class TeethAPI(rest.RESTServer):
     def __init__(self, config):
         rest.RESTServer.__init__(self, config, config.API_HOST, config.API_PORT)
         self.job_client = jobs.JobClient(config)
+        self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
 
     def _crud_list(self, request, cls):
         def _retrieved(objects):
@@ -281,6 +283,7 @@ class TeethAPI(rest.RESTServer):
 
         instance = models.Instance.deserialize(self.parse_content(request))
         d = defer.gatherResults([
+            self.image_provider.get_image_info(instance.image_id),
             _validate_relation(instance, 'flavor_id', models.Flavor),
         ]).addErrback(_unwrap_first_error)
         d.addCallback(_save_instance, instance)

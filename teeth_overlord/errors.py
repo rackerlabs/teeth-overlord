@@ -115,6 +115,17 @@ class InvalidContentError(TeethError):
         self.details = details
 
 
+class ImageNotFoundError(InvalidContentError):
+    """
+    Error which is raised when an image is not found.
+    """
+    message = 'Image not found'
+
+    def __init__(self, image_id):
+        msg = 'Image "{image_id}" not found.'.format(image_id=str(image_id))
+        super(ImageNotFoundError, self).__init__(msg)
+
+
 class RequestedObjectNotFoundError(TeethError):
     """
     Error which is returned when a requested object is not found.

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from uuid import UUID
+
 import simplejson as json
 
 
@@ -33,6 +35,19 @@ class Config(object):
     JOBSERVER_PORT = 8083
     ETCD_ADDRESSES = ['localhost:4001']
     MARCONI_URL = 'http://localhost:8888'
+    IMAGE_PROVIDER = 'static'
+    IMAGE_PROVIDER_CONFIG = {
+        'images': [
+            {
+                'id': UUID('8226c769-3739-4ee6-921c-82110da6c669'),
+                'name': 'Default Example Image',
+                'urls': ['http://example.org/images/8226c769-3739-4ee6-921c-82110da6c669.raw'],
+                'hashes': {
+                    'md5': 'c2e5db72bd7fd153f53ede5da5a06de3'
+                }
+            }
+        ]
+    }
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
