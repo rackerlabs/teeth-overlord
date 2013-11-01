@@ -26,7 +26,7 @@ class StaticImageProvider(BaseImageProvider):
     """
 
     def __init__(self, images=[]):
-        self.images = {image.id: ImageInfo(image) for image in images}
+        self.images = {image['id']: ImageInfo(**image) for image in images}
 
     def get_image_info(self, image_id):
         """
@@ -35,7 +35,7 @@ class StaticImageProvider(BaseImageProvider):
         """
         image_id = str(image_id)
 
-        if image_id not in self.image_infos:
-            defer.fail(ImageNotFoundError(image_id))
-
-        defer.succeed(self.image_infos[image_id])
+        if image_id not in self.images:
+            return defer.fail(ImageNotFoundError(image_id))
+        else:
+            return defer.succeed(self.images[image_id])

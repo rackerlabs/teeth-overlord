@@ -15,9 +15,9 @@ limitations under the License.
 """
 
 from uuid import UUID
-
-from abc import ABCMeta, abstractproperty, abstractmethod
 from collections import OrderedDict
+
+from twisted.python.reflect import namedAny
 
 from teeth_overlord.encoding import Serializable
 
@@ -42,19 +42,11 @@ class ImageInfo(Serializable):
         ])
 
 
-class BaseImageProvider(ABCMeta):
+class BaseImageProvider(object):
     """
     A provider of images. Basically an abstraction of a glance client.
     """
 
-    @abstractproperty
-    def provider_type(self):
-        """
-        A unique string identifying the type of the image provider.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
     def get_image_info(self, image_id):
         """
         Return, via a deferred, an ImageInfo instance with information about the
@@ -69,6 +61,6 @@ def get_image_provider(provider_type, provider_config):
     config. The `provider_config` is simply a dict of keyword arguments
     to the image provider class.
     """
-    impl = next(sublcs for sublcs in BaseImageProvider.__subclasses__() if
-                sublcs.provider_type == provider_type)
-    return impl(**provider_config)
+    cls = namedAny(provider_type)
+    print cls
+    return cls(**provider_config)

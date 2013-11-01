@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from uuid import UUID
-
 import simplejson as json
 
 
@@ -35,11 +33,11 @@ class Config(object):
     JOBSERVER_PORT = 8083
     ETCD_ADDRESSES = ['localhost:4001']
     MARCONI_URL = 'http://localhost:8888'
-    IMAGE_PROVIDER = 'static'
+    IMAGE_PROVIDER = 'teeth_overlord.images.static.StaticImageProvider'
     IMAGE_PROVIDER_CONFIG = {
         'images': [
             {
-                'id': UUID('8226c769-3739-4ee6-921c-82110da6c669'),
+                'id': '8226c769-3739-4ee6-921c-82110da6c669',
                 'name': 'Default Example Image',
                 'urls': ['http://example.org/images/8226c769-3739-4ee6-921c-82110da6c669.raw'],
                 'hashes': {
