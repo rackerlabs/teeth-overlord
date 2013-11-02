@@ -34,6 +34,7 @@ from teeth_overlord.models import (
 from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
 from teeth_overlord.scheduler import TeethInstanceScheduler
+from teeth_overlord.images.base import get_image_provider
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
@@ -82,6 +83,7 @@ class JobExecutor(TeethService):
         self.endpoint_rpc_client = EndpointRPCClient(config)
         self.etcd_client = EtcdClient(seeds=parse_etcd_seeds(config.ETCD_ADDRESSES))
         self.lock_manager = EtcdLockManager(self.etcd_client, '/teeth/locks')
+        self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
         self.scheduler = TeethInstanceScheduler(self.lock_manager)
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
         self._looper = task.LoopingCall(self._take_next_message)
@@ -268,34 +270,38 @@ class CreateInstance(Job):
         d.addCallback(lambda chassis: (instance, chassis))
         return d
 
-    def get_agent_connection(self, (instance, chassis)):
+    def retrieve_image_info(self, (instance, chassis)):
+        """
+        Retrieve info about the requested image.
+        """
+        d = self.executor.image_provider.get_image_info(instance.image_id)
+        d.addCallback(lambda image_info: (instance, chassis, image_info))
+        return d
+
+    def get_agent_connection(self, (instance, chassis, image_info)):
         """
         Load the agent connection for the selected chassis.
         """
         client = self.executor.endpoint_rpc_client
         d = client.get_agent_connection(chassis)
-        d.addCallback(lambda connection: (instance, chassis, connection))
+        d.addCallback(lambda connection: (instance, chassis, image_info, connection))
         return d
 
-    def prepare_image(self, (instance, chassis, connection)):
+    def prepare_image(self, (instance, chassis, image_info, connection)):
         """
         Send a command to the agent to prepare the selected image.
-
-        TODO: this exists only to demonstrate agent RPC. We will likely
-              need to replace this with one or more 'real' steps
-              required to prep a chassis.
         """
         client = self.executor.endpoint_rpc_client
-        d = client.prepare_image(connection, str(instance.image_id))
-        d.addCallback(lambda result: (instance, chassis, connection))
+        d = client.prepare_image(connection, image_info)
+        d.addCallback(lambda result: (instance, chassis, image_info, connection))
         return d
 
-    def run_image(self, (instance, chassis, connection)):
+    def run_image(self, (instance, chassis, image_info, connection)):
         """
         Send a command to the agent to run the selected image.
         """
         client = self.executor.endpoint_rpc_client
-        d = client.run_image(connection, str(instance.image_id))
+        d = client.run_image(connection, image_info)
         d.addCallback(lambda result: (instance, chassis))
         return d
 
@@ -314,6 +320,7 @@ class CreateInstance(Job):
     def _execute(self):
         d = self.get_instance()
         d.addCallback(self.reserve_chassis)
+        d.addCallback(self.retrieve_image_info)
         d.addCallback(self.get_agent_connection)
         d.addCallback(self.prepare_image)
         d.addCallback(self.run_image)
