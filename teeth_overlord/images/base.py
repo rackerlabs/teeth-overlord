@@ -35,7 +35,7 @@ class ImageInfo(Serializable):
     def serialize(self, view):
         """Turn an ImageInfo into a dict."""
         return OrderedDict([
-            ('id', str(self.id)),
+            ('id', self.id),
             ('name', self.name),
             ('urls', self.urls),
             ('hashes', self.hashes),

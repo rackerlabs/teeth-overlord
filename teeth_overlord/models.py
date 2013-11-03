@@ -66,7 +66,7 @@ class Flavor(Base):
         Turn a Flavor into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
+            ('id', self.id),
             ('name', self.name),
         ])
 
@@ -104,9 +104,9 @@ class FlavorProvider(Base):
         Turn a FlavorProvider into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
-            ('flavor_id', str(self.flavor_id)),
-            ('chassis_model_id', str(self.chassis_model_id)),
+            ('id', self.id),
+            ('flavor_id', self.flavor_id),
+            ('chassis_model_id', self.chassis_model_id),
             ('schedule_priority', self.schedule_priority),
         ])
 
@@ -141,7 +141,7 @@ class ChassisModel(Base):
         Turn a ChassisModel into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
+            ('id', self.id),
             ('name', self.name),
         ])
 
@@ -175,9 +175,9 @@ class Chassis(Base):
         Turn a Chassis into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
+            ('id', self.id),
             ('state', self.state),
-            ('chassis_model_id', str(self.chassis_model_id)),
+            ('chassis_model_id', self.chassis_model_id),
             ('primary_mac_address', self.primary_mac_address),
         ])
 
@@ -219,12 +219,12 @@ class Instance(Base):
         Turn an Instance into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
-            ('project_id', str(self.project_id)),
-            ('name', str(self.name)),
-            ('flavor_id', str(self.flavor_id)),
-            ('image_id', str(self.image_id)),
-            ('chassis_id', str(self.chassis_id)),
+            ('id', self.id),
+            ('project_id', self.project_id),
+            ('name', self.name),
+            ('flavor_id', self.flavor_id),
+            ('image_id', self.image_id),
+            ('chassis_id', self.chassis_id),
             ('state', self.state),
         ])
 
@@ -262,7 +262,7 @@ class AgentConnection(Base):
         Turn an AgentConnection into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
+            ('id', self.id),
             ('primary_mac_address', self.primary_mac_address),
             ('endpoint_rpc_host', self.endpoint_rpc_host),
             ('endpoint_rpc_port', self.endpoint_rpc_port),
@@ -296,7 +296,7 @@ class JobRequest(Base):
         Turn a JobRequest into a dict.
         """
         return OrderedDict([
-            ('id', str(self.id)),
+            ('id', self.id),
             ('job_type', self.job_type),
             ('params', self.params.to_python),
         ])

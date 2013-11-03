@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import json
+from uuid import UUID
 
 
 class Serializable(object):
@@ -73,5 +74,7 @@ class TeethJSONEncoder(json.JSONEncoder):
         """
         if isinstance(o, Serializable):
             return o.serialize(self.view)
+        elif isinstance(o, UUID):
+            return str(o)
         else:
             return json.JSONEncoder.default(self, o)
