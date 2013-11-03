@@ -7,7 +7,6 @@ cql==1.4.0
 cqlengine==0.8
 -e git+git@github.com:twisted/klein.git@396658cf14e33ad08a73fa887719cabf823abba7#egg=klein-dev
 logilab-common==0.60.0
-simplejson==3.3.0
 structlog==0.3.0
 -e git+git@github.com:racker/teeth-agent.git@da5690ce24c16402e482ee30975f96ef87f3ee05#egg=teeth_agent-dev
 thrift==0.9.1
