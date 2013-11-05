@@ -5,6 +5,7 @@ include/*
 local/*
 src/*
 !src/teeth-agent
+man/*
 dropin.cache
 .ve
 _trial_temp/
