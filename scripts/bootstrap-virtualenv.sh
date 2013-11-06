@@ -19,5 +19,5 @@ fi
 
 source ${VE_DIR}/bin/activate
 
-pip install -r requirements.txt -r dev-requirements.txt
-
+pip install -r requirements.txt -r dev-requirements.txt -r base-requirements.txt
+add2virtualenv src/teeth-agent

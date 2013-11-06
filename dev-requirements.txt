@@ -6,3 +6,4 @@ junitxml==0.7
 python-subunit==0.0.15
 mock==1.0.1
 coverage==3.6
+virtualenvwrapper==4.1.1
