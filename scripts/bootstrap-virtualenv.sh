@@ -6,8 +6,6 @@
 # as on Jenkins.
 #
 
-echo "I'm in your PR, failing ur builds" && exit 1
-
 set -e
 
 VE_DIR=${VE_DIR:=.ve}
