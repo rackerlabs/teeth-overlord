@@ -17,6 +17,11 @@ Once Cassandra is running, sync our schema to it:
 python sync_models.py
 ```
 
+## Builders
+
+Teeth Overlord master: https://jenkins.t.k1k.me/job/teeth-overlord-master/
+Teeth Overlord PRs: https://jenkins.t.k1k.me/job/teeth-overlord-pr/
+
 ## teeth-agent-endpoint
 
 Exposes an endpoint that teeth agents can connect to in order to make and
