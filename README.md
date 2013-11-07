@@ -92,7 +92,7 @@ curl http://localhost:8080/v1.0/chassis
 
 # 2013-09-20 10:54:45-0700 [AgentClientHandler,client] Preparing image image-123
 
-# Because during instance creation we commanded the agent to prepare an image.
-# We can easily add support for new RPC methods to the agent as necessary to
+# Because during instance creation we commanded the agent to prepare an image,
+# we can easily add support for new RPC methods to the agent as necessary to
 # support inventory management and instance creation.
 ```
