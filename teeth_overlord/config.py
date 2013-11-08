@@ -23,13 +23,13 @@ class Config(object):
     """
     CASSANDRA_CLUSTER = ['127.0.0.1:9160']
     CASSANDRA_CONSISTENCY = 'ONE'
-    API_HOST = 'localhost'
+    API_HOST = '0.0.0.0'
     API_PORT = 8080
-    AGENT_ENDPOINT_AGENT_HOST = 'localhost'
+    AGENT_ENDPOINT_AGENT_HOST = '0.0.0.0'
     AGENT_ENDPOINT_AGENT_PORT = 8081
-    AGENT_ENDPOINT_RPC_HOST = 'localhost'
+    AGENT_ENDPOINT_RPC_HOST = '0.0.0.0'
     AGENT_ENDPOINT_RPC_PORT = 8082
-    JOBSERVER_HOST = 'localhost'
+    JOBSERVER_HOST = '0.0.0.0'
     JOBSERVER_PORT = 8083
     ETCD_ADDRESSES = ['localhost:4001']
     MARCONI_URL = 'http://localhost:8888'
