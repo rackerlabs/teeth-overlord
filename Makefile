@@ -4,6 +4,7 @@ SCRIPTSDIR=scripts
 UNITTESTS ?= ${CODEDIR}
 PYTHONLINT=${SCRIPTSDIR}/python-lint.py
 PYDIRS=${CODEDIR} ${SCRIPTSDIR}
+TEETH_IMAGES=./teeth-images
 
 default: lint test
 
@@ -22,6 +23,9 @@ coverage:
 
 env:
 	./scripts/bootstrap-virtualenv.sh
+
+base_image:
+	${TEETH_IMAGES}/bin/teeth-ships.py
 
 lint:
 	${PYTHONLINT} ${PYDIRS}
