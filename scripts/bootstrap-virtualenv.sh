@@ -20,3 +20,4 @@ fi
 source ${VE_DIR}/bin/activate
 
 pip install -r requirements.txt -r dev-requirements.txt -r base-requirements.txt
+pip install -r teeth-images/requirements.txt
