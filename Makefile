@@ -22,6 +22,8 @@ coverage:
 	coverage run --source=${CODEDIR} --branch `which trial` ${UNITTESTS} && coverage html -d _trial_coverage --omit="*/tests/*"
 
 env:
+	git submodule init
+	git submodule update
 	./scripts/bootstrap-virtualenv.sh
 
 base_image:
