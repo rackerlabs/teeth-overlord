@@ -1,5 +1,5 @@
 CODEDIR=teeth_overlord
-SCRIPTSDIR=scripts
+SCRIPTSDIR=bin
 
 UNITTESTS ?= ${CODEDIR}
 PYTHONLINT=${SCRIPTSDIR}/python-lint.py
@@ -24,7 +24,7 @@ coverage:
 env:
 	git submodule init
 	git submodule update
-	./scripts/bootstrap-virtualenv.sh
+	${SCRIPTSDIR}/bootstrap-virtualenv.sh
 
 base_image:
 	${TEETH_IMAGES}/bin/teeth-ships.py
