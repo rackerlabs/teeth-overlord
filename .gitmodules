@@ -1,6 +1,3 @@
-[submodule "src/teeth-agent"]
-	path = src/teeth-agent
-	url = git@github.com:racker/teeth-agent.git
 [submodule "teeth-images"]
 	path = teeth-images
 	url = git@github.com:racker/teeth-images.git
