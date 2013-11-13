@@ -17,6 +17,8 @@ def build_overlord_base():
     s.build(tag="teeth/overlord_base", path=dependency_path("overlord_base"))
 
 @command
+def build_cassandra():
+    s.build(tag="teeth/cassandra", path=dependency_path("cassandra"))
 
 @command
 def build_overlord():
