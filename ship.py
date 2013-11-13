@@ -9,12 +9,17 @@ s = Shipper([DOCKER_HOST])
 def repo_root():
     return os.path.abspath(os.path.dirname(__file__))
 
-@command
-def overlord_base():
-    s.build(tag="teeth/overlord_base", path=os.path.join(repo_root(), "overlord_base"))
+def dependency_path(i):
+    return os.path.join(repo_root(), "images", i)
 
 @command
-def overlord():
+def build_overlord_base():
+    s.build(tag="teeth/overlord_base", path=dependency_path("overlord_base"))
+
+@command
+
+@command
+def build_overlord():
     s.build(tag="teeth/overlord", path=repo_root())
 
 run()
