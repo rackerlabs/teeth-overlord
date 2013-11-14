@@ -21,7 +21,7 @@ class Config(object):
     """
     Configuration for Teeth Overlord services.
     """
-    CASSANDRA_CLUSTER = ['127.0.0.1:9160']
+    CASSANDRA_CLUSTER = ['localhost:9160']
     CASSANDRA_CONSISTENCY = 'ONE'
     API_HOST = '0.0.0.0'
     API_PORT = 8080
