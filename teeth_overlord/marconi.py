@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import json
+import time
 import uuid
 
 from requests import Session
@@ -92,16 +93,17 @@ class MarconiClient(object):
 
         return response
 
-    def _request_json(self, *args, **kwargs):
-        response = self._request(*args, **kwargs)
-
+    def _extract_json(self, response):
         if not response.text:
-            raise MarconiError(response.status_code, 'Empty response')
-        else:
-            try:
-                return json.loads(response.text)
-            except Exception as e:
-                raise MarconiError(response.status_code, e)
+            if response.status_code == 204:
+                return None
+            else:
+                raise MarconiError(response.status_code, 'Empty response')
+
+        try:
+            return json.loads(response.text)
+        except Exception as e:
+            raise MarconiError(response.status_code, e)
 
     def ensure_queue(self, queue_name):
         """
@@ -122,5 +124,48 @@ class MarconiClient(object):
             }
         ]
 
-        obj = self._request_json('POST', path, [201], data=data)
+        obj = self._extract_json(self._request('POST', path, [201], data=data))
         return MarconiMessage(body=body, ttl=ttl, age=0, href=obj['resources'][0])
+
+    def claim_message(self, queue_name, ttl, grace, polling_interval=1):
+        """
+        Claim a message from the specified queue.
+        """
+        path = '/v1/queues/{queue_name}/claims'.format(queue_name=queue_name)
+        data = {
+            'ttl': ttl,
+            'grace': grace,
+        }
+        params = {
+            'limit': 1,
+        }
+
+        while True:
+            response = self._request('POST', path, [201, 204], data=data, params=params)
+            obj = self._extract_json(response)
+            if obj:
+                return ClaimedMarconiMessage(claim_href=response.headers['Location'], **obj[0])
+            else:
+                time.sleep(polling_interval)
+
+    def update_claim(self, claimed_message, ttl):
+        """
+        Update a claim. Used to refresh the claim's TTL.
+        """
+        data = {
+            'ttl': ttl,
+        }
+
+        self._request('PATCH', claimed_message.claim_href, [204], data=data)
+
+    def release_claim(self, claimed_message):
+        """
+        Release a claim. Leaves the message in the queue.
+        """
+        self._request('DELETE', claimed_message.claim_href, [204])
+
+    def delete_message(self, message):
+        """
+        Delete a message (claimed or not).
+        """
+        self._request('DELETE', message.href, [204])
