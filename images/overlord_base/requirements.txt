@@ -6,7 +6,6 @@ cqlengine==0.8
 -e git+https://github.com/twisted/klein.git@396658cf14e33ad08a73fa887719cabf823abba7#egg=klein-dev
 structlog==0.3.0
 treq==0.2.0
-txetcd==0.1-dev
 requests==2.0.0
 /opt/teeth-agent
 
