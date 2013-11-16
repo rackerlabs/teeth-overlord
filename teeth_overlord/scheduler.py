@@ -28,8 +28,7 @@ class TeethInstanceScheduler(object):
     """
     Schedule instances onto chassis.
     """
-    def __init__(self, lock_manager):
-        self.lock_manager = lock_manager
+    def __init__(self):
         self.log = get_logger()
 
     def reserve_chassis(self, instance):
@@ -109,28 +108,22 @@ class TeethInstanceScheduler(object):
         Mark the selected chassis as belonging to this instance, and
         put it into a `BUILD` state.
         """
+        # TODO: Lock around instance reservation
+        # self.lock_manager.lock('/chassis/{chassis_id}'.format(chassis_id=str(chassis.id)))
 
-        def _refetch_chassis(lock):
-            refetch_query = Chassis.objects.filter(id=chassis.id)
-            return threads.deferToThread(refetch_query.get).addCallback(lambda result: (chassis, lock))
+        # Re-fetch the chassis while we hold the lock
+        chassis = Chassis.objects.filter(id=chassis.id).get()
 
-        def _save_chassis_and_instance((chassis, lock)):
-            if chassis.state != ChassisState.READY:
-                return defer.fail(errors.ChassisAlreadyReservedError(chassis))
+        if chassis.state != ChassisState.READY:
+            raise errors.ChassisAlreadyReservedError(chassis)
 
-            batch = BatchQuery()
-            instance.chassis_id = chassis.id
-            instance.state = InstanceState.BUILD
-            instance.batch(batch).save()
-            chassis.state = ChassisState.BUILD
-            chassis.batch(batch).save()
-            return threads.deferToThread(batch.execute).addCallback(lambda result: (chassis, lock))
+        batch = BatchQuery()
+        instance.chassis_id = chassis.id
+        instance.state = InstanceState.BUILD
+        instance.batch(batch).save()
+        chassis.state = ChassisState.BUILD
+        chassis.batch(batch).save()
+        batch.execute()
 
-        def _unlock((chassis, lock)):
-            return lock.release().addCallback(lambda result: chassis)
-
-        d = self.lock_manager.lock('/chassis/{chassis_id}'.format(chassis_id=str(chassis.id)))
-        d.addCallback(_refetch_chassis)
-        d.addCallback(_save_chassis_and_instance)
-        d.addCallback(_unlock)
-        return d
+        # TODO: unlock
+        return chassis
