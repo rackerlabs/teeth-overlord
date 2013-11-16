@@ -22,7 +22,6 @@ from cqlengine import BatchQuery
 from structlog import get_logger
 from txetcd.client import EtcdClient
 from txetcd.locking import EtcdLockManager
-from txmarconi.client import MarconiClient
 
 from teeth_overlord.models import (
     ChassisState,
@@ -35,6 +34,7 @@ from teeth_overlord.agent.rpc import EndpointRPCClient
 from teeth_overlord.service import TeethService
 from teeth_overlord.scheduler import TeethInstanceScheduler
 from teeth_overlord.images.base import get_image_provider
+from teeth_overlord.marconi import MarconiClient
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
