@@ -98,19 +98,16 @@ class JobExecutor(TeethService):
         return self._job_type_cache[job_type]
 
     def _load_job_request(self, message):
-        def _load_error(failure):
-            if failure.check(JobRequest.DoesNotExist):
-                self.log.msg('removing message corresponding to non-existent JobRequest',
-                             message_href=message.href,
-                             job_request_id=message.body['job_request_id'])
-                return self.queue.delete_message(message).addCallback(lambda result: failure)
-            else:
-                return failure
+        try:
+            return JobRequest.objects.get(id=UUID(message.body['job_request_id']))
+        except JobRequest.DoesNotExist as e:
+            self.log.msg('removing message corresponding to non-existent JobRequest',
+                         message_href=message.href,
+                         job_request_id=message.body['job_request_id'])
+            self.queue.delete_message(message)
+            raise e
 
-        d = threads.deferToThread(JobRequest.objects.get, id=UUID(message.body['job_request_id']))
-        return d.addCallbacks(lambda job_request: (job_request, message), _load_error)
-
-    def _execute_job_request(self, (job_request, message)):
+    def _execute_job_request(self, job_request, message):
         cls = self._get_job_class(job_request.job_type)
         job = cls(self, job_request, message)
         d = job.execute()
@@ -118,10 +115,10 @@ class JobExecutor(TeethService):
         d.addBoth(lambda result: self._pending_calls.remove(d))
 
     def _take_next_message(self):
-        d = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE,
-                                     polling_interval=POLLING_INTERVAL)
-        d.addCallback(self._load_job_request)
-        d.addCallback(self._execute_job_request)
+        message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE,
+                                           polling_interval=POLLING_INTERVAL)
+        job_request = self._load_job_request(message)
+        d = self._execute_job_request(job_request, message)
         return d.addErrback(self.log.err)
 
     def startService(self):
