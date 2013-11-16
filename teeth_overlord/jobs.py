@@ -146,12 +146,7 @@ class JobClient(object):
     """
     def __init__(self, config):
         self.config = config
-        self.log = get_logger()
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
-
-    def _notify_workers(self, job_request):
-        body = {'job_request_id': str(job_request.id)}
-        return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)
 
     def submit_job(self, cls, **params):
         """
@@ -160,7 +155,9 @@ class JobClient(object):
         mapping strings to strings.
         """
         job_request = JobRequest(job_type=cls.job_type, params=params)
-        return threads.deferToThread(job_request.save).addCallback(self._notify_workers)
+        job_request.save()
+        body = {'job_request_id': str(job_request.id)}
+        return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)
 
 
 class Job(object):
