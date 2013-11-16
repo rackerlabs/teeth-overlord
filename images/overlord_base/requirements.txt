@@ -7,7 +7,6 @@ cqlengine==0.8
 structlog==0.3.0
 treq==0.2.0
 txetcd==0.1-dev
-txmarconi==0.1-2
 requests==2.0.0
 /opt/teeth-agent
 
