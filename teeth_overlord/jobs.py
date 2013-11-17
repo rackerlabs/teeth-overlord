@@ -16,8 +16,8 @@ limitations under the License.
 
 from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
+import time
 
-from twisted.internet import defer, task
 from cqlengine import BatchQuery
 from structlog import get_logger
 
@@ -29,7 +29,7 @@ from teeth_overlord.models import (
     JobRequestState
 )
 from teeth_overlord.agent.rpc import EndpointRPCClient
-from teeth_overlord.service import TeethService
+from teeth_overlord.service import SynchronousTeethService
 from teeth_overlord.scheduler import TeethInstanceScheduler
 from teeth_overlord.images.base import get_image_provider
 from teeth_overlord.marconi import MarconiClient
@@ -70,7 +70,7 @@ def parse_etcd_seeds(addresses):
     return [tuple(address.rsplit(':')) for address in addresses]
 
 
-class JobExecutor(TeethService):
+class JobExecutor(SynchronousTeethService):
     """
     A service which executes job requests from a queue.
     """
@@ -82,8 +82,6 @@ class JobExecutor(TeethService):
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
         self.scheduler = TeethInstanceScheduler()
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
-        self._looper = task.LoopingCall(self._take_next_message)
-        self._pending_calls = set()
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
@@ -93,44 +91,36 @@ class JobExecutor(TeethService):
 
         return self._job_type_cache[job_type]
 
-    def _load_job_request(self, message):
+    def _process_next_message(self):
+        message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE)
+
+        # TODO: Process messages in a thread so we can process more messages
+        #       concurrently without multiple pollers.
+        if not message:
+            if not self.stopping:
+                time.sleep(POLLING_INTERVAL)
+            return
+
         try:
-            return JobRequest.objects.get(id=UUID(message.body['job_request_id']))
-        except JobRequest.DoesNotExist as e:
+            job_request = JobRequest.objects.get(id=UUID(message.body['job_request_id']))
+        except JobRequest.DoesNotExist:
             self.log.msg('removing message corresponding to non-existent JobRequest',
                          message_href=message.href,
                          job_request_id=message.body['job_request_id'])
             self.queue.delete_message(message)
-            raise e
+            return
 
-    def _execute_job_request(self, job_request, message):
         cls = self._get_job_class(job_request.job_type)
         job = cls(self, job_request, message)
-        d = job.execute()
-        self._pending_calls.add(d)
-        d.addBoth(lambda result: self._pending_calls.remove(d))
+        job.execute()
 
-    def _take_next_message(self):
-        message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE,
-                                           polling_interval=POLLING_INTERVAL)
-        job_request = self._load_job_request(message)
-        d = self._execute_job_request(job_request, message)
-        return d.addErrback(self.log.err)
-
-    def startService(self):
+    def run(self):
         """
         Start processing jobs.
         """
-        TeethService.startService(self)
-        self._looper.start(0)
-
-    def stopService(self):
-        """
-        Stop processing jobs. Attempt to complete any ongoing jobs
-        before firing the returned deferred.
-        """
-        self._looper.stop()
-        return defer.gatherResults(list(self._pending_calls))
+        super(JobExecutor, self).run()
+        while not self.stopping:
+            self._process_next_message()
 
 
 class JobClient(object):
