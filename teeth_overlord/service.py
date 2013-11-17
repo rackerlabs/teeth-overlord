@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import signal
+
 import structlog
 from cqlengine import connection
 from zope.interface import implements
@@ -90,3 +92,46 @@ class TeethService(Service):
     def startService(self):
         """Start the service."""
         global_setup(self.config)
+
+
+class TeethServiceRunner(object):
+    """
+    Instantiate and run a SynchronousTeethService.
+    """
+
+    def __init__(self, service_class):
+        self.service = service_class(Config())
+        self.signal_map = {
+            signal.SIGTERM: self._terminate,
+            signal.SIGINT: self._terminate,
+        }
+
+    def run(self):
+        """
+        Run the service.
+        """
+        for signum, handler in self.signal_map.iteritems():
+            signal.signal(signum, handler)
+
+        self.service.run()
+
+    def _terminate(self, signum, frame):
+        self.service.stop()
+
+
+class SynchronousTeethService(object):
+    """
+    Base class for all Teeth services.
+    """
+    def __init__(self, config):
+        self.config = config
+        self.stopping = False
+
+    def run(self):
+        """Run the service to completion."""
+        global_setup(self.config)
+        self.stopping = False
+
+    def stop(self):
+        """Attempt to gracefully stop."""
+        self.stopping = True
