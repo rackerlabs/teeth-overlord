@@ -49,8 +49,8 @@ class BaseImageProvider(object):
 
     def get_image_info(self, image_id):
         """
-        Return, via a deferred, an ImageInfo instance with information about the
-        requested image.
+        Returns an ImageInfo instance with information about the requested
+        image.
         """
         raise NotImplementedError()
 
@@ -62,5 +62,4 @@ def get_image_provider(provider_type, provider_config):
     to the image provider class.
     """
     cls = namedAny(provider_type)
-    print cls
     return cls(**provider_config)

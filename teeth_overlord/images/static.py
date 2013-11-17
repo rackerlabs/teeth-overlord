@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from twisted.internet import defer
-
 from teeth_overlord.images.base import BaseImageProvider, ImageInfo
 from teeth_overlord.errors import ImageNotFoundError
 
@@ -30,12 +28,12 @@ class StaticImageProvider(BaseImageProvider):
 
     def get_image_info(self, image_id):
         """
-        Return, via a deferred, an ImageInfo instance with information about the
-        requested image.
+        Returns an ImageInfo instance with information about the requested
+        image.
         """
         image_id = str(image_id)
 
         if image_id not in self.images:
-            return defer.fail(ImageNotFoundError(image_id))
+            raise ImageNotFoundError(image_id)
         else:
-            return defer.succeed(self.images[image_id])
+            return self.images[image_id]
