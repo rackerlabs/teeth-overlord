@@ -16,7 +16,6 @@ limitations under the License.
 
 from random import choice
 
-from twisted.internet import defer, threads
 from cqlengine import BatchQuery
 from structlog import get_logger
 
@@ -35,73 +34,32 @@ class TeethInstanceScheduler(object):
         """
         Locate and reserve a chassis for the specified instance.
         """
-        d = defer.Deferred()
-
-        def _on_failure(failure):
-            if failure.check(errors.ChassisAlreadyReservedError):
-                _attempt_reservation()
-            else:
-                d.errback(failure)
-
-        def _attempt_reservation():
-            d1 = self._retrieve_eligible_chassis(instance)
-            d1.addCallback(self._mark_chassis_reserved, instance)
-            d1.addCallbacks(d.callback, _on_failure)
-
-        _attempt_reservation()
-
-        return d
+        while True:
+            chassis = self._retrieve_eligible_chassis(instance)
+            try:
+                return self._mark_chassis_reserved(chassis)
+            except errors.ChassisAlreadyReservedError:
+                continue
 
     def _retrieve_eligible_chassis(self, instance):
         """
         Retrieve an available Chassis suitable for the instance.
         """
-        d = self._find_flavor_providers(instance)
-        d.addCallback(self._find_chassis_for_flavor_providers)
-        return d
-
-    def _find_flavor_providers(self, instance):
-        """
-        Retrieve FlavorProviders in order to determine which ChassisModels are
-        capable of providing the requested flavor.
-        """
-        flavor_provider_query = FlavorProvider.objects.filter(flavor_id=instance.flavor_id)
-        return threads.deferToThread(list, flavor_provider_query)
-
-    def _find_chassis_for_flavor_providers(self, flavor_providers):
-        """
-        Retrieve a Chassis capable of providing the requested flavor.
-        """
-        d = defer.Deferred()
-
-        # Choose the highest priority flavor provider
-        flavor_providers = sorted(flavor_providers,
+        # Sort flavor providers by priority
+        flavor_providers = sorted(FlavorProvider.objects.filter(flavor_id=instance.flavor_id),
                                   key=lambda flavor_provider: flavor_provider.schedule_priority,
                                   reverse=True)
 
-        def _with_chassis_list(chassis_list, flavor_providers):
+        for flavor_provider in flavor_providers:
+            chassis_list = Chassis.objects.filter(state=ChassisState.READY)
+            chassis_list = chassis_list.filter(chassis_model_id=flavor_provider.chassis_model_id)
+            chassis_list = chassis_list.allow_filtering()
+
             if len(chassis_list) > 0:
-                d.callback(choice(chassis_list))
-                return
+                # Choose a random chassis from among those most suitable.
+                return choice(chassis_list)
 
-            _retrieve_chassis_list(flavor_providers[1:])
-
-        def _retrieve_chassis_list(flavor_providers):
-            if len(flavor_providers) == 0:
-                d.errback(errors.InsufficientCapacityError())
-                return
-
-            flavor_provider = flavor_providers[0]
-
-            ready_query = Chassis.objects.filter(state=ChassisState.READY)
-            ready_query = ready_query.filter(chassis_model_id=flavor_provider.chassis_model_id)
-            ready_query = ready_query.allow_filtering()
-
-            d1 = threads.deferToThread(list, ready_query)
-            d1.addCallbacks(_with_chassis_list, d.errback, [flavor_providers])
-
-        _retrieve_chassis_list(flavor_providers)
-        return d
+        raise errors.InsufficientCapacityError()
 
     def _mark_chassis_reserved(self, chassis, instance):
         """

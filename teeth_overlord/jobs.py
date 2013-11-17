@@ -256,7 +256,7 @@ class CreateInstance(Job):
         """
         Reserve a chassis for use by the instance.
         """
-        d = self.executor.scheduler.reserve_chassis(instance)
+        chassis = self.executor.scheduler.reserve_chassis(instance)
         d.addCallback(lambda chassis: (instance, chassis))
         return d
 
