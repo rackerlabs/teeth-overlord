@@ -17,7 +17,7 @@ limitations under the License.
 from abc import ABCMeta, abstractproperty, abstractmethod
 from uuid import UUID, uuid4
 
-from twisted.internet import defer, task, threads
+from twisted.internet import defer, task
 from cqlengine import BatchQuery
 from structlog import get_logger
 
@@ -255,57 +255,17 @@ class CreateInstance(Job):
     job_type = 'create_instance'
     max_retries = 10
 
-    def get_instance(self):
+    def prepare_and_run_image(self, instance, chassis, image_info):
         """
-        Load the instance from the database.
-        """
-        instance_id = self.request.params['instance_id']
-        return threads.deferToThread(Instance.objects.get, id=UUID(instance_id))
-
-    def reserve_chassis(self, instance):
-        """
-        Reserve a chassis for use by the instance.
-        """
-        chassis = self.executor.scheduler.reserve_chassis(instance)
-        d.addCallback(lambda chassis: (instance, chassis))
-        return d
-
-    def retrieve_image_info(self, (instance, chassis)):
-        """
-        Retrieve info about the requested image.
-        """
-        d = self.executor.image_provider.get_image_info(instance.image_id)
-        d.addCallback(lambda image_info: (instance, chassis, image_info))
-        return d
-
-    def get_agent_connection(self, (instance, chassis, image_info)):
-        """
-        Load the agent connection for the selected chassis.
+        Send the `prepare_image` and `run_image` commands to the agent.
         """
         client = self.executor.endpoint_rpc_client
-        d = client.get_agent_connection(chassis)
-        d.addCallback(lambda connection: (instance, chassis, image_info, connection))
-        return d
+        connection = self.executor.endpoint_rpc_client.get_agent_connection(chassis)
+        client.prepare_image(connection, image_info)
+        client.run_image(connection, image_info)
+        return
 
-    def prepare_image(self, (instance, chassis, image_info, connection)):
-        """
-        Send a command to the agent to prepare the selected image.
-        """
-        client = self.executor.endpoint_rpc_client
-        d = client.prepare_image(connection, image_info)
-        d.addCallback(lambda result: (instance, chassis, image_info, connection))
-        return d
-
-    def run_image(self, (instance, chassis, image_info, connection)):
-        """
-        Send a command to the agent to run the selected image.
-        """
-        client = self.executor.endpoint_rpc_client
-        d = client.run_image(connection, image_info)
-        d.addCallback(lambda result: (instance, chassis))
-        return d
-
-    def mark_active(self, (instance, chassis)):
+    def mark_active(self, instance, chassis):
         """
         Mark the chassis and instance as active.
         """
@@ -315,14 +275,14 @@ class CreateInstance(Job):
         instance.batch(batch).save()
         chassis.state = ChassisState.ACTIVE
         chassis.batch(batch).save()
-        return threads.deferToThread(batch.execute).addCallback(lambda result: None)
+        batch.execute()
+        return
 
     def _execute(self):
-        d = self.get_instance()
-        d.addCallback(self.reserve_chassis)
-        d.addCallback(self.retrieve_image_info)
-        d.addCallback(self.get_agent_connection)
-        d.addCallback(self.prepare_image)
-        d.addCallback(self.run_image)
-        d.addCallback(self.mark_active)
-        return d
+        instance = Instance.objects.get(id=UUID(self.request.params['instance_id']))
+        chassis = self.executor.scheduler.reserve_chassis(instance)
+        image_info = self.executor.image_provider.get_image_info(instance.image_id)
+
+        self.prepare_and_run_image(instance, chassis, image_info)
+        self.mark_active(instance, chassis)
+        return
