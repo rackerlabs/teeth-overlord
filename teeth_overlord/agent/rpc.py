@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
 from uuid import uuid4
 
-import treq
-from twisted.internet import threads
-from teeth_overlord import models
+import requests
 
-from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
 from teeth_overlord import errors
+from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
+from teeth_overlord.models import AgentConnection
 
 
 class EndpointRPCClient(object):
@@ -37,6 +37,7 @@ class EndpointRPCClient(object):
     """
     def __init__(self, config):
         self.encoder = TeethJSONEncoder(SerializationViews.PUBLIC)
+        self.session = requests.Session()
         self.config = config
 
     def _get_command_url(self, connection):
@@ -52,28 +53,16 @@ class EndpointRPCClient(object):
             'params': params,
         })
 
-    def _handle_response(self, response):
-        def _with_content(obj):
-            if response.code == 200:
-                return obj
-            elif 'message' in response:
-                raise errors.AgentExecutionError(response['message'])
-            else:
-                raise errors.AgentExecutionError('Unknown error calling agent endpoint')
-
-        d = treq.json_content(response)
-        d.addCallback(_with_content)
-        return d
-
     def _command(self, connection, method, params):
         url = self._get_command_url(connection)
         body = self._get_command_body(method, params)
         headers = {
             'Content-Type': 'application/json'
         }
-        d = treq.post(url, data=body, headers=headers)
-        d.addCallback(treq.json_content)
-        return d
+        response = self.session.post(url, data=body, headers=headers)
+
+        # TODO: real error handling
+        return json.loads(response.text)
 
     def _new_task_id(self):
         return str(uuid4())
@@ -82,14 +71,12 @@ class EndpointRPCClient(object):
         """
         Retrieve an agent connection for the specified Chassis.
         """
-        def _with_connection(connection):
-            if not connection:
-                raise errors.AgentNotConnectedError(chassis.id, chassis.primary_mac_address)
-            return connection
+        query = AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
 
-        connection_query = models.AgentConnection.objects
-        connection_query = connection_query.filter(primary_mac_address=chassis.primary_mac_address)
-        return threads.deferToThread(connection_query.first).addCallback(_with_connection)
+        try:
+            return query.get()
+        except AgentConnection.DoesNotExist:
+            raise errors.AgentNotConnectedError(chassis.id, chassis.primary_mac_address)
 
     def cache_images(self, connection, image_ids):
         """
