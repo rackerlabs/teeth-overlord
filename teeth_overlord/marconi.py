@@ -15,7 +15,6 @@ limitations under the License.
 """
 
 import json
-import time
 import uuid
 
 from requests import Session
@@ -127,7 +126,7 @@ class MarconiClient(object):
         obj = self._extract_json(self._request('POST', path, [201], data=data))
         return MarconiMessage(body=body, ttl=ttl, age=0, href=obj['resources'][0])
 
-    def claim_message(self, queue_name, ttl, grace, polling_interval=1):
+    def claim_message(self, queue_name, ttl, grace):
         """
         Claim a message from the specified queue.
         """
@@ -140,13 +139,12 @@ class MarconiClient(object):
             'limit': 1,
         }
 
-        while True:
-            response = self._request('POST', path, [201, 204], data=data, params=params)
-            obj = self._extract_json(response)
-            if obj:
-                return ClaimedMarconiMessage(claim_href=response.headers['Location'], **obj[0])
-            else:
-                time.sleep(polling_interval)
+        response = self._request('POST', path, [201, 204], data=data, params=params)
+        obj = self._extract_json(response)
+        if obj:
+            return ClaimedMarconiMessage(claim_href=response.headers['Location'], **obj[0])
+        else:
+            return None
 
     def update_claim(self, claimed_message, ttl):
         """
