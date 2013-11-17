@@ -180,22 +180,22 @@ class Job(object):
         raise NotImplementedError()
 
     def _save_request(self):
-        return threads.deferToThread(self.request.save).addErrback(self.log.err)
+        try:
+            self.request.save()
+        except Exception as e:
+            self.log.err(e)
 
     def _update_claim(self, ttl=CLAIM_TTL):
-        return self.executor.queue.update_claim(self.message, ttl).addErrback(self.log.err)
-
-    def _release_claim(self):
-        return self.executor.queue.release_claim(self.message).addErrback(self.log.err)
+        try:
+            self.executor.queue.update_claim(self.message, ttl)
+        except Exception as e:
+            self.log.err(e)
 
     def _delete_message(self):
-        return self.executor.queue.delete_message(self.message).addErrback(self.log.err)
-
-    def _on_success(self, result):
-        self.log.msg('successfully executed job request')
-        self.request.complete()
-        d = self._save_request()
-        d.addBoth(lambda result: self._delete_message())
+        try:
+            self.executor.queue.delete_message(self.message)
+        except Exception as e:
+            self.log.err(e)
 
     def _on_error(self, failure):
         self.log.err(failure)
@@ -206,13 +206,11 @@ class Job(object):
         if self.request.failed_attempts >= self.max_retries:
             self.log.msg('job request exceeded retry limit', max_retries=self.max_retries)
             self.request.fail()
-            d = self._save_request()
-            d.addBoth(lambda result: self._delete_message())
-            return d
+            self._save_request()
+            self._delete_message()
         else:
-            d = self._save_request()
-            d.addBoth(lambda result: self._update_claim(ttl=INITIAL_RETRY_DELAY))
-            return d
+            self._save_request()
+            self._update_claim(ttl=INITIAL_RETRY_DELAY)
 
     def execute(self):
         """
@@ -222,16 +220,28 @@ class Job(object):
         """
         if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
             self.log.msg('job request no longer valid, not executing', state=self.request.state)
-            return self._delete_message()
+            self._delete_message()
+            return
 
         if self.request.state == JobRequestState.RUNNING:
             self.log.msg('job request was found in RUNNING state, assuming it failed')
-            return self._reset_request()
+            self._reset_request()
+            return
 
         self.log.msg('executing job request')
         self.request.start()
-        self._save_request().addBoth(lambda result: self._update_claim())
-        return self._execute().addCallback(self._on_success).addErrback(self._on_error)
+        self._save_request()
+
+        try:
+            self._execute()
+        except Exception as e:
+            self.log.err(e)
+            self._reset_request()
+
+        self.log.msg('successfully executed job request')
+        self.request.complete()
+        self._save_request()
+        self._delete_message()
 
 
 class CreateInstance(Job):
