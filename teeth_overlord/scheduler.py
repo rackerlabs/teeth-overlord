@@ -37,7 +37,7 @@ class TeethInstanceScheduler(object):
         while True:
             chassis = self._retrieve_eligible_chassis(instance)
             try:
-                return self._mark_chassis_reserved(chassis)
+                return self._mark_chassis_reserved(chassis, instance)
             except errors.ChassisAlreadyReservedError:
                 continue
 
