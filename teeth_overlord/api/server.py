@@ -15,8 +15,6 @@ limitations under the License.
 """
 
 from klein import Klein
-from twisted.internet import threads, defer
-from cqlengine.query import DoesNotExist
 
 from teeth_overlord import models, jobs, rest, errors
 from teeth_overlord.images.base import get_image_provider
@@ -25,20 +23,12 @@ from teeth_overlord.images.base import get_image_provider
 def _validate_relation(instance, field_name, cls):
     id = getattr(instance, field_name)
 
-    def _on_failure(failure):
-        failure.trap(cls.DoesNotExist)
+    try:
+        return cls.get(id=id)
+    except cls.DoesNotExist:
         msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
                                                                   type_name=cls.__name__)
         raise errors.InvalidContentError(msg)
-
-    d = threads.deferToThread(cls.get, id=id)
-    d.addErrback(_on_failure)
-    return d
-
-
-def _unwrap_first_error(failure):
-    failure.trap(defer.FirstError)
-    return failure.value.subFailure
 
 
 class TeethAPI(rest.RESTServer):
@@ -53,21 +43,13 @@ class TeethAPI(rest.RESTServer):
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
 
     def _crud_list(self, request, cls):
-        def _retrieved(objects):
-            return self.return_ok(request, objects)
-
-        return threads.deferToThread(list, cls.objects.all()).addCallback(_retrieved)
+        return self.return_ok(request, list(cls.objects.all()))
 
     def _crud_fetch(self, request, cls, id):
-        def _retrieved(obj):
-            return self.return_ok(request, obj)
-
-        def _on_failure(failure):
-            if failure.check(DoesNotExist):
-                raise errors.RequestedObjectNotFoundError(cls, id)
-            return failure
-
-        return threads.deferToThread(cls.get, id=id).addCallbacks(_retrieved, _on_failure)
+        try:
+            return self.return_ok(request, cls.get(id=id))
+        except cls.DoesNotExist:
+            raise errors.RequestedObjectNotFoundError(cls, id)
 
     @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
@@ -82,11 +64,9 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
-        def _saved(chassis_model):
-            return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
-
         chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
-        return threads.deferToThread(chassis_model.save).addCallback(_saved)
+        chassis_model.save()
+        return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
 
     @app.route('/v1.0/chassis_models', methods=['GET'])
     def list_chassis_model(self, request):
@@ -115,11 +95,9 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
-        def _saved(flavor):
-            return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
-
         flavor = models.Flavor.deserialize(self.parse_content(request))
-        return threads.deferToThread(flavor.save).addCallback(_saved)
+        flavor.save()
+        return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
 
     @app.route('/v1.0/flavors', methods=['GET'])
     def list_flavor(self, request):
@@ -157,22 +135,13 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
-        def _save(results):
-            return threads.deferToThread(flavor_provider.save)
-
-        def _respond(flavor_provider):
-            return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
-
         flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
 
-        d = defer.gatherResults([
-            _validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel),
-            _validate_relation(flavor_provider, 'flavor_id', models.Flavor),
-        ]).addErrback(_unwrap_first_error)
+        _validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
+        _validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
-        d.addCallback(_save)
-        d.addCallback(_respond)
-        return d
+        flavor_provider.save()
+        return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
 
     @app.route('/v1.0/flavor_providers', methods=['GET'])
     def list_flavor_provider(self, request):
@@ -211,18 +180,13 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
-        def _saved(chassis):
-            return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
-
-        def _with_chassis_model(chassis_model, chassis):
-            chassis.ipmi_username = chassis_model.ipmi_default_username
-            chassis.ipmi_password = chassis_model.ipmi_default_password
-            return threads.deferToThread(chassis.save).addCallback(_saved)
-
         chassis = models.Chassis.deserialize(self.parse_content(request))
-        d = threads.deferToThread(models.ChassisModel.objects.get, id=chassis.chassis_model_id)
-        d.addCallback(_with_chassis_model, chassis)
-        return d
+        chassis_model = _validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
+        chassis.ipmi_username = chassis_model.ipmi_default_username
+        chassis.ipmi_password = chassis_model.ipmi_default_password
+        chassis.save()
+
+        return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
 
     @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
@@ -271,25 +235,15 @@ class TeethAPI(rest.RESTServer):
 
         Returns 201 with a Location header upon success.
         """
-
-        def _save_instance(result, instance):
-            return threads.deferToThread(instance.save)
-
-        def _execute_job(result):
-            return self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
-
-        def _respond(result):
-            return self.return_created(request, '/v1.0/instances/' + str(instance.id))
-
         instance = models.Instance.deserialize(self.parse_content(request))
-        d = defer.gatherResults([
-            self.image_provider.get_image_info(instance.image_id),
-            _validate_relation(instance, 'flavor_id', models.Flavor),
-        ]).addErrback(_unwrap_first_error)
-        d.addCallback(_save_instance, instance)
-        d.addCallback(_execute_job)
-        d.addCallback(_respond)
-        return d
+
+        # Validate the image ID
+        self.image_provider.get_image_info(instance.image_id)
+
+        _validate_relation(instance, 'flavor_id', models.Flavor)
+        instance.save()
+        self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
+        return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
     @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
