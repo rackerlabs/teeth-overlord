@@ -223,11 +223,11 @@ class Job(object):
         except Exception as e:
             self.log.error('error executing job', exception=e)
             self._reset_request()
-
-        self.log.msg('successfully executed job request')
-        self.request.complete()
-        self._save_request()
-        self._delete_message()
+        else:
+            self.log.info('successfully executed job request')
+            self.request.complete()
+            self._save_request()
+            self._delete_message()
 
 
 class CreateInstance(Job):
