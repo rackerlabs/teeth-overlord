@@ -105,8 +105,8 @@ class JobExecutor(SynchronousTeethService):
             job_request = JobRequest.objects.get(id=UUID(message.body['job_request_id']))
         except JobRequest.DoesNotExist:
             self.log.info('removing message corresponding to non-existent JobRequest',
-                         message_href=message.href,
-                         job_request_id=message.body['job_request_id'])
+                          message_href=message.href,
+                          job_request_id=message.body['job_request_id'])
             self.queue.delete_message(message)
             return
 
