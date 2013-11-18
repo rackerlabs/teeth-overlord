@@ -42,8 +42,10 @@ def global_setup(config):
         _global_config = config
         connection.setup(config.CASSANDRA_CLUSTER, consistency=config.CASSANDRA_CONSISTENCY)
         structlog.configure(
-            processors=[structlog.twisted.EventAdapter()],
-            logger_factory=structlog.twisted.LoggerFactory(),
+            processors=[
+                structlog.processors.format_exc_info,
+                structlog.processors.JSONRenderer(),
+            ],
         )
     elif _global_config != config:
         raise Exception('global_setup called twice with different configurations')
