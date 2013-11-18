@@ -104,7 +104,7 @@ class JobExecutor(SynchronousTeethService):
         try:
             job_request = JobRequest.objects.get(id=UUID(message.body['job_request_id']))
         except JobRequest.DoesNotExist:
-            self.log.msg('removing message corresponding to non-existent JobRequest',
+            self.log.info('removing message corresponding to non-existent JobRequest',
                          message_href=message.href,
                          job_request_id=message.body['job_request_id'])
             self.queue.delete_message(message)
@@ -173,28 +173,24 @@ class Job(object):
         try:
             self.request.save()
         except Exception as e:
-            self.log.err(e)
+            self.log.error('error saving JobRequest, ignoring', exception=e)
 
     def _update_claim(self, ttl=CLAIM_TTL):
         try:
             self.executor.queue.update_claim(self.message, ttl)
         except Exception as e:
-            self.log.err(e)
+            self.log.error('error updating claim on message, ignoring', exception=e)
 
     def _delete_message(self):
         try:
             self.executor.queue.delete_message(self.message)
         except Exception as e:
-            self.log.err(e)
-
-    def _on_error(self, failure):
-        self.log.err(failure)
-        return self._reset_request()
+            self.log.error('error deleting message, ignoring', exception=e)
 
     def _reset_request(self):
         self.request.reset()
         if self.request.failed_attempts >= self.max_retries:
-            self.log.msg('job request exceeded retry limit', max_retries=self.max_retries)
+            self.log.info('job request exceeded retry limit', max_retries=self.max_retries)
             self.request.fail()
             self._save_request()
             self._delete_message()
@@ -209,23 +205,23 @@ class Job(object):
         completes or fails.
         """
         if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
-            self.log.msg('job request no longer valid, not executing', state=self.request.state)
+            self.log.info('job request no longer valid, not executing', state=self.request.state)
             self._delete_message()
             return
 
         if self.request.state == JobRequestState.RUNNING:
-            self.log.msg('job request was found in RUNNING state, assuming it failed')
+            self.log.info('job request was found in RUNNING state, assuming it failed')
             self._reset_request()
             return
 
-        self.log.msg('executing job request')
+        self.log.info('executing job request')
         self.request.start()
         self._save_request()
 
         try:
             self._execute()
         except Exception as e:
-            self.log.err(e)
+            self.log.error('error executing job', exception=e)
             self._reset_request()
 
         self.log.msg('successfully executed job request')
