@@ -14,18 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 from uuid import UUID
-
-from structlog import get_logger
-from werkzeug.routing import Map, Rule
-from werkzeug.wrappers import BaseRequest, BaseResponse
-from werkzeug.exceptions import HTTPException
-from werkzeug.http import parse_options_header
 
 from teeth_overlord import models, jobs, errors
 from teeth_overlord.images.base import get_image_provider
-from teeth_overlord.encoding import TeethJSONEncoder
+from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
+from teeth_overlord.api.base import APIBase
 
 
 def _validate_relation(instance, field_name, cls):
@@ -39,18 +33,14 @@ def _validate_relation(instance, field_name, cls):
         raise errors.InvalidContentError(msg)
 
 
-class TeethAPI(object):
+class TeethAPI(APIBase):
     """
     The primary Teeth Overlord API.
     """
     def __init__(self, config):
-        self.config = config
-        self.log = get_logger()
-        self.encoder = TeethJSONEncoder('public', indent=4)
+        super(TeethAPI, self).__init__(config, TeethJSONEncoder(SerializationViews.PUBLIC, indent=4))
         self.job_client = jobs.JobClient(config)
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
-        self.url_map = Map()
-        self.add_routes()
 
     def add_routes(self):
         """
@@ -76,83 +66,6 @@ class TeethAPI(object):
         self.route('GET', '/v1.0/instances', self.list_instances)
         self.route('POST', '/v1.0/instances', self.create_instance)
         self.route('GET', '/v1.0/instances/<string:instance_id>', self.fetch_instance)
-
-    def route(self, method, pattern, fn):
-        """
-        Route a relative path to a method.
-        """
-        self.url_map.add(Rule(pattern, methods=[method], endpoint=fn))
-
-    def dispatch_request(self, request):
-        """
-        Given a Werkzeug request, generate a Response.
-        """
-        url_adapter = self.url_map.bind_to_environ(request.environ)
-        try:
-            endpoint, values = url_adapter.match()
-            return endpoint(request, **values)
-        except errors.TeethError as e:
-            self.log.error('error handling request', exception=e)
-            return self.return_error(request, e)
-        except HTTPException as e:
-            return e
-        except Exception as e:
-            self.log.error('error handling request', exception=e)
-            return self.return_error(request, errors.TeethError())
-
-    def __call__(self, environ, start_response):
-        request = BaseRequest(environ)
-        return self.dispatch_request(request)(environ, start_response)
-
-    def get_absolute_url(self, request, path):
-        """
-        Given a request and an absolute path, attempt to construct an
-        absolute URL by examining the `Host` and `X-Forwarded-Proto`
-        headers.
-        """
-        host = request.headers.get('host')
-        proto = request.headers.get('x-forwarded-proto', default='http')
-        return "{proto}://{host}{path}".format(proto=proto, host=host, path=path)
-
-    def return_ok(self, request, result):
-        """
-        Return 200 and serialize the correspondig result.
-        """
-        body = self.encoder.encode(result)
-        return BaseResponse(body, status=200, content_type='application/json')
-
-    def return_created(self, request, path):
-        """
-        Return 201 and a Location generated from `path`.
-        """
-        response = BaseResponse(status=201, content_type='application/json')
-        response.headers.set('Location', self.get_absolute_url(request, path))
-        return response
-
-    def return_error(self, request, e):
-        """
-        Transform a TeethError into the apprpriate response and return it.
-        """
-        body = self.encoder.encode(e)
-        return BaseResponse(body, status=e.status_code, content_type='application/json')
-
-    def parse_content(self, request):
-        """
-        Extract the content from the passed request, and attempt to
-        parse it according to the specified `Content-Type`.
-
-        Note: currently only `application/json` is supported.
-        """
-        content_type_header = request.headers.get('content-type', default='application/json')
-        content_type = parse_options_header(content_type_header)[0]
-
-        if content_type == 'application/json':
-            try:
-                return json.loads(request.get_data())
-            except Exception as e:
-                raise errors.InvalidContentError(e.message)
-        else:
-            raise errors.UnsupportedContentTypeError(content_type)
 
     def _crud_list(self, request, cls):
         return self.return_ok(request, list(cls.objects.all()))
