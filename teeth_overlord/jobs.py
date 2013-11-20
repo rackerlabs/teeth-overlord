@@ -92,7 +92,12 @@ class JobExecutor(SynchronousTeethService):
         return self._job_type_cache[job_type]
 
     def _process_next_message(self):
-        message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE)
+        try:
+            message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE)
+        except Exception as e:
+            # TODO: some sort of backoff if queueing system is down
+            self.log.error('error claiming message', exception=e)
+            message = None
 
         # TODO: Process messages in a thread so we can process more messages
         #       concurrently without multiple pollers.
