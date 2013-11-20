@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from uuid import UUID
-
 from teeth_overlord import models, jobs, errors
 from teeth_overlord.images.base import get_image_provider
 from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
@@ -65,14 +63,14 @@ class TeethAPI(APIBase):
         # Instance Handlers
         self.route('GET', '/v1.0/instances', self.list_instances)
         self.route('POST', '/v1.0/instances', self.create_instance)
-        self.route('GET', '/v1.0/instances/<string:instance_id>', self.fetch_instance)
+        self.route('GET', '/v1.0/instances/<uuid:instance_id>', self.fetch_instance)
 
     def _crud_list(self, request, cls):
         return self.return_ok(request, list(cls.objects.all()))
 
     def _crud_fetch(self, request, cls, id):
         try:
-            return self.return_ok(request, cls.get(id=UUID(id)))
+            return self.return_ok(request, cls.get(id=id))
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 

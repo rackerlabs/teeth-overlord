@@ -15,14 +15,39 @@ limitations under the License.
 """
 
 import json
+from uuid import UUID
 
 from structlog import get_logger
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, Rule, BaseConverter, ValidationError
 from werkzeug.wrappers import BaseRequest, BaseResponse
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import parse_options_header
 
 from teeth_overlord import errors
+
+
+class UUIDConverter(BaseConverter):
+    """
+    Validate and transform UUIDs in urls.
+    """
+
+    def __init__(self, url_map):
+        super(UUIDConverter, self).__init__(url_map)
+
+    def to_python(self, value):
+        """
+        Transform a UUID string into a python UUID.
+        """
+        try:
+            return UUID(value)
+        except ValueError:
+            raise ValidationError()
+
+    def to_url(self, value):
+        """
+        Transform a python UUID into a string.
+        """
+        return str(value)
 
 
 class APIBase(object):
@@ -33,7 +58,7 @@ class APIBase(object):
         self.config = config
         self.log = get_logger()
         self.encoder = encoder
-        self.url_map = Map()
+        self.url_map = Map(converters={'uuid': UUIDConverter})
         self.add_routes()
 
     def __call__(self, environ, start_response):
