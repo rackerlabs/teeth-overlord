@@ -14,10 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from klein import Klein
+import json
+from uuid import UUID
 
-from teeth_overlord import models, jobs, rest, errors
+from structlog import get_logger
+from werkzeug.routing import Map, Rule
+from werkzeug.wrappers import BaseRequest, BaseResponse
+from werkzeug.exceptions import HTTPException
+from werkzeug.http import parse_options_header
+
+from teeth_overlord import models, jobs, errors
 from teeth_overlord.images.base import get_image_provider
+from teeth_overlord.encoding import TeethJSONEncoder
 
 
 def _validate_relation(instance, field_name, cls):
@@ -31,27 +39,130 @@ def _validate_relation(instance, field_name, cls):
         raise errors.InvalidContentError(msg)
 
 
-class TeethAPI(rest.RESTServer):
+class TeethAPI(object):
     """
     The primary Teeth Overlord API.
     """
-    app = Klein()
-
     def __init__(self, config):
-        rest.RESTServer.__init__(self, config, config.API_HOST, config.API_PORT)
+        self.config = config
+        self.log = get_logger()
+        self.encoder = TeethJSONEncoder('public', indent=4)
         self.job_client = jobs.JobClient(config)
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
+        self.url_map = Map()
+        self.add_routes()
+
+    def add_routes(self):
+        """
+        Called during initialization. Override to map relative routes to methods.
+        """
+        # ChassisModel Handlers
+        self.route('GET', '/v1.0/chassis_models', self.list_chassis_models)
+        self.route('POST', '/v1.0/chassis_models', self.create_chassis_model)
+
+        # Flavor Handlers
+        self.route('GET', '/v1.0/flavors', self.list_flavors)
+        self.route('POST', '/v1.0/flavors', self.create_flavor)
+
+        # FlavorProvider Handlers
+        self.route('GET', '/v1.0/flavor_providers', self.list_flavor_providers)
+        self.route('POST', '/v1.0/flavor_providers', self.create_flavor_provider)
+
+        # Chassis Handlers
+        self.route('GET', '/v1.0/chassis', self.list_chassis)
+        self.route('POST', '/v1.0/chassis', self.create_instance)
+
+        # Instance Handlers
+        self.route('GET', '/v1.0/instances', self.list_instances)
+        self.route('POST', '/v1.0/instances', self.create_instance)
+        self.route('GET', '/v1.0/instances/<string:instance_id>', self.fetch_instance)
+
+    def route(self, method, pattern, fn):
+        """
+        Route a relative path to a method.
+        """
+        self.url_map.add(Rule(pattern, methods=[method], endpoint=fn))
+
+    def dispatch_request(self, request):
+        """
+        Given a Werkzeug request, generate a Response.
+        """
+        url_adapter = self.url_map.bind_to_environ(request.environ)
+        try:
+            endpoint, values = url_adapter.match()
+            return endpoint(request, **values)
+        except errors.TeethError as e:
+            self.log.error('error handling request', exception=e)
+            return self.return_error(request, e)
+        except HTTPException as e:
+            return e
+        except Exception as e:
+            self.log.error('error handling request', exception=e)
+            return self.return_error(request, errors.TeethError())
+
+    def __call__(self, environ, start_response):
+        request = BaseRequest(environ)
+        return self.dispatch_request(request)(environ, start_response)
+
+    def get_absolute_url(self, request, path):
+        """
+        Given a request and an absolute path, attempt to construct an
+        absolute URL by examining the `Host` and `X-Forwarded-Proto`
+        headers.
+        """
+        host = request.headers.get('host')
+        proto = request.headers.get('x-forwarded-proto', default='http')
+        return "{proto}://{host}{path}".format(proto=proto, host=host, path=path)
+
+    def return_ok(self, request, result):
+        """
+        Return 200 and serialize the correspondig result.
+        """
+        body = self.encoder.encode(result)
+        return BaseResponse(body, status=200, content_type='application/json')
+
+    def return_created(self, request, path):
+        """
+        Return 201 and a Location generated from `path`.
+        """
+        response = BaseResponse(status=201, content_type='application/json')
+        response.headers.set('Location', self.get_absolute_url(request, path))
+        return response
+
+    def return_error(self, request, e):
+        """
+        Transform a TeethError into the apprpriate response and return it.
+        """
+        body = self.encoder.encode(e)
+        return BaseResponse(body, status=e.status_code, content_type='application/json')
+
+    def parse_content(self, request):
+        """
+        Extract the content from the passed request, and attempt to
+        parse it according to the specified `Content-Type`.
+
+        Note: currently only `application/json` is supported.
+        """
+        content_type_header = request.headers.get('content-type', default='application/json')
+        content_type = parse_options_header(content_type_header)[0]
+
+        if content_type == 'application/json':
+            try:
+                return json.loads(request.get_data())
+            except Exception as e:
+                raise errors.InvalidContentError(e.message)
+        else:
+            raise errors.UnsupportedContentTypeError(content_type)
 
     def _crud_list(self, request, cls):
         return self.return_ok(request, list(cls.objects.all()))
 
     def _crud_fetch(self, request, cls, id):
         try:
-            return self.return_ok(request, cls.get(id=id))
+            return self.return_ok(request, cls.get(id=UUID(id)))
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
-    @app.route('/v1.0/chassis_models', methods=['POST'])
     def create_chassis_model(self, request):
         """
         Create a ChassisModel. Example::
@@ -68,8 +179,7 @@ class TeethAPI(rest.RESTServer):
         chassis_model.save()
         return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
 
-    @app.route('/v1.0/chassis_models', methods=['GET'])
-    def list_chassis_model(self, request):
+    def list_chassis_models(self, request):
         """
         List ChassisModels. Example::
 
@@ -84,7 +194,6 @@ class TeethAPI(rest.RESTServer):
         """
         return self._crud_list(request, models.ChassisModel)
 
-    @app.route('/v1.0/flavors', methods=['POST'])
     def create_flavor(self, request):
         """
         Create a Flavor. Example::
@@ -99,8 +208,7 @@ class TeethAPI(rest.RESTServer):
         flavor.save()
         return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
 
-    @app.route('/v1.0/flavors', methods=['GET'])
-    def list_flavor(self, request):
+    def list_flavors(self, request):
         """
         List Flavors. Example::
 
@@ -115,7 +223,6 @@ class TeethAPI(rest.RESTServer):
         """
         return self._crud_list(request, models.Flavor)
 
-    @app.route('/v1.0/flavor_providers', methods=['POST'])
     def create_flavor_provider(self, request):
         """
         Create a FlavorProvider, which maps a Flavor to a ChassisModel. Example::
@@ -143,8 +250,7 @@ class TeethAPI(rest.RESTServer):
         flavor_provider.save()
         return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
 
-    @app.route('/v1.0/flavor_providers', methods=['GET'])
-    def list_flavor_provider(self, request):
+    def list_flavor_providers(self, request):
         """
         List FlavorProviders. Example::
 
@@ -161,7 +267,6 @@ class TeethAPI(rest.RESTServer):
         """
         return self._crud_list(request, models.FlavorProvider)
 
-    @app.route('/v1.0/chassis', methods=['POST'])
     def create_chassis(self, request):
         """
         Create a Chassis. Example::
@@ -188,7 +293,6 @@ class TeethAPI(rest.RESTServer):
 
         return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
 
-    @app.route('/v1.0/chassis', methods=['GET'])
     def list_chassis(self, request):
         """
         List Chassis. Example::
@@ -218,7 +322,6 @@ class TeethAPI(rest.RESTServer):
         """
         return self._crud_list(request, models.Chassis)
 
-    @app.route('/v1.0/instances', methods=['POST'])
     def create_instance(self, request):
         """
         Create an Instance. Example::
@@ -245,7 +348,6 @@ class TeethAPI(rest.RESTServer):
         self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
         return self.return_created(request, '/v1.0/instances/' + str(instance.id))
 
-    @app.route('/v1.0/instances', methods=['GET'])
     def list_instances(self, request):
         """
         List Instances. Example::
@@ -273,7 +375,6 @@ class TeethAPI(rest.RESTServer):
         """
         return self._crud_list(request, models.Instance)
 
-    @app.route('/v1.0/instances/<string:instance_id>', methods=['GET'])
     def fetch_instance(self, request, instance_id):
         """
         Retrieve an instance. Example::
@@ -290,10 +391,3 @@ class TeethAPI(rest.RESTServer):
         Returns 200 with the requested Instance upon success.
         """
         return self._crud_fetch(request, models.Instance, instance_id)
-
-    @app.handle_errors
-    def return_error(self, request, failure):
-        """
-        Pass any errors to the parent class's error handler.
-        """
-        return rest.RESTServer.return_error(self, request, failure)
