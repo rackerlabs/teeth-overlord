@@ -27,10 +27,10 @@ from werkzeug.serving import run_simple
 
 from teeth_overlord.config import Config
 from teeth_overlord.service import global_setup
-from teeth_overlord.api.server import TeethAPI
+from teeth_overlord.api.public import TeethPublicAPI
 
 if __name__ == '__main__':
     config = Config()
     global_setup(config)
-    api = TeethAPI(config)
+    api = TeethPublicAPI(config)
     run_simple(config.API_HOST, config.API_PORT, api)

@@ -31,12 +31,13 @@ def _validate_relation(instance, field_name, cls):
         raise errors.InvalidContentError(msg)
 
 
-class TeethAPI(APIBase):
+class TeethPublicAPI(APIBase):
     """
     The primary Teeth Overlord API.
     """
     def __init__(self, config):
-        super(TeethAPI, self).__init__(config, TeethJSONEncoder(SerializationViews.PUBLIC, indent=4))
+        encoder = TeethJSONEncoder(SerializationViews.PUBLIC, indent=4)
+        super(TeethPublicAPI, self).__init__(config, encoder)
         self.job_client = jobs.JobClient(config)
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
 
