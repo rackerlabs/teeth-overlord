@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from teeth_rest.component import APIComponent
+from teeth_rest.encoding import TeethJSONEncoder, SerializationViews
+
 from teeth_overlord import models, jobs, errors
 from teeth_overlord.images.base import get_image_provider
-from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
-from teeth_overlord.api.base import APIBase
 
 
 def _validate_relation(instance, field_name, cls):
@@ -31,7 +32,7 @@ def _validate_relation(instance, field_name, cls):
         raise errors.InvalidContentError(msg)
 
 
-class TeethPublicAPI(APIBase):
+class TeethPublicAPI(APIComponent):
     """
     The primary Teeth Overlord API.
     """

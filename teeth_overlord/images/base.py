@@ -19,7 +19,7 @@ from collections import OrderedDict
 
 from twisted.python.reflect import namedAny
 
-from teeth_overlord.encoding import Serializable
+from teeth_rest.encoding import Serializable
 
 
 class ImageInfo(Serializable):

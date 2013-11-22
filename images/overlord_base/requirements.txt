@@ -8,6 +8,7 @@ structlog==0.3.0
 treq==0.2.0
 requests==2.0.0
 /opt/teeth-agent
+/opt/teeth-rest
 
 # Test Dependencies
 pep257==0.2.4

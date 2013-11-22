@@ -22,7 +22,7 @@ import uuid
 from cqlengine import columns
 from cqlengine.models import Model
 
-from teeth_overlord.encoding import Serializable
+from teeth_rest.encoding import Serializable
 
 KEYSPACE_NAME = 'teeth'
 
