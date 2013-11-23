@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_rest.component import APIComponent
-from teeth_rest.encoding import TeethJSONEncoder, SerializationViews
+from teeth_rest.component import APIComponent, APIServer
+from teeth_rest.responses import OKResponse, CreatedResponse
 
 from teeth_overlord import models, jobs, errors
 from teeth_overlord.images.base import get_image_provider
@@ -37,8 +37,8 @@ class TeethPublicAPI(APIComponent):
     The primary Teeth Overlord API.
     """
     def __init__(self, config):
-        encoder = TeethJSONEncoder(SerializationViews.PUBLIC, indent=4)
-        super(TeethPublicAPI, self).__init__(config, encoder)
+        super(TeethPublicAPI, self).__init__()
+        self.config = config
         self.job_client = jobs.JobClient(config)
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
 
@@ -47,32 +47,33 @@ class TeethPublicAPI(APIComponent):
         Called during initialization. Override to map relative routes to methods.
         """
         # ChassisModel Handlers
-        self.route('GET', '/v1.0/chassis_models', self.list_chassis_models)
-        self.route('POST', '/v1.0/chassis_models', self.create_chassis_model)
+        self.route('GET', '/chassis_models', self.list_chassis_models)
+        self.route('POST', '/chassis_models', self.create_chassis_model)
 
         # Flavor Handlers
-        self.route('GET', '/v1.0/flavors', self.list_flavors)
-        self.route('POST', '/v1.0/flavors', self.create_flavor)
+        self.route('GET', '/flavors', self.list_flavors)
+        self.route('POST', '/flavors', self.create_flavor)
 
         # FlavorProvider Handlers
-        self.route('GET', '/v1.0/flavor_providers', self.list_flavor_providers)
-        self.route('POST', '/v1.0/flavor_providers', self.create_flavor_provider)
+        self.route('GET', '/flavor_providers', self.list_flavor_providers)
+        self.route('POST', '/flavor_providers', self.create_flavor_provider)
 
         # Chassis Handlers
-        self.route('GET', '/v1.0/chassis', self.list_chassis)
-        self.route('POST', '/v1.0/chassis', self.create_instance)
+        self.route('GET', '/chassis', self.list_chassis)
+        self.route('POST', '/chassis', self.create_instance)
 
         # Instance Handlers
-        self.route('GET', '/v1.0/instances', self.list_instances)
-        self.route('POST', '/v1.0/instances', self.create_instance)
-        self.route('GET', '/v1.0/instances/<uuid:instance_id>', self.fetch_instance)
+        self.route('GET', '/instances', self.list_instances)
+        self.route('POST', '/instances', self.create_instance)
+        self.route('GET', '/instances/<uuid:instance_id>', self.fetch_instance)
 
     def _crud_list(self, request, cls):
-        return self.return_ok(request, list(cls.objects.all()))
+        return OKResponse(list(cls.objects.all()))
 
     def _crud_fetch(self, request, cls, id):
         try:
-            return self.return_ok(request, cls.get(id=id))
+
+            return OKResponse(cls.get(id=id))
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
@@ -304,3 +305,14 @@ class TeethPublicAPI(APIComponent):
         Returns 200 with the requested Instance upon success.
         """
         return self._crud_fetch(request, models.Instance, instance_id)
+
+
+class TeethPublicAPIServer(APIServer):
+    """
+    Server for the teeth overlord API.
+    """
+
+    def __init__(self, config):
+        super(TeethPublicAPIServer, self).__init__()
+        self.config = config
+        self.add_component('/v1.0', TeethPublicAPI(self.config))
