@@ -49,6 +49,7 @@ class TeethPublicAPI(APIComponent):
         # ChassisModel Handlers
         self.route('GET', '/chassis_models', self.list_chassis_models)
         self.route('POST', '/chassis_models', self.create_chassis_model)
+        self.route('GET', '/chassis_models/<uuid:chassis_model_id>', self.fetch_chassis_model)
 
         # Flavor Handlers
         self.route('GET', '/flavors', self.list_flavors)
@@ -107,6 +108,19 @@ class TeethPublicAPI(APIComponent):
         Returns 200 along with a list of ChassisModels upon success.
         """
         return self._crud_list(request, models.ChassisModel)
+
+    def fetch_chassis_model(self, request, chassis_model_id):
+        """
+        Retrive a ChassisModel. Example::
+
+            {
+                "id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                "name": "Supermicro  1027R-WRFT+"
+            }
+
+        Returns 200 along with the requested ChassisModels upon success.
+        """
+        return self._crud_fetch(request, models.ChassisModel, chassis_model_id)
 
     def create_flavor(self, request):
         """
