@@ -92,7 +92,7 @@ class TeethPublicAPI(APIComponent):
         """
         chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
         chassis_model.save()
-        return self.return_created(request, '/v1.0/chassis_model/' + str(chassis_model.id))
+        return CreatedResponse(self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
 
     def list_chassis_models(self, request):
         """
