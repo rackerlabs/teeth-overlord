@@ -137,7 +137,7 @@ class TeethPublicAPI(APIComponent):
         """
         flavor = models.Flavor.deserialize(self.parse_content(request))
         flavor.save()
-        return self.return_created(request, '/v1.0/flavor/' + str(flavor.id))
+        return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
     def list_flavors(self, request):
         """
@@ -192,7 +192,9 @@ class TeethPublicAPI(APIComponent):
         _validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
-        return self.return_created(request, '/v1.0/flavor_provider/' + str(flavor_provider.id))
+        return CreatedResponse(request, self.fetch_flavor_provider, {
+            'flavor_provider_id': flavor_provider.id
+        })
 
     def list_flavor_providers(self, request):
         """
@@ -250,7 +252,7 @@ class TeethPublicAPI(APIComponent):
         chassis.ipmi_password = chassis_model.ipmi_default_password
         chassis.save()
 
-        return self.return_created(request, '/v1.0/chassis/' + str(chassis.id))
+        return CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
 
     def list_chassis(self, request):
         """
@@ -318,7 +320,7 @@ class TeethPublicAPI(APIComponent):
         _validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
         self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
-        return self.return_created(request, '/v1.0/instances/' + str(instance.id))
+        return CreatedResponse(request, self.fetch_instance, {'instance_id': instance.id})
 
     def list_instances(self, request):
         """
