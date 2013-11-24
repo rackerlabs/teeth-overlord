@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 from abc import ABCMeta, abstractproperty, abstractmethod
-from uuid import UUID, uuid4
+from uuid import uuid4
 import time
 
 from cqlengine import BatchQuery
@@ -107,7 +107,7 @@ class JobExecutor(SynchronousTeethService):
             return
 
         try:
-            job_request = JobRequest.objects.get(id=UUID(message.body['job_request_id']))
+            job_request = JobRequest.objects.get(id=message.body['job_request_id'])
         except JobRequest.DoesNotExist:
             self.log.info('removing message corresponding to non-existent JobRequest',
                           message_href=message.href,
@@ -270,7 +270,7 @@ class CreateInstance(Job):
         return
 
     def _execute(self):
-        instance = Instance.objects.get(id=UUID(self.request.params['instance_id']))
+        instance = Instance.objects.get(id=self.request.params['instance_id'])
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(instance.image_id)
 

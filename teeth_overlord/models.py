@@ -16,8 +16,8 @@ limitations under the License.
 
 from collections import OrderedDict
 from datetime import datetime
+from uuid import uuid4
 import struct
-import uuid
 
 from cqlengine import columns
 from cqlengine.models import Model
@@ -25,6 +25,12 @@ from cqlengine.models import Model
 from teeth_rest.encoding import Serializable
 
 KEYSPACE_NAME = 'teeth'
+
+MAX_ID_LENGTH = 64
+
+
+def uuid_str():
+    return str(uuid4())
 
 
 class C2DateTime(columns.DateTime):
@@ -58,7 +64,7 @@ class Flavor(Base):
     """
     Model for flavors. Users choose a Flavor when they create an instance.
     """
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
 
     def serialize(self, view):
@@ -94,9 +100,9 @@ class FlavorProvider(Base):
     provide multiple flavors, or a flavor to be provided by multiple
     chassis models.
     """
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
-    flavor_id = columns.UUID(index=True, required=True)
-    chassis_model_id = columns.UUID(index=True, required=True)
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    flavor_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
+    chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
     schedule_priority = columns.Integer(required=True)
 
     def serialize(self, view):
@@ -131,7 +137,7 @@ class ChassisModel(Base):
     ChassisModels include default IPMI credentials, which will be used
     when initializing new hardware.
     """
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
     ipmi_default_password = columns.Text()
     ipmi_default_username = columns.Text()
@@ -163,9 +169,9 @@ class Chassis(Base):
     """
     Model for an individual Chassis.
     """
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     state = columns.Ascii(index=True, default=ChassisState.READY)
-    chassis_model_id = columns.UUID(index=True, required=True)
+    chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
     primary_mac_address = columns.Ascii(index=True, required=True)
@@ -206,12 +212,12 @@ class Instance(Base):
     """
     Model for an Instance.
     """
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     project_id = columns.Ascii(required=True)
     name = columns.Text(required=True)
-    flavor_id = columns.UUID(required=True)
-    image_id = columns.UUID(required=True)
-    chassis_id = columns.UUID()
+    flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
+    image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
+    chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
     state = columns.Ascii(default=InstanceState.BUILD)
 
     def serialize(self, view):
@@ -251,7 +257,7 @@ class AgentConnection(Base):
     overwrite these using nothing but the MAC address, so we use that as
     the primary key, but set an indexed `id` field for consistency.
     """
-    id = columns.UUID(index=True, default=uuid.uuid4)
+    id = columns.Text(index=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     primary_mac_address = columns.Ascii(primary_key=True)
     agent_version = columns.Ascii(required=True)
     endpoint_rpc_host = columns.Ascii(required=True)
@@ -283,7 +289,7 @@ class JobRequest(Base):
     """
     Model for a Job Request.
     """
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
     state = columns.Ascii(index=True, default=JobRequestState.READY)

@@ -49,27 +49,27 @@ class TeethPublicAPI(APIComponent):
         # ChassisModel Handlers
         self.route('GET', '/chassis_models', self.list_chassis_models)
         self.route('POST', '/chassis_models', self.create_chassis_model)
-        self.route('GET', '/chassis_models/<uuid:chassis_model_id>', self.fetch_chassis_model)
+        self.route('GET', '/chassis_models/<string:chassis_model_id>', self.fetch_chassis_model)
 
         # Flavor Handlers
         self.route('GET', '/flavors', self.list_flavors)
         self.route('POST', '/flavors', self.create_flavor)
-        self.route('GET', '/flavors/<uuid:flavor_id>', self.fetch_flavor)
+        self.route('GET', '/flavors/<string:flavor_id>', self.fetch_flavor)
 
         # FlavorProvider Handlers
         self.route('GET', '/flavor_providers', self.list_flavor_providers)
         self.route('POST', '/flavor_providers', self.create_flavor_provider)
-        self.route('GET', '/flavor_providers/<uuid:flavor_provider_id>', self.fetch_flavor_provider)
+        self.route('GET', '/flavor_providers/<string:flavor_provider_id>', self.fetch_flavor_provider)
 
         # Chassis Handlers
         self.route('GET', '/chassis', self.list_chassis)
         self.route('POST', '/chassis', self.create_chassis)
-        self.route('GET', '/chassis/<uuid:chassis_id>', self.fetch_chassis)
+        self.route('GET', '/chassis/<string:chassis_id>', self.fetch_chassis)
 
         # Instance Handlers
         self.route('GET', '/instances', self.list_instances)
         self.route('POST', '/instances', self.create_instance)
-        self.route('GET', '/instances/<uuid:instance_id>', self.fetch_instance)
+        self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
 
     def _crud_list(self, request, cls):
         return OKResponse(list(cls.objects.all()))

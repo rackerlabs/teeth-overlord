@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from uuid import UUID
 from collections import OrderedDict
 
 from twisted.python.reflect import namedAny
@@ -27,7 +26,7 @@ class ImageInfo(Serializable):
     Information about an image.
     """
     def __init__(self, **kwargs):
-        self.id = UUID(kwargs['id'])
+        self.id = kwargs['id']
         self.name = kwargs['name']
         self.urls = kwargs['urls']
         self.hashes = kwargs['hashes']
