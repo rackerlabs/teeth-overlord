@@ -64,6 +64,7 @@ class TeethPublicAPI(APIComponent):
         # Chassis Handlers
         self.route('GET', '/chassis', self.list_chassis)
         self.route('POST', '/chassis', self.create_instance)
+        self.route('GET', '/chassis/<uuid:chassis_id>', self.fetch_chassis)
 
         # Instance Handlers
         self.route('GET', '/instances', self.list_instances)
@@ -279,6 +280,19 @@ class TeethPublicAPI(APIComponent):
         Returns 200 with a list of Chassis upon success.
         """
         return self._crud_list(request, models.Chassis)
+
+    def fetch_chassis(self, request, chassis_id):
+        """
+        Retrive a Chassis. Example::
+
+            {
+                "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                "name": "Extra Fast Server"
+            }
+
+        Returns 200 along with the requested Chassiss upon success.
+        """
+        return self._crud_fetch(request, models.Chassis, chassis_id)
 
     def create_instance(self, request):
         """
