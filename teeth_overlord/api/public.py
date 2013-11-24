@@ -54,6 +54,7 @@ class TeethPublicAPI(APIComponent):
         # Flavor Handlers
         self.route('GET', '/flavors', self.list_flavors)
         self.route('POST', '/flavors', self.create_flavor)
+        self.route('GET', '/flavors/<uuid:flavor_id>', self.fetch_flavor)
 
         # FlavorProvider Handlers
         self.route('GET', '/flavor_providers', self.list_flavor_providers)
@@ -150,6 +151,19 @@ class TeethPublicAPI(APIComponent):
         Returns 200 with a list of Flavors upon success.
         """
         return self._crud_list(request, models.Flavor)
+
+    def fetch_flavor(self, request, flavor_id):
+        """
+        Retrive a Flavor. Example::
+
+            {
+                "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                "name": "Extra Fast Server"
+            }
+
+        Returns 200 along with the requested Flavors upon success.
+        """
+        return self._crud_fetch(request, models.Flavor, flavor_id)
 
     def create_flavor_provider(self, request):
         """
