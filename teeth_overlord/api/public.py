@@ -59,6 +59,7 @@ class TeethPublicAPI(APIComponent):
         # FlavorProvider Handlers
         self.route('GET', '/flavor_providers', self.list_flavor_providers)
         self.route('POST', '/flavor_providers', self.create_flavor_provider)
+        self.route('GET', '/flavor_providers/<uuid:flavor_provider_id>', self.fetch_flavor_provider)
 
         # Chassis Handlers
         self.route('GET', '/chassis', self.list_chassis)
@@ -208,6 +209,21 @@ class TeethPublicAPI(APIComponent):
         Returns 200 with a list of FlavorProviders upon success.
         """
         return self._crud_list(request, models.FlavorProvider)
+
+    def fetch_flavor_provider(self, request, flavor_provider_id):
+        """
+        Retrive a FlavorProvider. Example::
+
+            {
+                "id": "e5061fd0-371b-46ca-b07b-f415f92eb04f",
+                "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                "schedule_priority": 100
+            }
+
+        Returns 200 along with the requested FlavorProviders upon success.
+        """
+        return self._crud_fetch(request, models.FlavorProvider, flavor_provider_id)
 
     def create_chassis(self, request):
         """
