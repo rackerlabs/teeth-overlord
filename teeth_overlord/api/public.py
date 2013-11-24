@@ -63,7 +63,7 @@ class TeethPublicAPI(APIComponent):
 
         # Chassis Handlers
         self.route('GET', '/chassis', self.list_chassis)
-        self.route('POST', '/chassis', self.create_instance)
+        self.route('POST', '/chassis', self.create_chassis)
         self.route('GET', '/chassis/<uuid:chassis_id>', self.fetch_chassis)
 
         # Instance Handlers
