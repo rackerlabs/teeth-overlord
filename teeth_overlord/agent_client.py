@@ -24,9 +24,9 @@ from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
 from teeth_overlord.models import AgentConnection
 
 
-class EndpointRPCClient(object):
+class AgentClient(object):
     """
-    Client for interacting with agents via an AgentEndpoint.
+    Client for interacting with agents.
 
     Users of this client call :meth:`get_agent_connection` to locate a
     connection made by the agent to an endpoint, then call other methods

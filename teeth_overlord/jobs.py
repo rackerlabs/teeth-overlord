@@ -28,7 +28,7 @@ from teeth_overlord.models import (
     JobRequest,
     JobRequestState
 )
-from teeth_overlord.agent.rpc import EndpointRPCClient
+from teeth_overlord.agent_client import AgentClient
 from teeth_overlord.service import SynchronousTeethService
 from teeth_overlord.scheduler import TeethInstanceScheduler
 from teeth_overlord.images.base import get_image_provider
@@ -78,7 +78,7 @@ class JobExecutor(SynchronousTeethService):
     def __init__(self, config):
         self.config = config
         self.log = get_logger()
-        self.endpoint_rpc_client = EndpointRPCClient(config)
+        self.agent_client = AgentClient(config)
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
         self.scheduler = TeethInstanceScheduler()
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
@@ -250,8 +250,8 @@ class CreateInstance(Job):
         """
         Send the `prepare_image` and `run_image` commands to the agent.
         """
-        client = self.executor.endpoint_rpc_client
-        connection = self.executor.endpoint_rpc_client.get_agent_connection(chassis)
+        client = self.executor.agent_client
+        connection = client.get_agent_connection(chassis)
         client.prepare_image(connection, image_info)
         client.run_image(connection, image_info)
         return
