@@ -30,6 +30,9 @@ MAX_ID_LENGTH = 64
 
 
 def uuid_str():
+    """
+    Generate a string containing a serialized v4 UUID.
+    """
     return str(uuid4())
 
 
