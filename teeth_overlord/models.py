@@ -212,8 +212,8 @@ class Instance(Base):
     """
     Model for an Instance.
     """
+    project_id = columns.Ascii(partition_key=True, required=True)
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
-    project_id = columns.Ascii(required=True)
     name = columns.Text(required=True)
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
