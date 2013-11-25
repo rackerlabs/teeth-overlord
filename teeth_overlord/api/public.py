@@ -17,7 +17,9 @@ limitations under the License.
 from teeth_rest.component import APIComponent, APIServer
 from teeth_rest.responses import OKResponse, CreatedResponse
 
-from teeth_overlord import models, jobs, errors
+from teeth_overlord import models, errors
+from teeth_overlord.jobs.base import JobClient
+from teeth_overlord.jobs.instances import CreateInstance
 from teeth_overlord.images.base import get_image_provider
 
 
@@ -39,7 +41,7 @@ class TeethPublicAPI(APIComponent):
     def __init__(self, config):
         super(TeethPublicAPI, self).__init__()
         self.config = config
-        self.job_client = jobs.JobClient(config)
+        self.job_client = JobClient(config)
         self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
 
     def add_routes(self):
@@ -319,7 +321,7 @@ class TeethPublicAPI(APIComponent):
 
         _validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
-        self.job_client.submit_job(jobs.CreateInstance, instance_id=str(instance.id))
+        self.job_client.submit_job(CreateInstance, instance_id=str(instance.id))
         return CreatedResponse(request, self.fetch_instance, {'instance_id': instance.id})
 
     def list_instances(self, request):
