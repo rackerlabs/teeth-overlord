@@ -14,13 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from cqlengine import Token
+
 from teeth_rest.component import APIComponent, APIServer
-from teeth_rest.responses import OKResponse, CreatedResponse
+from teeth_rest.responses import ItemResponse, PaginatedResponse, CreatedResponse
 
 from teeth_overlord import models, errors
 from teeth_overlord.jobs.base import JobClient
 from teeth_overlord.jobs.instances import CreateInstance
 from teeth_overlord.images.base import get_image_provider
+
+
+DEFAULT_LIMIT = 100
 
 
 def _validate_relation(instance, field_name, cls):
@@ -32,6 +37,38 @@ def _validate_relation(instance, field_name, cls):
         msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
                                                                   type_name=cls.__name__)
         raise errors.InvalidContentError(msg)
+
+
+def _get_single_param(request, param):
+    values = request.args.getlist(param)
+
+    if len(values) == 0:
+        return None
+    if len(values) == 1:
+        return values[0]
+
+    msg = 'Multiple \'{param}\' query parameters were provided.'.format(param=param)
+    raise errors.InvalidParametersError(msg)
+
+
+def _get_marker(request):
+    return _get_single_param(request, 'marker')
+
+
+def _get_limit(request):
+    limit = _get_single_param(request, 'limit')
+
+    if limit is None:
+        return DEFAULT_LIMIT
+
+    try:
+        limit = int(limit)
+        if limit <= 0:
+            raise errors.InvalidParametersError('The \'limit\' query parameter must be greater than 0.')
+        return limit
+    except ValueError:
+        msg = 'The provided \'limit\' query parameter was was not an integer.'
+        raise errors.InvalidParametersError(msg)
 
 
 class TeethPublicAPI(APIComponent):
@@ -73,13 +110,28 @@ class TeethPublicAPI(APIComponent):
         self.route('POST', '/instances', self.create_instance)
         self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
 
-    def _crud_list(self, request, cls):
-        return OKResponse(list(cls.objects.all()))
+    def _crud_list(self, request, cls, list_method):
+        marker = _get_marker(request)
+        limit = _get_limit(request)
+        query = cls.objects.all().limit(limit)
+
+        if marker:
+            query = query.filter(pk__token__gt=Token(marker))
+
+        items = list(query)
+
+        if len(items) == limit:
+            # limit must be >= 1, so items[] is never empty
+            marker = items[-1].id
+        else:
+            marker = None
+
+        return PaginatedResponse(request, items, list_method, marker, limit)
 
     def _crud_fetch(self, request, cls, id):
         try:
 
-            return OKResponse(cls.get(id=id))
+            return ItemResponse(cls.get(id=id))
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
@@ -112,7 +164,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with a list of ChassisModels upon success.
         """
-        return self._crud_list(request, models.ChassisModel)
+        return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
 
     def fetch_chassis_model(self, request, chassis_model_id):
         """
@@ -154,7 +206,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Flavors upon success.
         """
-        return self._crud_list(request, models.Flavor)
+        return self._crud_list(request, models.Flavor, self.list_flavors)
 
     def fetch_flavor(self, request, flavor_id):
         """
@@ -213,7 +265,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of FlavorProviders upon success.
         """
-        return self._crud_list(request, models.FlavorProvider)
+        return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
 
     def fetch_flavor_provider(self, request, flavor_provider_id):
         """
@@ -283,7 +335,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Chassis upon success.
         """
-        return self._crud_list(request, models.Chassis)
+        return self._crud_list(request, models.Chassis, self.list_chassis)
 
     def fetch_chassis(self, request, chassis_id):
         """
@@ -367,7 +419,7 @@ class TeethPublicAPI(APIComponent):
         Returns 200 with the requested Instance upon success.
         """
         instance = models.Instance.objects.allow_filtering().get(id=instance_id)
-        return OKResponse(instance)
+        return ItemResponse(instance)
 
 
 class TeethPublicAPIServer(APIServer):

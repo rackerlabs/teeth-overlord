@@ -83,6 +83,17 @@ class ImageNotFoundError(InvalidContentError):
         super(ImageNotFoundError, self).__init__(msg)
 
 
+class InvalidParametersError(RESTError):
+    """
+    Error which is raised when multiple 'marker' query parameters are provided.
+    """
+    message = 'Invalid query parameters'
+    status_code = 400
+
+    def __init__(self, details):
+        self.details = details
+
+
 class RequestedObjectNotFoundError(RESTError):
     """
     Error which is returned when a requested object is not found.
