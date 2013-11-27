@@ -50,11 +50,18 @@ def global_setup(config):
     if _global_config is None:
         _global_config = config
         connection.setup(config.CASSANDRA_CLUSTER, consistency=config.CASSANDRA_CONSISTENCY)
+        processors = [
+            _capture_stack_trace,
+        ]
+
+        if config.PRETTY_LOGGING:
+            processors.append(structlog.processors.ExceptionPrettyPrinter())
+            processors.append(structlog.processors.KeyValueRenderer())
+        else:
+            processors.append(structlog.processors.JSONRenderer())
+
         structlog.configure(
-            processors=[
-                _capture_stack_trace,
-                structlog.processors.JSONRenderer(),
-            ],
+            processors=processors
         )
     elif _global_config != config:
         raise Exception('global_setup called twice with different configurations')

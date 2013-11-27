@@ -46,6 +46,7 @@ class Config(object):
             }
         ]
     }
+    PRETTY_LOGGING = True
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
