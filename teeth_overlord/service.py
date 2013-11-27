@@ -33,6 +33,7 @@ _global_config = None
 
 EXCEPTION_LOG_METHODS = ['error']
 
+
 def _capture_stack_trace(logger, method, event):
     if method in EXCEPTION_LOG_METHODS:
         event['exception'] = traceback.format_exc()
