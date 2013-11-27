@@ -14,4 +14,7 @@ twisted/plugins/dropin.cache
 twistd.log
 .coverage
 _trial_coverage/
-
+AUTHORS
+ChangeLog
+*.egg-info
+*.egg
