@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import signal
+import traceback
 
 import structlog
 from cqlengine import connection
@@ -30,6 +31,14 @@ from teeth_overlord.config import Config
 #   b. The same config is used
 _global_config = None
 
+EXCEPTION_LOG_METHODS = ['error']
+
+def _capture_stack_trace(logger, method, event):
+    if method in EXCEPTION_LOG_METHODS:
+        event['exception'] = traceback.format_exc()
+
+    return event
+
 
 def global_setup(config):
     """
@@ -43,7 +52,7 @@ def global_setup(config):
         connection.setup(config.CASSANDRA_CLUSTER, consistency=config.CASSANDRA_CONSISTENCY)
         structlog.configure(
             processors=[
-                structlog.processors.format_exc_info,
+                _capture_stack_trace,
                 structlog.processors.JSONRenderer(),
             ],
         )
