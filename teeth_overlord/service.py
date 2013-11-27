@@ -19,10 +19,6 @@ import traceback
 
 import structlog
 from cqlengine import connection
-from zope.interface import implements
-from twisted.python import usage
-from twisted.application.service import IServiceMaker, Service
-from twisted.plugin import IPlugin
 
 from teeth_overlord.config import Config
 
@@ -66,51 +62,6 @@ def global_setup(config):
         )
     elif _global_config != config:
         raise Exception('global_setup called twice with different configurations')
-
-
-class TeethServiceOptions(usage.Options):
-    """
-    Options that can be passed to a Teeth service.
-    """
-    optParameters = [
-        ['config', 'c', None, 'Path to the config file to use.'],
-    ]
-
-
-class TeethServiceMaker(object):
-    """
-    A common IServiceMaker capable of instantiating any TeethService.
-    """
-    implements(IServiceMaker, IPlugin)
-
-    tapname = 'teeth-public-api'
-    description = 'Teeth public API service'
-    options = TeethServiceOptions
-
-    def __init__(self, service_class, tapname, description):
-        self.service_class = service_class
-        self.tapname = tapname
-        self.description = description
-
-    def makeService(self, options):
-        """Create a new service instance."""
-        config_path = options.get('config', None)
-        if config_path:
-            return self.service_class(Config.from_json_file(config_path))
-        else:
-            return self.service_class(Config())
-
-
-class TeethService(Service):
-    """
-    Base class for all Teeth services.
-    """
-    def __init__(self, config):
-        self.config = config
-
-    def startService(self):
-        """Start the service."""
-        global_setup(self.config)
 
 
 class TeethServiceRunner(object):
