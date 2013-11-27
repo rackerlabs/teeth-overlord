@@ -1,6 +1,0 @@
-[submodule "teeth-images"]
-	path = teeth-images
-	url = git@github.com:racker/teeth-images.git
-[submodule "images/overlord_base/teeth-agent"]
-	path = images/overlord_base/teeth-agent
-	url = git@github.com:racker/teeth-images.git
