@@ -19,3 +19,4 @@ ChangeLog
 *.egg-info
 *.egg
 .tox/*
+devenv/*
