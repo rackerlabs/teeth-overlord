@@ -17,5 +17,6 @@ limitations under the License.
 from teeth_overlord.service import TeethServiceRunner
 from teeth_overlord.jobs.base import JobExecutor
 
+
 def run():
     TeethServiceRunner(JobExecutor).run()

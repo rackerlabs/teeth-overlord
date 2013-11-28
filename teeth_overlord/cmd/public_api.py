@@ -20,6 +20,7 @@ from teeth_overlord.config import Config
 from teeth_overlord.service import global_setup
 from teeth_overlord.api.public import TeethPublicAPIServer
 
+
 def run():
     config = Config()
     global_setup(config)
