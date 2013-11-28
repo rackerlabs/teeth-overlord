@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Copyright 2013 Rackspace, Inc.
 
@@ -15,21 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import sys
-import os
-
-# Borrowed from Heat: https://github.com/openstack/heat/blob/master/bin/heat-api
-possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]), os.pardir, os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'teeth_overlord', '__init__.py')):
-    sys.path.insert(0, possible_topdir)
-
 from werkzeug.serving import run_simple
 
 from teeth_overlord.config import Config
 from teeth_overlord.service import global_setup
 from teeth_overlord.api.public import TeethPublicAPIServer
 
-if __name__ == '__main__':
+def run():
     config = Config()
     global_setup(config)
     api = TeethPublicAPIServer(config)
