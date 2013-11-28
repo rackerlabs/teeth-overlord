@@ -33,7 +33,7 @@ class Config(object):
     JOBSERVER_PORT = 8083
     ETCD_ADDRESSES = ['localhost:4001']
     MARCONI_URL = 'http://localhost:8888'
-    IMAGE_PROVIDER = 'teeth_overlord.images.static.StaticImageProvider'
+    IMAGE_PROVIDER = 'static'
     IMAGE_PROVIDER_CONFIG = {
         'images': [
             {

@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import abc
 from collections import OrderedDict
 
-from twisted.python.reflect import namedAny
+from stevedore import driver
 
 from teeth_rest.encoding import Serializable
 
@@ -46,19 +47,21 @@ class BaseImageProvider(object):
     A provider of images. Basically an abstraction of a glance client.
     """
 
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def get_image_info(self, image_id):
         """
         Returns an ImageInfo instance with information about the requested
         image.
         """
-        raise NotImplementedError()
 
 
-def get_image_provider(provider_type, provider_config):
-    """
-    Instantiate an image provider of the specified type using the given
-    config. The `provider_config` is simply a dict of keyword arguments
-    to the image provider class.
-    """
-    cls = namedAny(provider_type)
-    return cls(**provider_config)
+def get_image_provider(provider_name, config):
+    mgr = driver.DriverManager(
+        namespace='teeth_overlord.image.providers',
+        name=provider_name,
+        invoke_on_load=True,
+        invoke_kwds=config,
+    )
+    return mgr.driver
