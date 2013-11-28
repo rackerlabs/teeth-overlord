@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Copyright 2013 Rackspace, Inc.
 
@@ -15,15 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
-import sys
-
-# Borrowed from Heat: https://github.com/openstack/heat/blob/master/bin/heat-api
-possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]), os.pardir, os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'teeth_overlord', '__init__.py')):
-    sys.path.insert(0, possible_topdir)
-
-from cqlengine import connection
 from cqlengine.management import sync_table
 
 from teeth_overlord.models import all_models
@@ -31,7 +21,7 @@ from teeth_overlord.config import Config
 from teeth_overlord.service import global_setup
 
 
-if __name__ == '__main__':
+def run():
     global_setup(Config())
     for model in all_models:
         sync_table(model)

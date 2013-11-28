@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Copyright 2013 Rackspace, Inc.
 
@@ -19,13 +18,14 @@ import json
 
 import requests
 
+
 def post(path, item):
     url = 'http://localhost:8080' + path
     response = requests.post(url, json.dumps(item), headers={'Content-Type': 'application/json'})
-    print response.headers.get('location')
     return response.headers.get('location').rsplit('/')[-1]
 
-if __name__ == '__main__':
+
+def run():
     chassis_model_id = post('/v1.0/chassis_models', {
         'name': 'Supermicro  1027R-WRFT+',
         'default_ipmi_username': 'ADMIN',
