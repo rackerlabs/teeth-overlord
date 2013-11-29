@@ -229,7 +229,6 @@ class Instance(Base):
         """
         return OrderedDict([
             ('id', self.id),
-            ('project_id', self.project_id),
             ('name', self.name),
             ('flavor_id', self.flavor_id),
             ('image_id', self.image_id),
@@ -238,12 +237,12 @@ class Instance(Base):
         ])
 
     @classmethod
-    def deserialize(cls, params):
+    def deserialize(cls, project_id, params):
         """
         Turn a dict into an Instance.
         """
         instance = cls(
-            project_id=params.get('project_id'),
+            project_id=project_id,
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
             image_id=params.get('image_id'),
