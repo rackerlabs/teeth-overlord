@@ -26,6 +26,7 @@ def post(path, item):
 
 
 def run():
+    requests.put('http://localhost:8888/v1/queues/teeth_jobs')
     chassis_model_id = post('/v1.0/chassis_models', {
         'name': 'Supermicro  1027R-WRFT+',
         'default_ipmi_username': 'ADMIN',
