@@ -22,7 +22,7 @@ def get_agent_client(config):
         namespace='teeth_overlord.agent.clients',
         name=config.AGENT_CLIENT,
         invoke_on_load=True,
-        invoke_args=(config),
+        invoke_args=[config],
     )
 
     return mgr.driver
