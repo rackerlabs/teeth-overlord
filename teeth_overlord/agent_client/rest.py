@@ -15,30 +15,23 @@ limitations under the License.
 """
 
 import json
-from uuid import uuid4
 
 import requests
 
 from teeth_overlord import errors
 from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
 from teeth_overlord.models import AgentConnection
+from teeth_overlord.agent_client.base import BaseAgentClient
 
 
-class AgentClient(object):
+class RESTAgentClient(BaseAgentClient):
     """
-    Client for interacting with agents.
-
-    Users of this client call :meth:`get_agent_connection` to locate a
-    connection made by the agent to an endpoint, then call other methods
-    on this class, passing in the agent connection as well as any
-    method-specific parameters. This client will perform a call to the
-    REST API exposed by the Agent Endpoint, which will in turn perform
-    the desired command on the agent and return the result.
+    Client for interacting with agents via a REST API.
     """
     def __init__(self, config):
+        super(RESTAgentClient, self).__init__(config)
         self.encoder = TeethJSONEncoder(SerializationViews.PUBLIC)
         self.session = requests.Session()
-        self.config = config
 
     def _get_command_url(self, connection):
         return 'http://{host}:{port}/v1.0/agent_connections/{connection_id}/command'.format(
@@ -64,9 +57,6 @@ class AgentClient(object):
         # TODO: real error handling
         return json.loads(response.text)
 
-    def _new_task_id(self):
-        return str(uuid4())
-
     def get_agent_connection(self, chassis):
         """
         Retrieve an agent connection for the specified Chassis.
@@ -84,7 +74,7 @@ class AgentClient(object):
         priority order, and may not all be cached.
         """
         return self._command(connection, 'standby.cache_images', {
-            'task_id': self._new_task_id(),
+            'task_id': self.new_task_id(),
             'image_ids': image_ids,
         })
 
@@ -93,7 +83,7 @@ class AgentClient(object):
         Call the `prepare_image` method on the agent.
         """
         return self._command(connection, 'standby.prepare_image', {
-            'task_id': self._new_task_id(),
+            'task_id': self.new_task_id(),
             'image_id': image_id,
         })
 
@@ -102,6 +92,6 @@ class AgentClient(object):
         Run the specified image.
         """
         return self._command(connection, 'standby.run_image', {
-            'task_id': self._new_task_id(),
+            'task_id': self.new_task_id(),
             'image_id': image_id,
         })

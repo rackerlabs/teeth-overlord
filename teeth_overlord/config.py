@@ -47,6 +47,7 @@ class Config(object):
         ]
     }
     PRETTY_LOGGING = True
+    AGENT_CLIENT = 'rest'
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
