@@ -58,7 +58,8 @@ class CreateInstance(Job):
         return
 
     def _execute(self):
-        instance = Instance.objects.get(id=self.request.params['instance_id'])
+        params = self.request.params
+        instance = Instance.objects.get(project_id=params['project_id'], id=params['instance_id'])
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(instance.image_id)
 

@@ -372,7 +372,9 @@ class TeethPublicAPI(APIComponent):
 
         _validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
-        self.job_client.submit_job('instances.create', instance_id=str(instance.id))
+        self.job_client.submit_job('instances.create',
+                                   project_id=instance.project_id,
+                                   instance_id=instance.id)
         return CreatedResponse(request, self.fetch_instance, {'instance_id': instance.id})
 
     def list_instances(self, request):
