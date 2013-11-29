@@ -21,7 +21,6 @@ from teeth_rest.responses import ItemResponse, PaginatedResponse, CreatedRespons
 
 from teeth_overlord import models, errors
 from teeth_overlord.jobs.base import JobClient
-from teeth_overlord.jobs.instances import CreateInstance
 from teeth_overlord.images.base import get_image_provider
 
 
@@ -373,7 +372,7 @@ class TeethPublicAPI(APIComponent):
 
         _validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
-        self.job_client.submit_job(CreateInstance, instance_id=str(instance.id))
+        self.job_client.submit_job('instances.create', instance_id=str(instance.id))
         return CreatedResponse(request, self.fetch_instance, {'instance_id': instance.id})
 
     def list_instances(self, request):

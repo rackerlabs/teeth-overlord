@@ -32,7 +32,6 @@ class CreateInstance(Job):
     to select and provision an appropriate chassis based on the instance
     parameters.
     """
-    job_type = 'create_instance'
     max_retries = 10
 
     def prepare_and_run_image(self, instance, chassis, image_info):

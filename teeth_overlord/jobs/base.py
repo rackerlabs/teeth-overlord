@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from abc import ABCMeta, abstractproperty, abstractmethod
+from abc import ABCMeta, abstractmethod
 from uuid import uuid4
 import time
 
 from structlog import get_logger
+from stevedore import driver
 
 from teeth_overlord.models import (
     JobRequest,
@@ -32,6 +33,8 @@ from teeth_overlord.marconi import MarconiClient
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
+
+JOB_DRIVER_NAMESPACE = 'teeth_overlord.jobs'
 
 # Use a very high TTL on Marconi messages - we never really want them to
 # expire. If we give up on a message, we'll expire it ourselves.
@@ -74,10 +77,12 @@ class JobExecutor(SynchronousTeethService):
 
     def _get_job_class(self, job_type):
         if job_type not in self._job_type_cache:
-            self._job_type_cache[job_type] = next(cls for cls in Job.__subclasses__()
-                                                  if cls.job_type == job_type)
+            self._job_type_cache[job_type] = driver.DriverManager(
+                namespace=JOB_DRIVER_NAMESPACE,
+                name=job_type,
+            )
 
-        return self._job_type_cache[job_type]
+        return self._job_type_cache[job_type].driver
 
     def _process_next_message(self):
         try:
@@ -124,13 +129,13 @@ class JobClient(object):
         self.config = config
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
 
-    def submit_job(self, cls, **params):
+    def submit_job(self, job_type, **params):
         """
         Submit a job request. Specify the type of job desired, as well
         as the pareters to the request. Parameters must be a dict
         mapping strings to strings.
         """
-        job_request = JobRequest(job_type=cls.job_type, params=params)
+        job_request = JobRequest(job_type=job_type, params=params)
         job_request.save()
         body = {'job_request_id': str(job_request.id)}
         return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)
@@ -139,7 +144,8 @@ class JobClient(object):
 class Job(object):
     """
     Abstract base class for defining jobs. Implementations must
-    override `job_type` and `_execute`.
+    override `_execute` and be registered as a stevedore plugin
+    under the `teeth_overlord.jobs` namespace.
     """
     __metaclass__ = ABCMeta
 
@@ -149,14 +155,6 @@ class Job(object):
         self.request = request
         self.message = message
         self.log = get_logger(request_id=str(self.request.id), attempt_id=str(uuid4()))
-
-    @abstractproperty
-    def job_type(self):
-        """
-        An ascii string uniquely identifying the type of the job. Will be used to map serialized
-        requests to the appropriate implementation, so you don't want to go changing this.
-        """
-        raise NotImplementedError()
 
     @abstractmethod
     def _execute(self):
