@@ -7,3 +7,4 @@ python-subunit
 mock
 coverage
 nose
+flake8
