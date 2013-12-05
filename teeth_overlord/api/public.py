@@ -413,7 +413,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with the requested Instance upon success.
         """
-        return self._crud_fetch(request, models.Chassis, instance_id)
+        return self._crud_fetch(request, models.Instance, instance_id)
 
 
 class TeethPublicAPIServer(APIServer):
