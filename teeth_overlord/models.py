@@ -19,7 +19,7 @@ from datetime import datetime
 from uuid import uuid4
 import struct
 
-from cqlengine import columns
+from cqlengine import ValidationError, columns
 from cqlengine.models import Model
 
 from teeth_rest.encoding import Serializable
@@ -27,6 +27,12 @@ from teeth_rest.encoding import Serializable
 KEYSPACE_NAME = 'teeth'
 
 MAX_ID_LENGTH = 64
+
+MAX_METADATA_KEY_COUNT = 16
+
+MAX_METADATA_KEY_LENGTH = 512
+
+MAX_METADATA_VALUE_LENGTH = 2048
 
 
 def uuid_str():
@@ -53,6 +59,22 @@ class Base(Model, Serializable):
     """Base class for all Teeth models."""
     __abstract__ = True
     __keyspace__ = KEYSPACE_NAME
+
+
+class MetadataBase(Base):
+    __abstract__ = True
+
+    metadata = columns.Map(
+        columns.Text(max_length=MAX_METADATA_KEY_LENGTH),
+        columns.Text(max_length=MAX_METADATA_VALUE_LENGTH))
+
+    def validate(self):
+        validated = super(MetadataBase, self).validate()
+
+        if validated and len(validated) > MAX_METADATA_KEY_COUNT:
+            raise ValidationError("Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
+
+        return validated
 
 
 class ChassisState(object):
@@ -211,7 +233,7 @@ class InstanceState(object):
     ACTIVE = 'ACTIVE'
 
 
-class Instance(Base):
+class Instance(MetadataBase):
     """
     Model for an Instance.
     """
@@ -233,6 +255,7 @@ class Instance(Base):
             ('image_id', self.image_id),
             ('chassis_id', self.chassis_id),
             ('state', self.state),
+            ('metadata', self.metadata),
         ])
 
     @classmethod
@@ -244,7 +267,9 @@ class Instance(Base):
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
             image_id=params.get('image_id'),
+            metadata=params.get('metadata'),
         )
+
         instance.validate()
         return instance
 
