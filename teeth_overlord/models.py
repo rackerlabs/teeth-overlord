@@ -215,7 +215,6 @@ class Instance(Base):
     """
     Model for an Instance.
     """
-    project_id = columns.Ascii(partition_key=True, required=True)
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
@@ -237,12 +236,11 @@ class Instance(Base):
         ])
 
     @classmethod
-    def deserialize(cls, project_id, params):
+    def deserialize(cls, params):
         """
         Turn a dict into an Instance.
         """
         instance = cls(
-            project_id=project_id,
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
             image_id=params.get('image_id'),

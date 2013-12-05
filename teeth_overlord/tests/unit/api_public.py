@@ -78,16 +78,11 @@ class TestPublicAPI(unittest.TestCase):
             ('POST', '/v1.0/chassis'): (public_api_component.create_chassis, {}),
 
             # Instance
-            ('GET', '/v1.0/bar-project/instances'): (public_api_component.list_instances, {
-                'project_id': 'bar-project',
-            }),
-            ('GET', '/v1.0/bar-project/instances/foo-instance'): (public_api_component.fetch_instance, {
-                'project_id': 'bar-project',
+            ('GET', '/v1.0/instances'): (public_api_component.list_instances, {}),
+            ('GET', '/v1.0/instances/foo-instance'): (public_api_component.fetch_instance, {
                 'instance_id': 'foo-instance',
             }),
-            ('POST', '/v1.0/bar-project/instances'): (public_api_component.create_instance, {
-                'project_id': 'bar-project',
-            }),
+            ('POST', '/v1.0/instances'): (public_api_component.create_instance, {}),
         }
 
         for (method, path), (expected_endpoint, expected_values) in expected_mappings.iteritems():

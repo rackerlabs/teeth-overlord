@@ -105,11 +105,11 @@ class TeethPublicAPI(APIComponent):
         self.route('GET', '/chassis/<string:chassis_id>', self.fetch_chassis)
 
         # Instance Handlers
-        self.route('GET', '/<string:project_id>/instances', self.list_instances)
-        self.route('POST', '/<string:project_id>/instances', self.create_instance)
-        self.route('GET', '/<string:project_id>/instances/<string:instance_id>', self.fetch_instance)
+        self.route('GET', '/instances', self.list_instances)
+        self.route('POST', '/instances', self.create_instance)
+        self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
 
-    def _crud_list_rows(self, request, cls, list_method):
+    def _crud_list(self, request, cls, list_method):
         marker = _get_marker(request)
         limit = _get_limit(request)
         query = cls.objects.all().limit(limit)
@@ -126,24 +126,6 @@ class TeethPublicAPI(APIComponent):
             marker = None
 
         return PaginatedResponse(request, items, list_method, marker, limit)
-
-    def _crud_list_columns(self, request, row_query, list_method, **list_params):
-        marker = _get_marker(request)
-        limit = _get_limit(request)
-        query = row_query.limit(limit)
-
-        if marker:
-            query = query.filter(id__gt=marker)
-
-        items = list(query)
-
-        if len(items) == limit:
-            # limit must be >= 1, so items[] is never empty
-            marker = items[-1].id
-        else:
-            marker = None
-
-        return PaginatedResponse(request, items, list_method, marker, limit, **list_params)
 
     def _crud_fetch(self, request, cls, id):
         try:
@@ -181,7 +163,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with a list of ChassisModels upon success.
         """
-        return self._crud_list_rows(request, models.ChassisModel, self.list_chassis_models)
+        return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
 
     def fetch_chassis_model(self, request, chassis_model_id):
         """
@@ -223,7 +205,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Flavors upon success.
         """
-        return self._crud_list_rows(request, models.Flavor, self.list_flavors)
+        return self._crud_list(request, models.Flavor, self.list_flavors)
 
     def fetch_flavor(self, request, flavor_id):
         """
@@ -282,7 +264,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of FlavorProviders upon success.
         """
-        return self._crud_list_rows(request, models.FlavorProvider, self.list_flavor_providers)
+        return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
 
     def fetch_flavor_provider(self, request, flavor_provider_id):
         """
@@ -352,7 +334,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Chassis upon success.
         """
-        return self._crud_list_rows(request, models.Chassis, self.list_chassis)
+        return self._crud_list(request, models.Chassis, self.list_chassis)
 
     def fetch_chassis(self, request, chassis_id):
         """
@@ -367,23 +349,19 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_fetch(request, models.Chassis, chassis_id)
 
-    def create_instance(self, request, project_id):
+    def create_instance(self, request):
         """
         Create an Instance. Example::
 
             {
-                "project_id": "545251",
                 "name": "web0",
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                 "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f"
             }
 
-        Note that "project_id" is intended to correspond to an OpenStack
-        tenant ID.
-
         Returns 201 with a Location header upon success.
         """
-        instance = models.Instance.deserialize(project_id, self.parse_content(request))
+        instance = models.Instance.deserialize(self.parse_content(request))
 
         # Validate the image ID
         self.image_provider.get_image_info(instance.image_id)
@@ -391,21 +369,18 @@ class TeethPublicAPI(APIComponent):
         _validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
         self.job_client.submit_job('instances.create',
-                                   project_id=instance.project_id,
                                    instance_id=instance.id)
         return CreatedResponse(request, self.fetch_instance, {
-            'project_id': instance.project_id,
             'instance_id': instance.id,
         })
 
-    def list_instances(self, request, project_id):
+    def list_instances(self, request):
         """
         List Instances. Example::
 
             [
                 {
                     "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
-                    "project_id": "1234567",
                     "name": "Test Instance B",
                     "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                     "chassis_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
@@ -413,7 +388,6 @@ class TeethPublicAPI(APIComponent):
                 },
                 {
                     "id": "f002190f-522b-4a0a-95ee-8fe72824de7a",
-                    "project_id": "1234567",
                     "name": "Test Instance C",
                     "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                     "chassis_id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
@@ -423,16 +397,14 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Instances upon success.
         """
-        query = models.Instance.objects.filter(project_id=project_id)
-        return self._crud_list_columns(request, query, self.list_instances, project_id=project_id)
+        return self._crud_list(request, models.Instance, self.list_instances)
 
-    def fetch_instance(self, request, project_id, instance_id):
+    def fetch_instance(self, request, instance_id):
         """
         Retrieve an instance. Example::
 
             {
                 "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
-                "project_id": "1234567",
                 "name": "Test Instance B",
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                 "chassis_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
@@ -441,8 +413,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with the requested Instance upon success.
         """
-        instance = models.Instance.objects.get(project_id=project_id, id=instance_id)
-        return ItemResponse(instance)
+        return self._crud_fetch(request, models.Chassis, instance_id)
 
 
 class TeethPublicAPIServer(APIServer):
