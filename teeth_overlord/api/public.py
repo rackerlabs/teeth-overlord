@@ -154,12 +154,21 @@ class TeethPublicAPI(APIComponent):
         """
         List ChassisModels. Example::
 
-            [
-                {
-                    "id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                    "name": "Supermicro  1027R-WRFT+"
-                }
-            ]
+            {
+                "items": [
+                    {
+                        "id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "name": "Supermicro  1027R-WRFT+"
+                    }
+                ],
+                "links": [
+                    {
+                        "href": "http://localhost:8080/v1.0/chassis_models?
+                                    marker=e0d4774b-daa6-4361-b4d9-ab367e40d885&limit=1",
+                        "rel": "next"
+                    }
+                ]
+            }
 
         Returns 200 along with a list of ChassisModels upon success.
         """
@@ -196,12 +205,21 @@ class TeethPublicAPI(APIComponent):
         """
         List Flavors. Example::
 
-            [
-                {
-                    "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
-                    "name": "Extra Fast Server"
-                }
-            ]
+            {
+                "items": [
+                    {
+                        "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                        "name": "Extra Fast Server"
+                    }
+                ],
+                "links": [
+                    {
+                        "href": "http://localhost:8080/v1.0/flavors?
+                                    marker=d5942a92-ac78-49f6-95c8-d837cfd1f8d2&limit=1",
+                        "rel": "next"
+                    }
+                ]
+            }
 
         Returns 200 with a list of Flavors upon success.
         """
@@ -253,14 +271,23 @@ class TeethPublicAPI(APIComponent):
         """
         List FlavorProviders. Example::
 
-            [
-                {
-                    "id": "e5061fd0-371b-46ca-b07b-f415f92eb04f",
-                    "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
-                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                    "schedule_priority": 100
-                }
-            ]
+            {
+                "items": [
+                    {
+                        "id": "e5061fd0-371b-46ca-b07b-f415f92eb04f",
+                        "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "schedule_priority": 100
+                    }
+                ],
+                "links": [
+                    {
+                        "href": "http://localhost:8080/v1.0/flavor_providers?
+                                    marker=e0d4774b-daa6-4361-b4d9-ab367e40d885&limit=1",
+                        "rel": "next"
+                    }
+                ]
+            }
 
         Returns 200 with a list of FlavorProviders upon success.
         """
@@ -311,26 +338,35 @@ class TeethPublicAPI(APIComponent):
         """
         List Chassis. Example::
 
-            [
-                {
-                    "id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
-                    "state": "ACTIVE",
-                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                    "primary_mac_address": "bc:76:4e:20:03:5f"
-                },
-                {
-                    "id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
-                    "state": "BUILD",
-                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                    "primary_mac_address": "bc:76:4e:20:12:44"
-                },
-                {
-                    "id": "e2c328c7-fcb5-4989-8bbd-bdd5877dc219",
-                    "state": "READY",
-                    "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                    "primary_mac_address": "40:6c:8f:19:14:17"
-                }
-            ]
+            {
+                "items": [
+                    {
+                        "id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
+                        "state": "ACTIVE",
+                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "primary_mac_address": "bc:76:4e:20:03:5f"
+                    },
+                    {
+                        "id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
+                        "state": "BUILD",
+                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "primary_mac_address": "bc:76:4e:20:12:44"
+                    },
+                    {
+                        "id": "e2c328c7-fcb5-4989-8bbd-bdd5877dc219",
+                        "state": "READY",
+                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "primary_mac_address": "40:6c:8f:19:14:17"
+                    }
+                ],
+                "links": [
+                    {
+                        "href": "http://localhost:8080/v1.0/chassis?
+                                    marker=e2c328c7-fcb5-4989-8bbd-bdd5877dc219&limit=3",
+                        "rel": "next"
+                    }
+                ]
+            }
 
         Returns 200 with a list of Chassis upon success.
         """
@@ -378,22 +414,25 @@ class TeethPublicAPI(APIComponent):
         """
         List Instances. Example::
 
-            [
-                {
-                    "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
-                    "name": "Test Instance B",
-                    "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
-                    "chassis_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
-                    "state": "ACTIVE"
-                },
-                {
-                    "id": "f002190f-522b-4a0a-95ee-8fe72824de7a",
-                    "name": "Test Instance C",
-                    "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
-                    "chassis_id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
-                    "state": "BUILD"
-                }
-            ]
+            {
+                "items": [
+                    {
+                        "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
+                        "name": "Test Instance B",
+                        "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                        "chassis_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
+                        "state": "ACTIVE"
+                    },
+                    {
+                        "id": "f002190f-522b-4a0a-95ee-8fe72824de7a",
+                        "name": "Test Instance C",
+                        "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
+                        "chassis_id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
+                        "state": "BUILD"
+                    }
+                ],
+                "links": []
+            }
 
         Returns 200 with a list of Instances upon success.
         """
