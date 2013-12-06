@@ -28,7 +28,7 @@ KEYSPACE_NAME = 'teeth'
 
 MAX_ID_LENGTH = 64
 
-MAX_METADATA_KEY_COUNT = 16
+MAX_METADATA_KEY_COUNT = 8
 
 MAX_METADATA_KEY_LENGTH = 512
 
@@ -69,12 +69,10 @@ class MetadataBase(Base):
         columns.Text(max_length=MAX_METADATA_VALUE_LENGTH))
 
     def validate(self):
-        validated = super(MetadataBase, self).validate()
+        super(MetadataBase, self).validate()
 
-        if validated and len(validated) > MAX_METADATA_KEY_COUNT:
+        if len(self.metadata) > MAX_METADATA_KEY_COUNT:
             raise ValidationError("Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
-
-        return validated
 
 
 class ChassisState(object):
