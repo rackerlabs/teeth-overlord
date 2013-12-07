@@ -3,4 +3,4 @@ cqlengine==0.8
 structlog==0.4.0
 requests==2.0.0
 stevedore==0.13
--e git+git@github.com:racker/teeth-rest.git@1605d0f611663bdf4edf8495d9af3e9f96e4641d#egg=teeth_rest-master
+-e git+git@github.com:racker/teeth-rest.git@4d5d81833bad3c4235bdea6cf6d53a0a4defb275#egg=teeth_rest-master

@@ -17,7 +17,12 @@ limitations under the License.
 from cqlengine import Token
 
 from teeth_rest.component import APIComponent, APIServer
-from teeth_rest.responses import ItemResponse, PaginatedResponse, CreatedResponse
+from teeth_rest.responses import (
+    ItemResponse,
+    PaginatedResponse,
+    CreatedResponse,
+    DeletedResponse,
+)
 
 from teeth_overlord import models, errors
 from teeth_overlord.jobs.base import JobClient
@@ -108,6 +113,7 @@ class TeethPublicAPI(APIComponent):
         self.route('GET', '/instances', self.list_instances)
         self.route('POST', '/instances', self.create_instance)
         self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
+        self.route('DELETE', '/instances/<string:instance_id>', self.delete_instance)
 
     def _crud_list(self, request, cls, list_method):
         marker = _get_marker(request)
@@ -129,7 +135,6 @@ class TeethPublicAPI(APIComponent):
 
     def _crud_fetch(self, request, cls, id):
         try:
-
             return ItemResponse(cls.get(id=id))
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
@@ -453,6 +458,14 @@ class TeethPublicAPI(APIComponent):
         Returns 200 with the requested Instance upon success.
         """
         return self._crud_fetch(request, models.Instance, instance_id)
+
+    def delete_instance(self, request, instance_id):
+        try:
+            models.Instance.objects.get(id=instance_id).delete()
+        except models.Instance.NotFound:
+            raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
+
+        return DeletedResponse()
 
 
 class TeethPublicAPIServer(APIServer):
