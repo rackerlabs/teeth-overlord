@@ -17,6 +17,7 @@ limitations under the License.
 from cqlengine import BatchQuery
 
 from teeth_overlord.models import (
+    Chassis,
     ChassisState,
     Instance,
     InstanceState
@@ -65,4 +66,27 @@ class CreateInstance(Job):
 
         self.prepare_and_run_image(instance, chassis, image_info)
         self.mark_active(instance, chassis)
+        return
+
+
+class DeleteInstance(Job):
+    """
+    Job which deletes an instance.
+
+    Prior to the job being submitted, the Instance in the database will
+    be put in the `DELETING` state.
+    """
+    max_retries = 10
+
+    def _execute(self):
+        params = self.request.params
+        instance = Instance.objects.get(id=params['instance_id'])
+        chassis = Chassis.objects.get(id=instance.chassis_id)
+
+        batch = BatchQuery()
+        instance.state = InstanceState.DELETED
+        instance.batch(batch).save()
+        chassis.state = ChassisState.CLEAN
+        chassis.batch(batch).save()
+        batch.execute()
         return

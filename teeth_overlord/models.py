@@ -229,6 +229,8 @@ class InstanceState(object):
     """
     BUILD = 'BUILD'
     ACTIVE = 'ACTIVE'
+    DELETING = 'DELETING'
+    DELETED = 'DELETED'
 
 
 class Instance(MetadataBase):

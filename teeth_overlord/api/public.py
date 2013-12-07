@@ -461,9 +461,15 @@ class TeethPublicAPI(APIComponent):
 
     def delete_instance(self, request, instance_id):
         try:
-            models.Instance.objects.get(id=instance_id).delete()
+            instance = models.Instance.objects.get(id=instance_id)
         except models.Instance.NotFound:
             raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
+
+        instance.state = models.InstanceState.DELETING
+        instance.save()
+
+        self.job_client.submit_job('instances.delete',
+                                   instance_id=instance.id)
 
         return DeletedResponse()
 
