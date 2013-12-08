@@ -94,6 +94,23 @@ class InvalidParametersError(RESTError):
         self.details = details
 
 
+class ObjectAlreadyDeletedError(RESTError):
+    """
+    Error which is raised when a consumer attempts to delete an object which
+    has already been deleted. This error only applies to objects which remain
+    user-visible for archival purposes after a DELETE call. If an object has
+    been hard deleted, or never existed in the first place (presumably these
+    states are indistinguishable to the system) a `RequestedObjectNotFoundError`
+    should be used instead.
+    """
+    message = 'Object already deleted'
+    status_code = 403
+
+    def __init__(self, cls, id):
+        super(ObjectAlreadyDeletedError, self).__init__(cls, id)
+        self.details = '{type} with id {id} has already been deleted.'.format(type=cls.__name__, id=id)
+
+
 class RequestedObjectNotFoundError(RESTError):
     """
     Error which is returned when a requested object is not found.

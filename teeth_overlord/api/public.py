@@ -465,6 +465,9 @@ class TeethPublicAPI(APIComponent):
         except models.Instance.NotFound:
             raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
 
+        if instance.state in (models.InstanceState.DELETING, models.InstanceState.DELETED):
+            raise errors.ObjectAlreadyDeletedError(models.Instance, instance_id)
+
         instance.state = models.InstanceState.DELETING
         instance.save()
 
