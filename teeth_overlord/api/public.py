@@ -115,10 +115,10 @@ class TeethPublicAPI(APIComponent):
         self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
         self.route('DELETE', '/instances/<string:instance_id>', self.delete_instance)
 
-    def _crud_list(self, request, cls, list_method):
+    def _crud_list(self, request, query, list_method):
         marker = _get_marker(request)
         limit = _get_limit(request)
-        query = cls.objects.all().limit(limit)
+        query = query.limit(limit)
 
         if marker:
             query = query.filter(pk__token__gt=Token(marker))
@@ -177,7 +177,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with a list of ChassisModels upon success.
         """
-        return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
+        return self._crud_list(request, models.ChassisModel.objects, self.list_chassis_models)
 
     def fetch_chassis_model(self, request, chassis_model_id):
         """
@@ -228,7 +228,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Flavors upon success.
         """
-        return self._crud_list(request, models.Flavor, self.list_flavors)
+        return self._crud_list(request, models.Flavor.objects, self.list_flavors)
 
     def fetch_flavor(self, request, flavor_id):
         """
@@ -296,7 +296,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of FlavorProviders upon success.
         """
-        return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
+        return self._crud_list(request, models.FlavorProvider.objects, self.list_flavor_providers)
 
     def fetch_flavor_provider(self, request, flavor_provider_id):
         """
@@ -375,7 +375,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Chassis upon success.
         """
-        return self._crud_list(request, models.Chassis, self.list_chassis)
+        return self._crud_list(request, models.Chassis.objects, self.list_chassis)
 
     def fetch_chassis(self, request, chassis_id):
         """
@@ -441,7 +441,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Instances upon success.
         """
-        return self._crud_list(request, models.Instance, self.list_instances)
+        return self._crud_list(request, models.Instance.objects, self.list_instances)
 
     def fetch_instance(self, request, instance_id):
         """
