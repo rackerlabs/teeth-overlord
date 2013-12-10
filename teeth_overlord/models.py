@@ -242,7 +242,7 @@ class Instance(MetadataBase):
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
-    state = columns.Ascii(default=InstanceState.BUILD)
+    state = columns.Ascii(index=True, default=InstanceState.BUILD)
 
     def serialize(self, view):
         """
