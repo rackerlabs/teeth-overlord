@@ -14,41 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import abc
-
-from stevedore import driver
+from teeth_overlord.oob.base import BaseOutOfBandProvider
 
 
-class BaseOutOfBandProvider(object):
+class FakeOutOfBandProvider(BaseOutOfBandProvider):
     """
     Provides support for out-of-band operations.
     """
 
-    __metaclass__ = abc.ABCMeta
-
-    def __init__(self, config):
-        self.config = config
-
-    @abc.abstractmethod
     def power_chassis_off(self, chassis):
         """
         Power a chassis off.
         """
-        pass
+        return True
 
-    @abc.abstractmethod
     def power_chassis_on(self, chassis):
         """
         Power a chassis on.
         """
-        pass
-
-
-def get_oob_provider(provider_name, config):
-    mgr = driver.DriverManager(
-        namespace='teeth_overlord.out_of_band.providers',
-        name=provider_name,
-        invoke_on_load=True,
-        invoke_kwds=config,
-    )
-    return mgr.driver
+        return True

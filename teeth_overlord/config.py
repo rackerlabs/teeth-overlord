@@ -46,6 +46,8 @@ class Config(object):
             }
         ]
     }
+    OOB_PROVIDER = 'fake'
+    OOB_PROVIDER_CONFIG = None
     PRETTY_LOGGING = True
     AGENT_CLIENT = 'fake'
 
