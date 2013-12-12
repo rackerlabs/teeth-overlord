@@ -111,6 +111,21 @@ class ObjectAlreadyDeletedError(RESTError):
         self.details = '{type} with id {id} has already been deleted.'.format(type=cls.__name__, id=id)
 
 
+class ObjectCannotBeDeletedError(RESTError):
+    """
+    Error which is raised when a consumer attempts to delete an object but
+    can't for some reason.
+    """
+    message = 'Object cannot be deleted'
+    status_code = 403
+
+    def __init__(self, cls, id, reason=None):
+        super(ObjectCannotBeDeletedError, self).__init__(cls, id)
+        self.details = '{type} with id {id} cannot be deleted'.format(type=cls.__name__, id=id)
+        if reason:
+            self.details = '{details}, {reason}'.format(details=self.details, reason=reason)
+
+
 class RequestedObjectNotFoundError(RESTError):
     """
     Error which is returned when a requested object is not found.

@@ -54,6 +54,7 @@ class CreateInstance(Job):
         instance.state = InstanceState.ACTIVE
         instance.batch(batch).save()
         chassis.state = ChassisState.ACTIVE
+        chassis.instance_id = instance.id
         chassis.batch(batch).save()
         batch.execute()
         return

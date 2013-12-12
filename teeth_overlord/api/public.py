@@ -108,6 +108,7 @@ class TeethPublicAPI(APIComponent):
         self.route('GET', '/chassis', self.list_chassis)
         self.route('POST', '/chassis', self.create_chassis)
         self.route('GET', '/chassis/<string:chassis_id>', self.fetch_chassis)
+        self.route('DELETE', '/chassis/<string:chassis_id>', self.delete_chassis)
 
         # Instance Handlers
         self.route('GET', '/instances', self.list_instances)
@@ -390,6 +391,34 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_fetch(request, models.Chassis, chassis_id)
 
+    def delete_chassis(self, request, chassis_id):
+        """
+        Delete a chassis.
+
+        Returns 204 on success.
+        """
+        try:
+            chassis = models.Chassis.objects.get(id=chassis_id)
+        except models.Chassis.DoesNotExist:
+            raise errors.RequestedObjectNotFoundError(models.Chassis, chassis_id)
+
+        if chassis.state in (models.ChassisState.DELETING, models.ChassisState.DELETED):
+            raise errors.ObjectAlreadyDeletedError(models.Chassis, chassis.id)
+
+        try:
+            instance = models.Instance.get(id=chassis.instance_id)
+            if not instance.state in [models.Instance.DELETED]:
+                raise errors.ObjectCannotBeDeletedError(models.Chassis, chassis.id, reason="instance {id} is not deleted".format(id=instance.id))
+        except models.Instance.DoesNotExist:
+            pass
+
+        chassis.state = models.ChassisState.DELETING
+        chassis.save()
+
+        self.job_client.submit_job('chassis.delete', chassis_id=chassis.id)
+
+        return DeletedResponse()
+
     def create_instance(self, request):
         """
         Create an Instance. Example::
@@ -460,9 +489,14 @@ class TeethPublicAPI(APIComponent):
         return self._crud_fetch(request, models.Instance, instance_id)
 
     def delete_instance(self, request, instance_id):
+        """
+        Delete an instance.
+
+        Returns 204 on success.
+        """
         try:
             instance = models.Instance.objects.get(id=instance_id)
-        except models.Instance.NotFound:
+        except models.Instance.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
 
         if instance.state in (models.InstanceState.DELETING, models.InstanceState.DELETED):

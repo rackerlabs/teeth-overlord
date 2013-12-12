@@ -81,6 +81,8 @@ class ChassisState(object):
     READY = 'READY'
     BUILD = 'BUILD'
     ACTIVE = 'ACTIVE'
+    DELETING = 'DELETING'
+    DELETED = 'DELETED'
 
 
 class Flavor(Base):
@@ -195,6 +197,7 @@ class Chassis(Base):
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     state = columns.Ascii(index=True, default=ChassisState.READY)
     chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
+    instance_id = columns.Text(max_length=MAX_ID_LENGTH)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
     primary_mac_address = columns.Ascii(index=True, required=True)

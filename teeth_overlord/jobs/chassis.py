@@ -20,6 +20,26 @@ from teeth_overlord.models import (
 )
 from teeth_overlord.jobs.base import Job
 
+class DeleteChassis(Job):
+    """
+    Job which processes a Chassis from the `DELETING` state to the `DELETED` state.
+    """
+
+    max_retries = 10
+
+    def _execute(self):
+        params = self.request.params
+        chassis = Chassis.objects.get(id=params['chassis_id'])
+
+        if chassis.state != ChassisState.DELETING:
+            self.log.error('chassis not in DELETING state, skipping', current_state=chassis.state)
+        else:
+
+            # TODO: do the stuff in DecommissionChassis probably
+
+            chassis.state = ChassisState.DELETED
+            chassis.save() 
+
 
 class DecommissionChassis(Job):
     """
