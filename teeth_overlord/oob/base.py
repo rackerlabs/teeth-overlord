@@ -49,6 +49,6 @@ def get_oob_provider(provider_name, config):
         namespace='teeth_overlord.out_of_band.providers',
         name=provider_name,
         invoke_on_load=True,
-        invoke_kwds=config,
+        invoke_args=[config],
     )
     return mgr.driver
