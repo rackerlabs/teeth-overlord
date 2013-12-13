@@ -14,32 +14,84 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import unittest
 import json
 
-from werkzeug.test import EnvironBuilder
-from werkzeug.wrappers import BaseRequest
+from werkzeug.test import Client, EnvironBuilder
+from werkzeug.wrappers import BaseRequest, BaseResponse
 
+from teeth_overlord.tests import TeethUnitTest
 from teeth_overlord.config import Config
-from teeth_overlord.api.public import TeethPublicAPI, TeethPublicAPIServer
+
+from teeth_overlord import models
 
 
-class TestPublicAPI(unittest.TestCase):
+class TestPublicAPI(TeethUnitTest):
+
     def setUp(self):
+        super(TestPublicAPI, self).setUp()
+
+        # mock before import
+        self.job_client_mock = self.add_mock('teeth_overlord.jobs.base.JobClient')
+        from teeth_overlord.api.public import TeethPublicAPIServer
         self.config = Config()
         self.public_api = TeethPublicAPIServer(self.config)
 
-    def build_request(self, method, path, data=None, query=None):
+    def _get_env_builder(self, method, path, data=None, query=None):
         if data:
             data = json.dumps(data)
 
-        builder = EnvironBuilder(method=method, path=path, data=data,
-                                 content_type='application/json', query_string=query)
+        return EnvironBuilder(method=method, path=path, data=data,
+                              content_type='application/json', query_string=query)
 
-        return builder.get_request(BaseRequest)
+    def build_request(self, method, path, data=None, query=None):
+        return self._get_env_builder(method, path, data, query).get_request(BaseRequest)
+
+    def make_request(self, method, path, data=None, query=None):
+        client = Client(self.public_api, BaseResponse)
+        return client.open(self._get_env_builder(method, path, data, query))
+
+    def test_fetch_chassis_models_one(self):
+        objects_mock = self.add_mock(models.ChassisModel,
+                                     return_value=[models.ChassisModel(id='foo', name='ChassisModel1')])
+
+        response = self.make_request('GET', '/v1.0/chassis_models/foobar')
+
+        data = json.loads(response.data)
+        self.assertEqual(data, {u'id': u'foo', u'name': u'ChassisModel1'})
+        objects_mock.assert_called_once_with('get', id='foobar')
+
+    def test_fetch_chassis_models_none(self):
+        objects_mock = self.add_mock(models.ChassisModel, side_effect=models.ChassisModel.DoesNotExist)
+
+        response = self.make_request('GET', '/v1.0/chassis_models/foobar')
+
+        data = json.loads(response.data)
+        self.assertEqual(data, {u'message': u'Requested object not found',
+                                u'code': 404,
+                                u'type': u'RequestedObjectNotFoundError',
+                                u'details': u'ChassisModel with id foobar not found.'})
+        objects_mock.assert_called_once_with('get', id='foobar')
+
+    def test_delete_instance(self):
+        objects_mock = self.add_mock(models.Instance)
+        instance = models.Instance(id='foobar',
+                                   name='instance_name',
+                                   flavor_id='whatever',
+                                   image_id='whatever',
+                                   chassis_id='whatever',
+                                   state=models.InstanceState.ACTIVE)
+        objects_mock.return_value = [instance]
+
+        response = self.make_request('DELETE', '/v1.0/instances/foobar')
+
+        self.assertEqual(response.status_code, 204)
+        self.job_client_mock.submit_job.assert_called_once_with('instances.delete', instance_id='foobar')
+        self.get_mock(models.Instance, "save").assert_called_once()
+        self.assertEqual(instance.state, models.InstanceState.DELETING)
 
     def test_routes(self):
         public_api_component = self.public_api.components.get('/v1.0')
+        from teeth_overlord.api.public import TeethPublicAPI
         self.assertIsInstance(public_api_component, TeethPublicAPI)
 
         expected_mappings = {
