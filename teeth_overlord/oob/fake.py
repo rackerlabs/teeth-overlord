@@ -22,6 +22,12 @@ class FakeOutOfBandProvider(BaseOutOfBandProvider):
     Provides support for out-of-band operations.
     """
 
+    def is_chassis_on(self, chassis):
+        """
+        Returns a boolean indicating whether a chassis is on.
+        """
+        return True
+
     def power_chassis_off(self, chassis):
         """
         Power a chassis off.

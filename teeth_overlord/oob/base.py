@@ -30,6 +30,13 @@ class BaseOutOfBandProvider(object):
         self.config = config
 
     @abc.abstractmethod
+    def is_chassis_on(self, chassis):
+        """
+        Returns a boolean indicating whether the chassis is on.
+        """
+        pass
+
+    @abc.abstractmethod
     def power_chassis_off(self, chassis):
         """
         Power a chassis off.
