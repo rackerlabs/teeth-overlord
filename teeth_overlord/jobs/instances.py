@@ -89,5 +89,6 @@ class DeleteInstance(Job):
         chassis.state = ChassisState.CLEAN
         chassis.batch(batch).save()
         batch.execute()
+        self.executor.oob_provider.power_chassis_off(chassis)
         self.executor.job_client.submit_job('chassis.decommission', chassis_id=chassis.id)
         return
