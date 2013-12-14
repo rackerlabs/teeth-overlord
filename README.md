@@ -28,7 +28,8 @@ marconi-server
 
 ## Preparing a Dev Environment
 
-With Cassandra and Marconi running:
+With Cassandra and Marconi running, run the following from the root of the
+`teeth-overlord` repository:
 
 ```bash
 # Create a Dev Environment
