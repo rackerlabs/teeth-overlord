@@ -188,7 +188,7 @@ class ChassisModel(Base):
         return chassis_model
 
 
-class Chassis(Base):
+class Chassis(MetadataBase):
     """
     Model for an individual Chassis.
     """
@@ -208,6 +208,7 @@ class Chassis(Base):
             ('state', self.state),
             ('chassis_model_id', self.chassis_model_id),
             ('primary_mac_address', self.primary_mac_address),
+            ('metadata', self.metadata),
         ])
 
     @classmethod
@@ -217,7 +218,8 @@ class Chassis(Base):
         """
         chassis = cls(
             chassis_model_id=params.get('chassis_model_id'),
-            primary_mac_address=params.get('primary_mac_address')
+            primary_mac_address=params.get('primary_mac_address'),
+            metadata=params.get('metadata')
         )
         chassis.validate()
         return chassis
