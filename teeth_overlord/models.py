@@ -285,6 +285,7 @@ class Instance(MetadataBase):
         Turn a dict into an Instance.
         """
         instance = cls(
+            id=params.get('id'),
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
             image_id=params.get('image_id'),
