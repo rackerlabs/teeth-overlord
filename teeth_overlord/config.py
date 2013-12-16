@@ -33,23 +33,10 @@ class Config(object):
     JOBSERVER_PORT = 8083
     ETCD_ADDRESSES = ['localhost:4001']
     MARCONI_URL = 'http://localhost:8888'
-    IMAGE_PROVIDER = 'static'
-    IMAGE_PROVIDER_CONFIG = {
-        'images': [
-            {
-                'id': '8226c769-3739-4ee6-921c-82110da6c669',
-                'name': 'Default Example Image',
-                'urls': ['http://example.org/images/8226c769-3739-4ee6-921c-82110da6c669.raw'],
-                'hashes': {
-                    'md5': 'c2e5db72bd7fd153f53ede5da5a06de3'
-                }
-            }
-        ]
-    }
+    IMAGE_PROVIDER = 'fake'
     OOB_PROVIDER = 'fake'
-    OOB_PROVIDER_CONFIG = None
-    PRETTY_LOGGING = True
     AGENT_CLIENT = 'fake'
+    PRETTY_LOGGING = True
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():

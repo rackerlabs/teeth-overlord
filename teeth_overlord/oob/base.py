@@ -51,10 +51,10 @@ class BaseOutOfBandProvider(object):
         pass
 
 
-def get_oob_provider(provider_name, config):
+def get_oob_provider(config):
     mgr = driver.DriverManager(
         namespace='teeth_overlord.out_of_band.providers',
-        name=provider_name,
+        name=config.OOB_PROVIDER,
         invoke_on_load=True,
         invoke_args=[config],
     )

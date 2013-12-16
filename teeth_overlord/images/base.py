@@ -49,6 +49,9 @@ class BaseImageProvider(object):
 
     __metaclass__ = abc.ABCMeta
 
+    def __init__(self, config):
+        self.config = config
+
     @abc.abstractmethod
     def get_image_info(self, image_id):
         """
@@ -57,11 +60,11 @@ class BaseImageProvider(object):
         """
 
 
-def get_image_provider(provider_name, config):
+def get_image_provider(config):
     mgr = driver.DriverManager(
         namespace='teeth_overlord.image.providers',
-        name=provider_name,
+        name=config.IMAGE_PROVIDER,
         invoke_on_load=True,
-        invoke_kwds=config,
+        invoke_args=[config],
     )
     return mgr.driver

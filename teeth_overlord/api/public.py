@@ -83,7 +83,7 @@ class TeethPublicAPI(APIComponent):
         super(TeethPublicAPI, self).__init__()
         self.config = config
         self.job_client = JobClient(config)
-        self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
+        self.image_provider = get_image_provider(config)
 
     def add_routes(self):
         """

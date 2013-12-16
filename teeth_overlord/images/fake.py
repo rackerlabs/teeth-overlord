@@ -15,25 +15,24 @@ limitations under the License.
 """
 
 from teeth_overlord.images.base import BaseImageProvider, ImageInfo
-from teeth_overlord.errors import ImageNotFoundError
+
+FAKE_IMAGE_INFO = {
+    'name': 'Default Example Image',
+    'urls': ['http://example.org/images/8226c769-3739-4ee6-921c-82110da6c669.raw'],
+    'hashes': {
+        'md5': 'c2e5db72bd7fd153f53ede5da5a06de3',
+    },
+}
 
 
-class StaticImageProvider(BaseImageProvider):
+class FakeImageProvider(BaseImageProvider):
     """
     A static image provider useful in a dev environment.
     """
-
-    def __init__(self, images=[]):
-        self.images = {image['id']: ImageInfo(**image) for image in images}
 
     def get_image_info(self, image_id):
         """
         Returns an ImageInfo instance with information about the requested
         image.
         """
-        image_id = str(image_id)
-
-        if image_id not in self.images:
-            raise ImageNotFoundError(image_id)
-        else:
-            return self.images[image_id]
+        return ImageInfo(**dict(FAKE_IMAGE_INFO.items() + [('id', image_id)]))
