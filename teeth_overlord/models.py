@@ -188,6 +188,25 @@ class ChassisModel(Base):
         return chassis_model
 
 
+class Switch(MetadataBase):
+    """
+    Model for a switch.
+    """
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    name = columns.Text(required=True)
+
+
+class SwitchPort(MetadataBase):
+    """
+    Model for switch port.
+
+    TODO: How should we represent MLAG pairs?
+    """
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    name = columns.Text(required=True)
+    switch_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
+
+
 class Chassis(MetadataBase):
     """
     Model for an individual Chassis.
