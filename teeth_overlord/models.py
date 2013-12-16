@@ -105,6 +105,7 @@ class Flavor(Base):
         Turn a dict into a Flavor.
         """
         flavor = cls(
+            id=params.get('id'),
             name=params.get('name')
         )
         flavor.validate()
