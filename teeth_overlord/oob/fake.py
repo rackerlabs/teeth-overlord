@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from structlog import get_logger
+
 from teeth_overlord.oob.base import BaseOutOfBandProvider
 
 
@@ -21,15 +23,26 @@ class FakeOutOfBandProvider(BaseOutOfBandProvider):
     """
     Provides support for out-of-band operations.
     """
+    def __init__(self, config):
+        super(FakeOutOfBandProvider, self).__init__(config)
+        self.log = get_logger()
+
+    def is_chassis_on(self, chassis):
+        """
+        Returns a boolean indicating whether a chassis is on.
+        """
+        return True
 
     def power_chassis_off(self, chassis):
         """
         Power a chassis off.
         """
+        self.log.info('faking chassis power-off command', chassis_id=chassis.id)
         return True
 
     def power_chassis_on(self, chassis):
         """
         Power a chassis on.
         """
+        self.log.info('faking chassis power-on command', chassis_id=chassis.id)
         return True

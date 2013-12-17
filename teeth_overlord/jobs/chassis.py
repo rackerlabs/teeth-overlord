@@ -33,9 +33,22 @@ class DecommissionChassis(Job):
 
         if chassis.state != ChassisState.CLEAN:
             self.log.info('chassis not in CLEAN state, skipping', current_state=chassis.state)
+            return
+
+        if self.executor.oob_provider.is_chassis_on(chassis):
+            self.executor.oob_provider.power_chassis_off(chassis)
+
+        # TODO: Move Chassis to the decom network
+
+        self.executor.oob_provider.power_chassis_on(chassis)
 
         # TODO: perform on-server decommissioning
         # TODO: rotate IPMI password?
+
+        self.log.info('chassis cleaned, moving to standby network', chassis_id=chassis.id)
+        self.executor.oob_provider.power_chassis_off(chassis)
+        # TODO: move chassis to standby network
+        self.executor.oob_provider.power_chassis_on(chassis)
 
         chassis.state = ChassisState.READY
         chassis.save()

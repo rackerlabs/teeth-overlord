@@ -30,6 +30,13 @@ class BaseOutOfBandProvider(object):
         self.config = config
 
     @abc.abstractmethod
+    def is_chassis_on(self, chassis):
+        """
+        Returns a boolean indicating whether the chassis is on.
+        """
+        pass
+
+    @abc.abstractmethod
     def power_chassis_off(self, chassis):
         """
         Power a chassis off.
@@ -44,10 +51,10 @@ class BaseOutOfBandProvider(object):
         pass
 
 
-def get_oob_provider(provider_name, config):
+def get_oob_provider(config):
     mgr = driver.DriverManager(
         namespace='teeth_overlord.out_of_band.providers',
-        name=provider_name,
+        name=config.OOB_PROVIDER,
         invoke_on_load=True,
         invoke_args=[config],
     )

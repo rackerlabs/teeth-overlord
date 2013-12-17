@@ -72,8 +72,8 @@ class JobExecutor(SynchronousTeethService):
         self.log = get_logger()
         self.agent_client = get_agent_client(config)
         self.job_client = JobClient(config)
-        self.image_provider = get_image_provider(config.IMAGE_PROVIDER, config.IMAGE_PROVIDER_CONFIG)
-        self.oob_provider = get_oob_provider(config.OOB_PROVIDER, config.OOB_PROVIDER_CONFIG)
+        self.image_provider = get_image_provider(config)
+        self.oob_provider = get_oob_provider(config)
         self.scheduler = TeethInstanceScheduler()
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
         self._job_type_cache = {}

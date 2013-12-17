@@ -105,6 +105,7 @@ class Flavor(Base):
         Turn a dict into a Flavor.
         """
         flavor = cls(
+            id=params.get('id'),
             name=params.get('name')
         )
         flavor.validate()
@@ -188,7 +189,26 @@ class ChassisModel(Base):
         return chassis_model
 
 
-class Chassis(Base):
+class Switch(MetadataBase):
+    """
+    Model for a switch.
+    """
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    name = columns.Text(required=True)
+
+
+class SwitchPort(MetadataBase):
+    """
+    Model for switch port.
+
+    TODO: How should we represent MLAG pairs?
+    """
+    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    name = columns.Text(required=True)
+    switch_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
+
+
+class Chassis(MetadataBase):
     """
     Model for an individual Chassis.
     """
@@ -208,6 +228,7 @@ class Chassis(Base):
             ('state', self.state),
             ('chassis_model_id', self.chassis_model_id),
             ('primary_mac_address', self.primary_mac_address),
+            ('metadata', self.metadata),
         ])
 
     @classmethod
@@ -217,7 +238,8 @@ class Chassis(Base):
         """
         chassis = cls(
             chassis_model_id=params.get('chassis_model_id'),
-            primary_mac_address=params.get('primary_mac_address')
+            primary_mac_address=params.get('primary_mac_address'),
+            metadata=params.get('metadata')
         )
         chassis.validate()
         return chassis
@@ -264,6 +286,7 @@ class Instance(MetadataBase):
         Turn a dict into an Instance.
         """
         instance = cls(
+            id=params.get('id'),
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
             image_id=params.get('image_id'),
