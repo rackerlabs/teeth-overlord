@@ -17,10 +17,10 @@ limitations under the License.
 import json
 
 from teeth_overlord import models
-from teeth_overlord.tests import TeethUnitTest
+from teeth_overlord.tests import TeethAPITestCase
 
 
-class TestInstanceAPI(TeethUnitTest):
+class TestInstanceAPI(TeethAPITestCase):
 
     def setUp(self):
         super(TestInstanceAPI, self).setUp()

@@ -156,7 +156,20 @@ class FakeQuerySet(object):
         return len(self.return_value)
 
 
-class BaseTests(object):
+class BaseAPITests(object):
+
+    def assertModelContains(self, i1, i2):
+        """
+        ensure all the stuff in the first instance/dict exists and is equal
+        to the stuff in the second instance/dict
+        """
+        if isinstance(i1, Model):
+            i1 = i2._as_dict()
+        if isinstance(i2, Model):
+            i2 = i2._as_dict()
+
+        for k, v in i1.iteritems():
+            self.assertEqual(unicode(v), unicode(i2[k]))
 
     def list_some(self, model, model_objects_mock, url, mock_data):
         self.assertTrue(isinstance(mock_data[0], model))
@@ -198,7 +211,7 @@ class BaseTests(object):
         self.assertEqual(data['message'], u'Requested object not found')
 
 
-class TeethUnitTest(unittest.TestCase, BaseTests):
+class TeethMockTestUtilities(unittest.TestCase):
 
     def setUp(self):
         self._patches = defaultdict(dict)
@@ -220,19 +233,6 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
     def make_request(self, method, path, data=None, query=None):
         client = Client(self.public_api, BaseResponse)
         return client.open(self._get_env_builder(method, path, data, query))
-
-    def assertModelContains(self, i1, i2):
-        """
-        ensure all the stuff in the first instance/dict exists and is equal
-        to the stuff in the second instance/dict
-        """
-        if isinstance(i1, Model):
-            i1 = i2._as_dict()
-        if isinstance(i2, Model):
-            i2 = i2._as_dict()
-
-        for k, v in i1.iteritems():
-            self.assertEqual(unicode(v), unicode(i2[k]))
 
     def _mock_model(self, cls, return_value=None, side_effect=None):
         """
@@ -340,3 +340,7 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
             return self._patches[cls][attr]
         else:
             return self._patches[cls]
+
+
+class TeethAPITestCase(TeethMockTestUtilities, BaseAPITests):
+    pass

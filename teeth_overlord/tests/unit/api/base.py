@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.tests import TeethUnitTest
+from teeth_overlord.tests import TeethAPITestCase
 from teeth_overlord.api.public import TeethPublicAPI
 
 
-class TestAPI(TeethUnitTest):
+class TestAPI(TeethAPITestCase):
 
     def test_routes(self):
         public_api_component = self.public_api.components.get('/v1.0')

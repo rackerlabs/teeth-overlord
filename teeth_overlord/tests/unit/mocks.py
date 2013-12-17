@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.tests import TeethUnitTest
+from teeth_overlord.tests import TeethMockTestUtilities
 
 from teeth_overlord.jobs.base import JobClient
 from teeth_overlord import models
 
 
-class TestModelMock(TeethUnitTest):
+class TestModelMock(TeethMockTestUtilities):
     """
     Tests for the mock utilities in the TeethUnitTest base class.
     """
