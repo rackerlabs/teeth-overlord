@@ -65,9 +65,9 @@ class TestChassisModelAPI(TeethUnitTest):
         self.assertEqual(response.status_code, 201)
 
         # get the saved instance
-        saved = self.db_ops_mock.saved()
-        self.assertEqual(len(saved), 1)
-        chassis_model = saved[0]
+        save_mock = self.get_mock(models.ChassisModel, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        chassis_model = save_mock.call_args[0][0]
 
         self.assertEqual(chassis_model.name, 'created_chassis_model')
         self.assertEqual(response.headers['Location'],

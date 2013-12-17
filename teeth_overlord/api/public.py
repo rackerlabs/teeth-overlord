@@ -26,7 +26,6 @@ from teeth_rest.responses import (
 )
 
 from teeth_overlord import models, errors
-from teeth_overlord.dbops import DBOps
 from teeth_overlord.jobs.base import JobClient
 from teeth_overlord.images.base import get_image_provider
 
@@ -70,11 +69,10 @@ class TeethPublicAPI(APIComponent):
     """
     The primary Teeth Overlord API.
     """
-    def __init__(self, config, job_client=None, db_ops=None):
+    def __init__(self, config, job_client=None):
         super(TeethPublicAPI, self).__init__()
         self.config = config
         self.job_client = job_client or JobClient(config)
-        self.db_ops = db_ops or DBOps()
         self.image_provider = get_image_provider(config)
 
     def add_routes(self):
@@ -111,7 +109,7 @@ class TeethPublicAPI(APIComponent):
         id = getattr(instance, field_name)
 
         try:
-            return self.db_ops.get(cls, id=id)
+            return cls.objects.get(id=id)
         except cls.DoesNotExist:
             msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
                                                                       type_name=cls.__name__)
@@ -120,7 +118,7 @@ class TeethPublicAPI(APIComponent):
     def _crud_list(self, request, cls, list_method):
         marker = _get_marker(request)
         limit = _get_limit(request)
-        query = self.db_ops.all(cls).limit(limit)
+        query = cls.objects.all().limit(limit)
 
         if marker:
             query = query.filter(pk__token__gt=Token(marker))
@@ -137,7 +135,7 @@ class TeethPublicAPI(APIComponent):
 
     def _crud_fetch(self, request, cls, id):
         try:
-            return ItemResponse(self.db_ops.get(cls, id=id))
+            return ItemResponse(cls.objects.get(id=id))
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
@@ -158,7 +156,7 @@ class TeethPublicAPI(APIComponent):
         except ValidationError as e:
             raise errors.InvalidParametersError(e.message)
 
-        self.db_ops.save(chassis_model)
+        chassis_model.save()
         return CreatedResponse(request, self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
 
     def list_chassis_models(self, request):
@@ -213,7 +211,7 @@ class TeethPublicAPI(APIComponent):
         except ValidationError as e:
             raise errors.InvalidParametersError(e.message)
 
-        self.db_ops.save(flavor)
+        flavor.save()
         return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
     def list_flavors(self, request):
@@ -280,7 +278,7 @@ class TeethPublicAPI(APIComponent):
         self._validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
-        self.db_ops.save(flavor_provider)
+        flavor_provider.save()
         return CreatedResponse(request, self.fetch_flavor_provider, {
             'flavor_provider_id': flavor_provider.id
         })
@@ -352,7 +350,7 @@ class TeethPublicAPI(APIComponent):
         chassis_model = self._validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
-        self.db_ops.save(chassis)
+        chassis.save()
 
         return CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
 
@@ -428,7 +426,7 @@ class TeethPublicAPI(APIComponent):
         self.image_provider.get_image_info(instance.image_id)
 
         self._validate_relation(instance, 'flavor_id', models.Flavor)
-        self.db_ops.save(instance)
+        instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id)
         return CreatedResponse(request, self.fetch_instance, {
@@ -481,7 +479,7 @@ class TeethPublicAPI(APIComponent):
 
     def delete_instance(self, request, instance_id):
         try:
-            instance = self.db_ops.get(models.Instance, id=instance_id)
+            instance = models.Instance.objects.get(id=instance_id)
         except models.Instance.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
 
@@ -489,7 +487,7 @@ class TeethPublicAPI(APIComponent):
             raise errors.ObjectAlreadyDeletedError(models.Instance, instance_id)
 
         instance.state = models.InstanceState.DELETING
-        self.db_ops.save(instance)
+        instance.save()
 
         self.job_client.submit_job('instances.delete',
                                    instance_id=instance.id)
@@ -502,7 +500,7 @@ class TeethPublicAPIServer(APIServer):
     Server for the teeth overlord API.
     """
 
-    def __init__(self, config, job_client=None, db_ops=None):
+    def __init__(self, config, job_client=None):
         super(TeethPublicAPIServer, self).__init__()
         self.config = config
-        self.add_component('/v1.0', TeethPublicAPI(self.config, job_client=job_client, db_ops=db_ops))
+        self.add_component('/v1.0', TeethPublicAPI(self.config, job_client=job_client))

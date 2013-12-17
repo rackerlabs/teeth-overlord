@@ -65,6 +65,8 @@ class TestAPI(TeethUnitTest):
                 'instance_id': 'foo-instance',
             }),
             ('POST', '/v1.0/instances'): (public_api_component.create_instance, {}),
+            ('DELETE', '/v1.0/instances/foo-instance'): (public_api_component.delete_instance, {
+                'instance_id': 'foo-instance'})
         }
 
         for (method, path), (expected_endpoint, expected_values) in expected_mappings.iteritems():

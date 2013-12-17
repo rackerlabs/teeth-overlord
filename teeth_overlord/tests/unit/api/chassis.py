@@ -68,9 +68,9 @@ class TestChassisAPI(TeethUnitTest):
                                            'primary_mac_address': 'mac_addr'})
 
         # get the saved instance
-        saved = self.db_ops_mock.saved()
-        self.assertEqual(len(saved), 1)
-        chassis = saved[0]
+        save_mock = self.get_mock(models.Chassis, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        chassis = save_mock.call_args[0][0]
 
         self.assertEqual(chassis.chassis_model_id, 'chassis_model_id')
         self.assertEqual(chassis.primary_mac_address, 'mac_addr')
@@ -97,4 +97,4 @@ class TestChassisAPI(TeethUnitTest):
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
-        self.get_mock(models.Chassis, 'save').assert_not_called()
+        self.assertEqual(self.get_mock(models.Chassis, 'save').call_count, 0)

@@ -77,9 +77,9 @@ class TestInstanceAPI(TeethUnitTest):
                                            'image_id': self.valid_image_id})
 
         # get the saved instance
-        saved = self.db_ops_mock.saved()
-        self.assertEqual(len(saved), 1)
-        instance = saved[0]
+        save_mock = self.get_mock(models.Instance, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        instance = save_mock.call_args[0][0]
 
         self.assertEqual(instance.name, 'created_instance')
         self.assertEqual(instance.flavor_id, 'flavor')
@@ -142,7 +142,9 @@ class TestInstanceAPI(TeethUnitTest):
         self.instance_objects_mock.assert_called_once_with('get', id='foobar')
         self.job_client_mock.submit_job.assert_called_once_with('instances.delete',
                                                                 instance_id='instance1')
-        self.get_mock(models.Instance, "save").assert_called_once()
+
+        save_mock = self.get_mock(models.Instance, 'save')
+        self.assertEqual(save_mock.call_count, 1)
         self.assertEqual(self.instance1.state, models.InstanceState.DELETING)
 
     def test_delete_instance_already_deleted(self):

@@ -20,10 +20,10 @@ from teeth_overlord import models
 from teeth_overlord.tests import TeethUnitTest
 
 
-class TestFlavorAPI(TeethUnitTest):
+class TestFlavorProviderAPI(TeethUnitTest):
 
     def setUp(self):
-        super(TestFlavorAPI, self).setUp()
+        super(TestFlavorProviderAPI, self).setUp()
 
         self.url = '/v1.0/flavor_providers'
 
@@ -73,9 +73,9 @@ class TestFlavorAPI(TeethUnitTest):
                                            'schedule_priority': 100})
 
         # get the saved instance
-        saved = self.db_ops_mock.saved()
-        self.assertEqual(len(saved), 1)
-        flavor_provider = saved[0]
+        save_mock = self.get_mock(models.FlavorProvider, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        flavor_provider = save_mock.call_args[0][0]
 
         self.assertEqual(flavor_provider.chassis_model_id, 'chassis_model_id')
         self.assertEqual(flavor_provider.flavor_id, 'flavor_id')
@@ -107,9 +107,9 @@ class TestFlavorAPI(TeethUnitTest):
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
-        self.get_mock(models.Flavor, 'save').assert_not_called()
+        self.assertEqual(self.get_mock(models.FlavorProvider, 'save').call_count, 0)
 
-    def test_create_instance_bad_chassis_model(self):
+    def test_create_flavor_provider_bad_chassis_model(self):
         self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor_id',
                                                                  name='some_flavor')])
         self.add_mock(models.ChassisModel, side_effect=models.ChassisModel.DoesNotExist)
@@ -122,4 +122,4 @@ class TestFlavorAPI(TeethUnitTest):
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
-        self.get_mock(models.Flavor, 'save').assert_not_called()
+        self.assertEqual(self.get_mock(models.FlavorProvider, 'save').call_count, 0)

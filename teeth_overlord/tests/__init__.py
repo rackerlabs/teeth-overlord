@@ -25,31 +25,9 @@ from cqlengine.models import Model
 from werkzeug.test import Client, EnvironBuilder
 from werkzeug.wrappers import BaseRequest, BaseResponse
 
-from teeth_overlord.dbops import DBOps
 from teeth_overlord.config import Config
 from teeth_overlord.api.public import TeethPublicAPIServer
 from teeth_overlord.jobs.base import JobClient
-
-
-class FakeDBOps(DBOps):
-    """
-    Fake DBOps wrapper that records saved/deleted instances
-    """
-    def __init__(self):
-        self._saved = []
-        self._deleted = []
-
-    def save(self, model_instance):
-        self._saved.append(model_instance)
-
-    def delete(self, model_instance):
-        self._deleted.append(model_instance)
-
-    def saved(self):
-        return self._saved
-
-    def deleted(self):
-        return self._deleted
 
 
 class FakeQuerySet(object):
@@ -226,9 +204,8 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
         self._patches = defaultdict(dict)
 
         self.job_client_mock = mock.Mock(spec=JobClient)
-        self.db_ops_mock = FakeDBOps()
         self.config = Config()
-        self.public_api = TeethPublicAPIServer(self.config, self.job_client_mock, self.db_ops_mock)
+        self.public_api = TeethPublicAPIServer(self.config, self.job_client_mock)
 
     def _get_env_builder(self, method, path, data=None, query=None):
         if data:
@@ -268,8 +245,8 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
         Returns:
             a Mock() instance of the model's 'objects' attribute
         """
-        self._mock_attr(cls, 'save')
-        self._mock_attr(cls, 'delete')
+        self._mock_attr(cls, 'save', autospec=True)
+        self._mock_attr(cls, 'delete', autospec=True)
 
         patcher = mock.patch.object(cls, 'objects', new=FakeQuerySet(return_value, side_effect))
         self._patches[cls]['objects'] = patcher.start()
@@ -277,7 +254,7 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
 
         return self.get_mock(cls, 'objects')
 
-    def _mock_class(self, cls, return_value=None, side_effect=None):
+    def _mock_class(self, cls, return_value=None, side_effect=None, autospec=False):
         """
         Patches a class wholesale.
 
@@ -288,7 +265,7 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
         """
         if not cls in self._patches:
             if isinstance(cls, basestring):
-                patcher = mock.patch(cls)
+                patcher = mock.patch(cls, autospec=autospec)
             else:
                 patcher = mock.patch(cls.__module__ + '.' + cls.__name__)
             self._patches[cls] = patcher.start().return_value
@@ -301,7 +278,7 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
             m.side_effect = side_effect
         return m
 
-    def _mock_attr(self, cls, attr, return_value=None, side_effect=None):
+    def _mock_attr(self, cls, attr, return_value=None, side_effect=None, autospec=False):
         """
         Patches an attribute of a class.
 
@@ -313,7 +290,7 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
         Returns:
             a Mock() instance
         """
-        patcher = mock.patch.object(cls, attr)
+        patcher = mock.patch.object(cls, attr, autospec=autospec)
         self._patches[cls][attr] = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -324,7 +301,7 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
             m.side_effect = side_effect
         return m
 
-    def add_mock(self, cls, attr=None, return_value=None, side_effect=None):
+    def add_mock(self, cls, attr=None, return_value=None, side_effect=None, autospec=False):
         """
         Mocks a given cqlengine model, class, or attribute of a class.
 
@@ -338,10 +315,10 @@ class TeethUnitTest(unittest.TestCase, BaseTests):
         """
         if isinstance(cls, basestring):
             # mock a class module/name
-            return self._mock_class(cls)
+            return self._mock_class(cls, return_value, side_effect, autospec)
         elif attr:
             # mock an arbitrary attribute of an object
-            return self._mock_attr(cls, attr, return_value, side_effect)
+            return self._mock_attr(cls, attr, return_value, side_effect, autospec)
         elif issubclass(cls, Model):
             # special mock for a cqlengine model
             return self._mock_model(cls, return_value, side_effect)
