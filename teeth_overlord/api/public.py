@@ -133,9 +133,9 @@ class TeethPublicAPI(APIComponent):
 
         return PaginatedResponse(request, items, list_method, marker, limit)
 
-    def _crud_fetch(self, request, cls, id):
+    def _crud_fetch(self, request, cls, query):
         try:
-            return ItemResponse(cls.objects.get(id=id))
+            return ItemResponse(query.get())
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
@@ -194,7 +194,8 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested ChassisModels upon success.
         """
-        return self._crud_fetch(request, models.ChassisModel, chassis_model_id)
+        query = models.ChassisModel.filter(id=chassis_model_id)
+        return self._crud_fetch(request, models.ChassisModel, query)
 
     def create_flavor(self, request):
         """
@@ -249,7 +250,8 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested Flavors upon success.
         """
-        return self._crud_fetch(request, models.Flavor, flavor_id)
+        query = models.Flavor.objects.filter(id=flavor_id)
+        return self._crud_fetch(request, models.Flavor, query)
 
     def create_flavor_provider(self, request):
         """
@@ -322,7 +324,8 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested FlavorProviders upon success.
         """
-        return self._crud_fetch(request, models.FlavorProvider, flavor_provider_id)
+        query = models.FlavorProvider.objects.filter(id=flavor_provider_id)
+        return self._crud_fetch(request, models.FlavorProvider, query)
 
     def create_chassis(self, request):
         """
@@ -403,7 +406,8 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested Chassiss upon success.
         """
-        return self._crud_fetch(request, models.Chassis, chassis_id)
+        query = models.Chassis.objects.filter(id=chassis_id)
+        return self._crud_fetch(request, models.Chassis, query)
 
     def create_instance(self, request):
         """
@@ -475,7 +479,8 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with the requested Instance upon success.
         """
-        return self._crud_fetch(request, models.Instance, instance_id)
+        query = models.Instance.objects.filter(id=instance_id)
+        return self._crud_fetch(request, models.Instance, query)
 
     def delete_instance(self, request, instance_id):
         try:
