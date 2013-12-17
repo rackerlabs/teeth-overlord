@@ -16,22 +16,50 @@ limitations under the License.
 
 import unittest
 import mock
+import json
+
+from collections import defaultdict
 
 from cqlengine.models import Model
 
-from collections import defaultdict
+from werkzeug.test import Client, EnvironBuilder
+from werkzeug.wrappers import BaseRequest, BaseResponse
+
+from teeth_overlord.dbops import DBOps
+from teeth_overlord.config import Config
+from teeth_overlord.api.public import TeethPublicAPIServer
+from teeth_overlord.jobs.base import JobClient
+
+
+class FakeDBOps(DBOps):
+    """
+    Fake DBOps wrapper that records saved/deleted instances
+    """
+    def __init__(self):
+        self._saved = []
+        self._deleted = []
+
+    def save(self, model_instance):
+        self._saved.append(model_instance)
+
+    def delete(self, model_instance):
+        self._deleted.append(model_instance)
+
+    def saved(self):
+        return self._saved
+
+    def deleted(self):
+        return self._deleted
 
 
 class FakeQuerySet(object):
     """
-    I can't figure out how to make a Mock() instance that will
-    behave like a queryset.
-
-    Thus, we have this object that records all the calls made to
-    it and behaves pretty much like a queryset.
+    Rough queryset mock suitable for monkeypatching in a cqlengine model's
+    'objects' attribute. Behaves roughly the same (chaining works, etc) but
+    obviously skips all the db touching code.
 
     return_value is dumb, and any time the queryset is evaluated
-    it will return whatever you pass in. (With the exception of limi(),
+    it will return whatever you pass in. (With the exception of limit(),
     which is actually implemented)
 
     side_effect can be a callable or exception, and will raise or call
@@ -39,16 +67,11 @@ class FakeQuerySet(object):
     but all() will)
     """
 
-    return_value = None
-    side_effect = None
-
-    _calls = None
-    _limit = None
-
     def __init__(self, return_value=None, side_effect=None):
         self.return_value = return_value if return_value else []
         self.side_effect = side_effect if side_effect else None
         self._calls = []
+        self._limit = None
 
     def __iter__(self):
         self._do_side_effect()
@@ -129,7 +152,7 @@ class FakeQuerySet(object):
     def all(self, *args, **kwargs):
         self._calls.append(('all', args, kwargs))
         self._do_side_effect()
-        return self._get_data()
+        return self
 
     def filter(self, *args, **kwargs):
         self._calls.append(('filter', args, kwargs))
@@ -138,6 +161,10 @@ class FakeQuerySet(object):
     def get(self, *args, **kwargs):
         self._calls.append(('get', args, kwargs))
         self._do_side_effect()
+
+        # get() returns 1 thing or throws, so we want to enforce that if you happen to
+        # configure the mock incorrectly.
+        assert(len(self._get_data()) == 1)
         return self._get_data()[0]
 
     def limit(self, limit, **kwargs):
@@ -151,12 +178,84 @@ class FakeQuerySet(object):
         return len(self.return_value)
 
 
-class TeethUnitTest(unittest.TestCase):
+class BaseTests(object):
 
-    _patches = None
+    def list_some(self, model, model_objects_mock, url, mock_data):
+        self.assertTrue(isinstance(mock_data[0], model))
+        model_objects_mock.return_value = mock_data
+
+        response = self.make_request('GET', url)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+
+        self.assertEqual(len(data['items']), 2)
+        self.assertModelContains(data['items'][0], mock_data[0])
+        self.assertModelContains(data['items'][1], mock_data[1])
+
+    def list_none(self, model, model_objects_mock, url, mock_data):
+        response = self.make_request('GET', url)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(len(data['items']), 0)
+
+    def fetch_one(self, model, model_objects_mock, url, mock_data):
+        self.assertTrue(isinstance(mock_data[0], model))
+        model_objects_mock.return_value = [mock_data[0]]
+
+        response = self.make_request('GET', '{url}/{id}'.format(url=url, id=mock_data[0].id))
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertModelContains(data, mock_data[0])
+
+    def fetch_none(self, model, model_objects_mock, url, mock_data):
+        model_objects_mock.side_effect = model.DoesNotExist
+
+        response = self.make_request('GET', '{url}/{id}'.format(url=url, id='does_not_exist'))
+
+        self.assertEqual(response.status_code, 404)
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], u'Requested object not found')
+
+
+class TeethUnitTest(unittest.TestCase, BaseTests):
 
     def setUp(self):
         self._patches = defaultdict(dict)
+
+        self.job_client_mock = mock.Mock(spec=JobClient)
+        self.db_ops_mock = FakeDBOps()
+        self.config = Config()
+        self.public_api = TeethPublicAPIServer(self.config, self.job_client_mock, self.db_ops_mock)
+
+    def _get_env_builder(self, method, path, data=None, query=None):
+        if data:
+            data = json.dumps(data)
+
+        return EnvironBuilder(method=method, path=path, data=data,
+                              content_type='application/json', query_string=query)
+
+    def build_request(self, method, path, data=None, query=None):
+        return self._get_env_builder(method, path, data, query).get_request(BaseRequest)
+
+    def make_request(self, method, path, data=None, query=None):
+        client = Client(self.public_api, BaseResponse)
+        return client.open(self._get_env_builder(method, path, data, query))
+
+    def assertModelContains(self, i1, i2):
+        """
+        ensure all the stuff in the first instance/dict exists and is equal
+        to the stuff in the second instance/dict
+        """
+        if isinstance(i1, Model):
+            i1 = i2._as_dict()
+        if isinstance(i2, Model):
+            i2 = i2._as_dict()
+
+        for k, v in i1.iteritems():
+            self.assertEqual(unicode(v), unicode(i2[k]))
 
     def _mock_model(self, cls, return_value=None, side_effect=None):
         """

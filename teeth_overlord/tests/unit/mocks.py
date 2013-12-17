@@ -30,7 +30,8 @@ class TestModelMock(TeethUnitTest):
         mock = self.add_mock(JobClient)
         mock.submit_job.return_value = 42
 
-        # re-import JobClient so the patch is picked up. Maybe this isn't the best idea...
+        # re-import JobClient so the patch is picked up. You probably shouldn't do
+        # this if you can help it.
         from teeth_overlord.jobs.base import JobClient as TestJobClient
         client = TestJobClient("stuff")
         ret = client.submit_job("jobstuff")
@@ -62,7 +63,7 @@ class TestModelMock(TeethUnitTest):
         mock.assert_called_once_with("filter", 1)
         mock.assert_called_once_with("filter")
 
-    def test_add_mock_classmethod(self):
+    def test_add_mock_model_objects(self):
 
         self.add_mock(models.JobRequest, "get", "get_return")
 
@@ -74,7 +75,7 @@ class TestModelMock(TeethUnitTest):
         self.assertEquals(ret, "get_return")
         mock.assert_called_once_with()
 
-    def test_add_mock_parent_method(self):
+    def test_add_mock_superclass_method(self):
 
         mock = self.add_mock(models.JobRequest, "save")
         mock.return_value = "save_return"
