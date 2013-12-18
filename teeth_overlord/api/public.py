@@ -70,12 +70,12 @@ class TeethPublicAPI(APIComponent):
     """
     The primary Teeth Overlord API.
     """
-    def __init__(self, config, job_client=None):
+    def __init__(self, config, job_client=None, stats_client=None):
         super(TeethPublicAPI, self).__init__()
         self.config = config
         self.job_client = job_client or JobClient(config)
+        self.stats_client = stats_client or get_stats_client(config)
         self.image_provider = get_image_provider(config)
-        self.stats_client = get_stats_client(config)
 
     def add_routes(self):
         """
