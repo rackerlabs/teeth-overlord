@@ -52,4 +52,6 @@ class DecommissionChassis(Job):
 
         chassis.state = ChassisState.READY
         chassis.save()
+
+        self.stats_client.incr('chassis.decommission')
         return

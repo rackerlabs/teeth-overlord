@@ -66,6 +66,8 @@ class CreateInstance(Job):
 
         self.prepare_and_run_image(instance, chassis, image_info)
         self.mark_active(instance, chassis)
+
+        self.stats_client.incr('instances.create')
         return
 
 
@@ -91,4 +93,6 @@ class DeleteInstance(Job):
         batch.execute()
         self.executor.oob_provider.power_chassis_off(chassis)
         self.executor.job_client.submit_job('chassis.decommission', chassis_id=chassis.id)
+
+        self.stats_client.incr('instances.delete')
         return

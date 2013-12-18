@@ -31,6 +31,7 @@ from teeth_overlord.scheduler import TeethInstanceScheduler
 from teeth_overlord.images.base import get_image_provider
 from teeth_overlord.oob.base import get_oob_provider
 from teeth_overlord.marconi import MarconiClient
+from teeth_overlord.stats import get_stats_client
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
@@ -76,6 +77,7 @@ class JobExecutor(SynchronousTeethService):
         self.oob_provider = get_oob_provider(config)
         self.scheduler = TeethInstanceScheduler()
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
+        self.stats_client = get_stats_client(config)
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
@@ -154,6 +156,8 @@ class Job(object):
 
     def __init__(self, executor, request, message):
         self.executor = executor
+        # XXX this is a bit hacky, may want to refactor in the future
+        self.stats_client = executor.stats_client
         self.params = request.params
         self.request = request
         self.message = message
