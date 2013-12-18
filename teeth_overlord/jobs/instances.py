@@ -23,6 +23,7 @@ from teeth_overlord.models import (
     InstanceState
 )
 from teeth_overlord.jobs.base import Job
+from teeth_overlord.stats import incr_stat
 
 
 class CreateInstance(Job):
@@ -58,6 +59,7 @@ class CreateInstance(Job):
         batch.execute()
         return
 
+    @incr_stat('instances.create')
     def _execute(self):
         params = self.request.params
         instance = Instance.objects.get(id=params['instance_id'])
@@ -78,6 +80,7 @@ class DeleteInstance(Job):
     """
     max_retries = 10
 
+    @incr_stat('instances.delete')
     def _execute(self):
         params = self.request.params
         instance = Instance.objects.get(id=params['instance_id'])

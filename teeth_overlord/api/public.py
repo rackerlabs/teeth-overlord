@@ -28,6 +28,7 @@ from teeth_rest.responses import (
 from teeth_overlord import models, errors
 from teeth_overlord.jobs.base import JobClient
 from teeth_overlord.images.base import get_image_provider
+from teeth_overlord.stats import get_stats_client, incr_stat
 
 
 DEFAULT_LIMIT = 100
@@ -69,10 +70,11 @@ class TeethPublicAPI(APIComponent):
     """
     The primary Teeth Overlord API.
     """
-    def __init__(self, config, job_client=None):
+    def __init__(self, config, job_client=None, stats_client=None):
         super(TeethPublicAPI, self).__init__()
         self.config = config
         self.job_client = job_client or JobClient(config)
+        self.stats_client = stats_client or get_stats_client(config, prefix='api')
         self.image_provider = get_image_provider(config)
 
     def add_routes(self):
@@ -139,6 +141,7 @@ class TeethPublicAPI(APIComponent):
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
+    @incr_stat('chassis_models.create')
     def create_chassis_model(self, request):
         """
         Create a ChassisModel. Example::
@@ -159,6 +162,7 @@ class TeethPublicAPI(APIComponent):
         chassis_model.save()
         return CreatedResponse(request, self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
 
+    @incr_stat('chassis_models.list')
     def list_chassis_models(self, request):
         """
         List ChassisModels. Example::
@@ -183,6 +187,7 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
 
+    @incr_stat('chassis_models.fetch')
     def fetch_chassis_model(self, request, chassis_model_id):
         """
         Retrive a ChassisModel. Example::
@@ -197,6 +202,7 @@ class TeethPublicAPI(APIComponent):
         query = models.ChassisModel.filter(id=chassis_model_id)
         return self._crud_fetch(request, models.ChassisModel, query)
 
+    @incr_stat('flavors.create')
     def create_flavor(self, request):
         """
         Create a Flavor. Example::
@@ -215,6 +221,7 @@ class TeethPublicAPI(APIComponent):
         flavor.save()
         return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
+    @incr_stat('flavors.list')
     def list_flavors(self, request):
         """
         List Flavors. Example::
@@ -239,6 +246,7 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.Flavor, self.list_flavors)
 
+    @incr_stat('flavors.fetch')
     def fetch_flavor(self, request, flavor_id):
         """
         Retrive a Flavor. Example::
@@ -253,6 +261,7 @@ class TeethPublicAPI(APIComponent):
         query = models.Flavor.objects.filter(id=flavor_id)
         return self._crud_fetch(request, models.Flavor, query)
 
+    @incr_stat('flavor_providers.create')
     def create_flavor_provider(self, request):
         """
         Create a FlavorProvider, which maps a Flavor to a ChassisModel. Example::
@@ -285,6 +294,7 @@ class TeethPublicAPI(APIComponent):
             'flavor_provider_id': flavor_provider.id
         })
 
+    @incr_stat('flavor_providers.list')
     def list_flavor_providers(self, request):
         """
         List FlavorProviders. Example::
@@ -311,6 +321,7 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
 
+    @incr_stat('flavor_providers.fetch')
     def fetch_flavor_provider(self, request, flavor_provider_id):
         """
         Retrive a FlavorProvider. Example::
@@ -327,6 +338,7 @@ class TeethPublicAPI(APIComponent):
         query = models.FlavorProvider.objects.filter(id=flavor_provider_id)
         return self._crud_fetch(request, models.FlavorProvider, query)
 
+    @incr_stat('chassis.create')
     def create_chassis(self, request):
         """
         Create a Chassis. Example::
@@ -357,6 +369,7 @@ class TeethPublicAPI(APIComponent):
 
         return CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
 
+    @incr_stat('chassis.list')
     def list_chassis(self, request):
         """
         List Chassis. Example::
@@ -395,6 +408,7 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.Chassis, self.list_chassis)
 
+    @incr_stat('chassis.fetch')
     def fetch_chassis(self, request, chassis_id):
         """
         Retrive a Chassis. Example::
@@ -409,6 +423,7 @@ class TeethPublicAPI(APIComponent):
         query = models.Chassis.objects.filter(id=chassis_id)
         return self._crud_fetch(request, models.Chassis, query)
 
+    @incr_stat('instances.request_create')
     def create_instance(self, request):
         """
         Create an Instance. Example::
@@ -433,10 +448,12 @@ class TeethPublicAPI(APIComponent):
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id)
+
         return CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,
         })
 
+    @incr_stat('instances.list')
     def list_instances(self, request):
         """
         List Instances. Example::
@@ -465,6 +482,7 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.Instance, self.list_instances)
 
+    @incr_stat('instances.fetch')
     def fetch_instance(self, request, instance_id):
         """
         Retrieve an instance. Example::
@@ -482,6 +500,7 @@ class TeethPublicAPI(APIComponent):
         query = models.Instance.objects.filter(id=instance_id)
         return self._crud_fetch(request, models.Instance, query)
 
+    @incr_stat('instances.request_delete')
     def delete_instance(self, request, instance_id):
         try:
             instance = models.Instance.objects.get(id=instance_id)
