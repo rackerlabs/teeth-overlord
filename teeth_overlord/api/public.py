@@ -27,6 +27,7 @@ from teeth_rest.responses import (
 from teeth_overlord import models, errors
 from teeth_overlord.jobs.base import JobClient
 from teeth_overlord.images.base import get_image_provider
+from teeth_overlord.stats import get_stats_client
 
 
 DEFAULT_LIMIT = 100
@@ -84,6 +85,7 @@ class TeethPublicAPI(APIComponent):
         self.config = config
         self.job_client = JobClient(config)
         self.image_provider = get_image_provider(config)
+        self.stats_client = get_stats_client(config)
 
     def add_routes(self):
         """
@@ -153,6 +155,8 @@ class TeethPublicAPI(APIComponent):
         """
         chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
         chassis_model.save()
+
+        self.stats_client.incr('chassis_models.create')
         return CreatedResponse(request, self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
 
     def list_chassis_models(self, request):
@@ -177,6 +181,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with a list of ChassisModels upon success.
         """
+        self.stats_client.incr('chassis_models.list')
         return self._crud_list(request, models.ChassisModel.objects, self.list_chassis_models)
 
     def fetch_chassis_model(self, request, chassis_model_id):
@@ -190,6 +195,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested ChassisModels upon success.
         """
+        self.stats_client.incr('chassis_models.fetch')
         return self._crud_fetch(request, models.ChassisModel, chassis_model_id)
 
     def create_flavor(self, request):
@@ -204,6 +210,8 @@ class TeethPublicAPI(APIComponent):
         """
         flavor = models.Flavor.deserialize(self.parse_content(request))
         flavor.save()
+
+        self.stats_client.incr('flavors.create')
         return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
     def list_flavors(self, request):
@@ -228,6 +236,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Flavors upon success.
         """
+        self.stats_client.incr('flavors.list')
         return self._crud_list(request, models.Flavor.objects, self.list_flavors)
 
     def fetch_flavor(self, request, flavor_id):
@@ -241,6 +250,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested Flavors upon success.
         """
+        self.stats_client.incr('flavors.fetch')
         return self._crud_fetch(request, models.Flavor, flavor_id)
 
     def create_flavor_provider(self, request):
@@ -268,6 +278,8 @@ class TeethPublicAPI(APIComponent):
         _validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
+
+        self.stats_client.incr('flavor_providers.create')
         return CreatedResponse(request, self.fetch_flavor_provider, {
             'flavor_provider_id': flavor_provider.id
         })
@@ -296,6 +308,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of FlavorProviders upon success.
         """
+        self.stats_client.incr('flavor_providers.list')
         return self._crud_list(request, models.FlavorProvider.objects, self.list_flavor_providers)
 
     def fetch_flavor_provider(self, request, flavor_provider_id):
@@ -311,6 +324,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested FlavorProviders upon success.
         """
+        self.stats_client.incr('flavor_providers.fetch')
         return self._crud_fetch(request, models.FlavorProvider, flavor_provider_id)
 
     def create_chassis(self, request):
@@ -337,6 +351,7 @@ class TeethPublicAPI(APIComponent):
         chassis.ipmi_password = chassis_model.ipmi_default_password
         chassis.save()
 
+        self.stats_client.incr('chassis.create')
         return CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
 
     def list_chassis(self, request):
@@ -375,6 +390,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Chassis upon success.
         """
+        self.stats_client.incr('chassis.list')
         return self._crud_list(request, models.Chassis.objects, self.list_chassis)
 
     def fetch_chassis(self, request, chassis_id):
@@ -388,6 +404,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with the requested Chassiss upon success.
         """
+        self.stats_client.incr('chassis.fetch')
         return self._crud_fetch(request, models.Chassis, chassis_id)
 
     def create_instance(self, request):
@@ -411,6 +428,8 @@ class TeethPublicAPI(APIComponent):
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id)
+
+        self.stats_client.incr('instances.request_create')
         return CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,
         })
@@ -441,6 +460,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Instances upon success.
         """
+        self.stats_client.incr('instances.list')
         return self._crud_list(request, models.Instance.objects, self.list_instances)
 
     def fetch_instance(self, request, instance_id):
@@ -457,6 +477,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with the requested Instance upon success.
         """
+        self.stats_client.incr('instances.fetch')
         return self._crud_fetch(request, models.Instance, instance_id)
 
     def delete_instance(self, request, instance_id):
@@ -474,6 +495,7 @@ class TeethPublicAPI(APIComponent):
         self.job_client.submit_job('instances.delete',
                                    instance_id=instance.id)
 
+        self.stats_client.incr('instances.request_delete')
         return DeletedResponse()
 
 
