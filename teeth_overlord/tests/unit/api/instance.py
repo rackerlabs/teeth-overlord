@@ -101,7 +101,7 @@ class TestInstanceAPI(TeethAPITestCase):
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(data['message'], 'Invalid query parameters')
+        self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_instance_bad_flavor(self):
 

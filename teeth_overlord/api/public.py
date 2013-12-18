@@ -155,7 +155,7 @@ class TeethPublicAPI(APIComponent):
         try:
             chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
         except ValidationError as e:
-            raise errors.InvalidParametersError(e.message)
+            raise errors.InvalidContentError(e.message)
 
         chassis_model.save()
         return CreatedResponse(request, self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
@@ -211,7 +211,7 @@ class TeethPublicAPI(APIComponent):
         try:
             flavor = models.Flavor.deserialize(self.parse_content(request))
         except ValidationError as e:
-            raise errors.InvalidParametersError(e.message)
+            raise errors.InvalidContentError(e.message)
 
         flavor.save()
         return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
@@ -276,7 +276,7 @@ class TeethPublicAPI(APIComponent):
         try:
             flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
         except ValidationError as e:
-            raise errors.InvalidParametersError(e.message)
+            raise errors.InvalidContentError(e.message)
 
         self._validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
@@ -349,7 +349,7 @@ class TeethPublicAPI(APIComponent):
         try:
             chassis = models.Chassis.deserialize(self.parse_content(request))
         except ValidationError as e:
-            raise errors.InvalidParametersError(e.message)
+            raise errors.InvalidContentError(e.message)
 
         chassis_model = self._validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
@@ -451,7 +451,7 @@ class TeethPublicAPI(APIComponent):
         try:
             instance = models.Instance.deserialize(self.parse_content(request))
         except ValidationError as e:
-            raise errors.InvalidParametersError(e.message)
+            raise errors.InvalidContentError(e.message)
 
         # Validate the image ID
         self.image_provider.get_image_info(instance.image_id)

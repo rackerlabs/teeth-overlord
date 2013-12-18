@@ -79,7 +79,4 @@ class TestChassisModelAPI(TeethAPITestCase):
 
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.data)
-        self.assertEqual(data, {u'message': u'Invalid query parameters',
-                                u'code': 400,
-                                u'type': u'InvalidParametersError',
-                                u'details': u'name - None values are not allowed'})
+        self.assertEqual(data['message'], 'Invalid request body')

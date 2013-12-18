@@ -86,7 +86,7 @@ class TestChassisAPI(TeethAPITestCase):
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(data['message'], 'Invalid query parameters')
+        self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_instance_bad_chassis_model(self):
         self.add_mock(models.ChassisModel, side_effect=models.ChassisModel.DoesNotExist)
