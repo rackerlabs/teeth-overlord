@@ -219,7 +219,6 @@ class TeethPublicAPI(APIComponent):
             raise errors.InvalidContentError(e.message)
 
         flavor.save()
-
         return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
     @incr_stat('flavors.list')
@@ -291,7 +290,6 @@ class TeethPublicAPI(APIComponent):
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
-
         return CreatedResponse(request, self.fetch_flavor_provider, {
             'flavor_provider_id': flavor_provider.id
         })

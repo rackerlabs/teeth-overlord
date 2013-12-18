@@ -54,5 +54,4 @@ class DecommissionChassis(Job):
 
         chassis.state = ChassisState.READY
         chassis.save()
-
         return
