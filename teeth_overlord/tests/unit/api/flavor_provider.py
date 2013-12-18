@@ -92,7 +92,7 @@ class TestFlavorProviderAPI(TeethAPITestCase):
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(data['message'], 'Invalid query parameters')
+        self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_flavor_provider_bad_flavor(self):
         self.add_mock(models.Flavor, side_effect=models.Flavor.DoesNotExist)
