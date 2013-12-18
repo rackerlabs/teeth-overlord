@@ -85,7 +85,7 @@ class ImageNotFoundError(InvalidContentError):
 
 class InvalidParametersError(RESTError):
     """
-    Error which is raised when multiple 'marker' query parameters are provided.
+    Error which is raised for invalid parameters
     """
     message = 'Invalid query parameters'
     status_code = 400
