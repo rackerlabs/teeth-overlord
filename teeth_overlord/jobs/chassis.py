@@ -19,6 +19,7 @@ from teeth_overlord.models import (
     ChassisState,
 )
 from teeth_overlord.jobs.base import Job
+from teeth_overlord.stats import incr_stat
 
 
 class DecommissionChassis(Job):
@@ -27,6 +28,7 @@ class DecommissionChassis(Job):
     """
     max_retries = 10
 
+    @incr_stat('chassis.decommission')
     def _execute(self):
         params = self.request.params
         chassis = Chassis.objects.get(id=params['chassis_id'])
@@ -53,5 +55,4 @@ class DecommissionChassis(Job):
         chassis.state = ChassisState.READY
         chassis.save()
 
-        self.stats_client.incr('chassis.decommission')
         return
