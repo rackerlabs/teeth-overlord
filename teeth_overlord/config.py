@@ -40,6 +40,7 @@ class Config(object):
     STATSD_HOST = 'localhost'
     STATSD_PORT = 8125
     STATSD_PREFIX = 'teeth'  # use None for no prefix
+    STATSD_ENABLED = True
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():

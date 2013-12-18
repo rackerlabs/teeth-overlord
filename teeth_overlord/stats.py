@@ -19,7 +19,25 @@ import functools
 from statsd import StatsClient
 
 
+class NoopStatsClient(object):
+    def _noop(self, *args, **kwargs):
+        pass
+
+    incr = _noop
+    decr = _noop
+    timing = _noop
+    guage = _noop
+    set = _noop
+
+    # TODO implement timer (context manager and decorater)
+    # TODO implement pipeline noop (context manager and method)
+    # TODO implement send (method, sends pipelined commands)
+    # (we aren't using any of these yet)
+
+
 def get_stats_client(config):
+    if not config.STATSD_ENABLED:
+        return NoopStatsClient()
     return StatsClient(config.STATSD_HOST, config.STATSD_PORT, prefix=config.STATSD_PREFIX)
 
 
