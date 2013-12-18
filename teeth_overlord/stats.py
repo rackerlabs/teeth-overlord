@@ -35,10 +35,20 @@ class NoopStatsClient(object):
     # (we aren't using any of these yet)
 
 
-def get_stats_client(config):
+def get_stats_client(config, prefix=None):
+    """
+    Gets statsd client with additional prefix.
+    For example, if the config prefix is 'teeth' and 'api' is passed in,
+    the prefix would be teeth.api.
+    """
+    if prefix is not None:
+        prefix = '{0}.{1}'.format(config.STATSD_PREFIX, prefix)
+    else:
+        prefix = config.STATSD_PREFIX
+
     if not config.STATSD_ENABLED:
         return NoopStatsClient()
-    return StatsClient(config.STATSD_HOST, config.STATSD_PORT, prefix=config.STATSD_PREFIX)
+    return StatsClient(config.STATSD_HOST, config.STATSD_PORT, prefix=prefix)
 
 
 def incr_stat(key):

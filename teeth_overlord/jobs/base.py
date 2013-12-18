@@ -77,7 +77,7 @@ class JobExecutor(SynchronousTeethService):
         self.oob_provider = get_oob_provider(config)
         self.scheduler = TeethInstanceScheduler()
         self.queue = MarconiClient(base_url=config.MARCONI_URL)
-        self.stats_client = get_stats_client(config)
+        self.stats_client = get_stats_client(config, 'jobs')
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
