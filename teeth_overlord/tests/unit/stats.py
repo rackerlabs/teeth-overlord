@@ -57,9 +57,5 @@ class StatsClientTestCase(unittest.TestCase):
         self.mock_stats_client.incr.assert_called_once_with('somestat.success')
 
     def test_error_incrs_error_stat(self):
-        try:
-            self.some_object.error_func()
-        except:
-            # expecting this
-            pass
+        self.assertRaises(Exception, self.some_object.error_func)
         self.mock_stats_client.incr.assert_called_once_with('somestat.error')
