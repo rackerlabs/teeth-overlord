@@ -37,6 +37,9 @@ class Config(object):
     OOB_PROVIDER = 'fake'
     AGENT_CLIENT = 'fake'
     PRETTY_LOGGING = True
+    STATSD_HOST = 'localhost'
+    STATSD_PORT = 8125
+    STATSD_PREFIX = 'teeth'  # use None for no prefix
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
