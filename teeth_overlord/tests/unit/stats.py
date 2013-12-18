@@ -54,7 +54,7 @@ class StatsClientTestCase(unittest.TestCase):
 
     def test_success_incrs_success_stat(self):
         self.some_object.success_func()
-        self.some_object.stats_client.incr.assert_called_once_with('somestat.success')
+        self.mock_stats_client.incr.assert_called_once_with('somestat.success')
 
     def test_error_incrs_error_stat(self):
         try:
@@ -62,4 +62,4 @@ class StatsClientTestCase(unittest.TestCase):
         except:
             # expecting this
             pass
-        self.some_object.stats_client.incr.assert_called_once_with('somestat.error')
+        self.mock_stats_client.incr.assert_called_once_with('somestat.error')
