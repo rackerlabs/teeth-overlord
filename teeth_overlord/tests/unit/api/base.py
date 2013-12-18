@@ -14,29 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import unittest
-import json
-
-from werkzeug.test import EnvironBuilder
-from werkzeug.wrappers import BaseRequest
-
-from teeth_overlord.config import Config
-from teeth_overlord.api.public import TeethPublicAPI, TeethPublicAPIServer
+from teeth_overlord.tests import TeethAPITestCase
+from teeth_overlord.api.public import TeethPublicAPI
 
 
-class TestPublicAPI(unittest.TestCase):
-    def setUp(self):
-        self.config = Config()
-        self.public_api = TeethPublicAPIServer(self.config)
-
-    def build_request(self, method, path, data=None, query=None):
-        if data:
-            data = json.dumps(data)
-
-        builder = EnvironBuilder(method=method, path=path, data=data,
-                                 content_type='application/json', query_string=query)
-
-        return builder.get_request(BaseRequest)
+class TestAPI(TeethAPITestCase):
 
     def test_routes(self):
         public_api_component = self.public_api.components.get('/v1.0')
@@ -83,6 +65,8 @@ class TestPublicAPI(unittest.TestCase):
                 'instance_id': 'foo-instance',
             }),
             ('POST', '/v1.0/instances'): (public_api_component.create_instance, {}),
+            ('DELETE', '/v1.0/instances/foo-instance'): (public_api_component.delete_instance, {
+                'instance_id': 'foo-instance'})
         }
 
         for (method, path), (expected_endpoint, expected_values) in expected_mappings.iteritems():

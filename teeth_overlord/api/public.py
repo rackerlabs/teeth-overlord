@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 from cqlengine import Token
+from cqlengine import ValidationError
 
 from teeth_rest.component import APIComponent, APIServer
 from teeth_rest.responses import (
@@ -30,17 +31,6 @@ from teeth_overlord.images.base import get_image_provider
 
 
 DEFAULT_LIMIT = 100
-
-
-def _validate_relation(instance, field_name, cls):
-    id = getattr(instance, field_name)
-
-    try:
-        return cls.get(id=id)
-    except cls.DoesNotExist:
-        msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
-                                                                  type_name=cls.__name__)
-        raise errors.InvalidContentError(msg)
 
 
 def _get_single_param(request, param):
@@ -79,10 +69,10 @@ class TeethPublicAPI(APIComponent):
     """
     The primary Teeth Overlord API.
     """
-    def __init__(self, config):
+    def __init__(self, config, job_client=None):
         super(TeethPublicAPI, self).__init__()
         self.config = config
-        self.job_client = JobClient(config)
+        self.job_client = job_client or JobClient(config)
         self.image_provider = get_image_provider(config)
 
     def add_routes(self):
@@ -115,10 +105,20 @@ class TeethPublicAPI(APIComponent):
         self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
         self.route('DELETE', '/instances/<string:instance_id>', self.delete_instance)
 
-    def _crud_list(self, request, query, list_method):
+    def _validate_relation(self, instance, field_name, cls):
+        id = getattr(instance, field_name)
+
+        try:
+            return cls.objects.get(id=id)
+        except cls.DoesNotExist:
+            msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
+                                                                      type_name=cls.__name__)
+            raise errors.InvalidContentError(msg)
+
+    def _crud_list(self, request, cls, list_method):
         marker = _get_marker(request)
         limit = _get_limit(request)
-        query = query.limit(limit)
+        query = cls.objects.all().limit(limit)
 
         if marker:
             query = query.filter(pk__token__gt=Token(marker))
@@ -151,7 +151,11 @@ class TeethPublicAPI(APIComponent):
 
         Returns 201 with a Location header upon success.
         """
-        chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
+        try:
+            chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
+        except ValidationError as e:
+            raise errors.InvalidContentError(e.message)
+
         chassis_model.save()
         return CreatedResponse(request, self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
 
@@ -177,7 +181,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 along with a list of ChassisModels upon success.
         """
-        return self._crud_list(request, models.ChassisModel.objects, self.list_chassis_models)
+        return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
 
     def fetch_chassis_model(self, request, chassis_model_id):
         """
@@ -203,7 +207,11 @@ class TeethPublicAPI(APIComponent):
 
         Returns 201 with a Location header upon success.
         """
-        flavor = models.Flavor.deserialize(self.parse_content(request))
+        try:
+            flavor = models.Flavor.deserialize(self.parse_content(request))
+        except ValidationError as e:
+            raise errors.InvalidContentError(e.message)
+
         flavor.save()
         return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
@@ -229,7 +237,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Flavors upon success.
         """
-        return self._crud_list(request, models.Flavor.objects, self.list_flavors)
+        return self._crud_list(request, models.Flavor, self.list_flavors)
 
     def fetch_flavor(self, request, flavor_id):
         """
@@ -264,10 +272,13 @@ class TeethPublicAPI(APIComponent):
 
         Returns 201 with a Location header upon success.
         """
-        flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
+        try:
+            flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
+        except ValidationError as e:
+            raise errors.InvalidContentError(e.message)
 
-        _validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
-        _validate_relation(flavor_provider, 'flavor_id', models.Flavor)
+        self._validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
+        self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
         return CreatedResponse(request, self.fetch_flavor_provider, {
@@ -298,7 +309,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of FlavorProviders upon success.
         """
-        return self._crud_list(request, models.FlavorProvider.objects, self.list_flavor_providers)
+        return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
 
     def fetch_flavor_provider(self, request, flavor_provider_id):
         """
@@ -334,8 +345,12 @@ class TeethPublicAPI(APIComponent):
 
         Returns 201 with a Location header upon success.
         """
-        chassis = models.Chassis.deserialize(self.parse_content(request))
-        chassis_model = _validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
+        try:
+            chassis = models.Chassis.deserialize(self.parse_content(request))
+        except ValidationError as e:
+            raise errors.InvalidContentError(e.message)
+
+        chassis_model = self._validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
         chassis.save()
@@ -378,7 +393,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Chassis upon success.
         """
-        return self._crud_list(request, models.Chassis.objects, self.list_chassis)
+        return self._crud_list(request, models.Chassis, self.list_chassis)
 
     def fetch_chassis(self, request, chassis_id):
         """
@@ -406,12 +421,15 @@ class TeethPublicAPI(APIComponent):
 
         Returns 201 with a Location header upon success.
         """
-        instance = models.Instance.deserialize(self.parse_content(request))
+        try:
+            instance = models.Instance.deserialize(self.parse_content(request))
+        except ValidationError as e:
+            raise errors.InvalidContentError(e.message)
 
         # Validate the image ID
         self.image_provider.get_image_info(instance.image_id)
 
-        _validate_relation(instance, 'flavor_id', models.Flavor)
+        self._validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id)
@@ -445,7 +463,7 @@ class TeethPublicAPI(APIComponent):
 
         Returns 200 with a list of Instances upon success.
         """
-        return self._crud_list(request, models.Instance.objects, self.list_instances)
+        return self._crud_list(request, models.Instance, self.list_instances)
 
     def fetch_instance(self, request, instance_id):
         """
@@ -467,7 +485,7 @@ class TeethPublicAPI(APIComponent):
     def delete_instance(self, request, instance_id):
         try:
             instance = models.Instance.objects.get(id=instance_id)
-        except models.Instance.NotFound:
+        except models.Instance.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
 
         if instance.state in (models.InstanceState.DELETING, models.InstanceState.DELETED):
@@ -487,7 +505,7 @@ class TeethPublicAPIServer(APIServer):
     Server for the teeth overlord API.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, job_client=None):
         super(TeethPublicAPIServer, self).__init__()
         self.config = config
-        self.add_component('/v1.0', TeethPublicAPI(self.config))
+        self.add_component('/v1.0', TeethPublicAPI(self.config, job_client=job_client))
