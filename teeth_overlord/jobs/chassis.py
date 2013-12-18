@@ -51,5 +51,7 @@ class DecommissionChassis(Job):
         self.executor.oob_provider.power_chassis_on(chassis)
 
         chassis.state = ChassisState.READY
+        # Dissassociate any instances after clean completes.
+        chassis.instance_id = None
         chassis.save()
         return

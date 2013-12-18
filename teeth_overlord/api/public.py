@@ -98,6 +98,7 @@ class TeethPublicAPI(APIComponent):
         self.route('GET', '/chassis', self.list_chassis)
         self.route('POST', '/chassis', self.create_chassis)
         self.route('GET', '/chassis/<string:chassis_id>', self.fetch_chassis)
+        self.route('DELETE', '/chassis/<string:chassis_id>', self.delete_chassis)
 
         # Instance Handlers
         self.route('GET', '/instances', self.list_instances)
@@ -409,6 +410,32 @@ class TeethPublicAPI(APIComponent):
         query = models.Chassis.objects.filter(id=chassis_id)
         return self._crud_fetch(request, models.Chassis, query)
 
+    def delete_chassis(self, request, chassis_id):
+        """
+        Delete a chassis.
+
+        Returns 204 on success.
+        """
+        try:
+            chassis = models.Chassis.objects.get(id=chassis_id)
+        except models.Chassis.DoesNotExist:
+            raise errors.RequestedObjectNotFoundError(models.Chassis, chassis_id)
+
+        if chassis.state == models.ChassisState.DELETED:
+            raise errors.ObjectAlreadyDeletedError(models.Chassis, chassis.id)
+
+        # if instance_id is None, there are no running instances and the chassis has been
+        # cleaned - thus safe to delete.
+        if chassis.instance_id is not None:
+            raise errors.ObjectCannotBeDeletedError(models.Chassis,
+                                                    chassis.id,
+                                                    details="Chassis has non-empty instance_id")
+
+        chassis.state = models.ChassisState.DELETED
+        chassis.save()
+
+        return DeletedResponse()
+
     def create_instance(self, request):
         """
         Create an Instance. Example::
@@ -483,6 +510,11 @@ class TeethPublicAPI(APIComponent):
         return self._crud_fetch(request, models.Instance, query)
 
     def delete_instance(self, request, instance_id):
+        """
+        Delete an instance.
+
+        Returns 204 on success.
+        """
         try:
             instance = models.Instance.objects.get(id=instance_id)
         except models.Instance.DoesNotExist:

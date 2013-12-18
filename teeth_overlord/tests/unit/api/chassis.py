@@ -33,6 +33,7 @@ class TestChassisAPI(TeethAPITestCase):
                                        primary_mac_address='1:2:3:4:5')
         self.chassis2 = models.Chassis(id='chassis2',
                                        state=models.ChassisState.BUILD,
+                                       instance_id="instance_id",
                                        primary_mac_address='6:7:8:9:0')
 
     def test_list_chassis_some(self):
@@ -98,3 +99,43 @@ class TestChassisAPI(TeethAPITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
         self.assertEqual(self.get_mock(models.Chassis, 'save').call_count, 0)
+
+    def test_delete_chassis(self):
+        self.chassis_objects_mock.return_value = [self.chassis1]
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url, id=self.chassis1.id))
+
+        self.assertEqual(response.status_code, 204)
+
+        save_mock = self.get_mock(models.Chassis, "save")
+        self.assertEqual(save_mock.call_count, 1)
+        chassis = save_mock.call_args[0][0]
+
+        self.assertEqual(chassis.state, models.ChassisState.DELETED)
+
+    def test_delete_chassis_already_deleted(self):
+        self.chassis1.state = models.ChassisState.DELETED
+        self.chassis_objects_mock.return_value = [self.chassis1]
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url, id=self.chassis1.id))
+
+        self.assertEqual(response.status_code, 403)
+
+        save_mock = self.get_mock(models.Chassis, "save")
+        self.assertEqual(save_mock.call_count, 0)
+
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'Object already deleted')
+
+    def test_delete_chassis_with_active_instance(self):
+        self.chassis_objects_mock.return_value = [self.chassis2]
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url, id=self.chassis2.id))
+
+        self.assertEqual(response.status_code, 403)
+
+        save_mock = self.get_mock(models.Chassis, "save")
+        self.assertEqual(save_mock.call_count, 0)
+
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'Object cannot be deleted')

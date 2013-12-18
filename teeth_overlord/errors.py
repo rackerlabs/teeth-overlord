@@ -94,6 +94,20 @@ class InvalidParametersError(RESTError):
         self.details = details
 
 
+class ObjectCannotBeDeletedError(RESTError):
+    """
+    Error which is raised when a consumer attempts to delete an objects which
+    can't be deleted. (ex: foreign key constraint)
+    """
+    message = 'Object cannot be deleted'
+    status_code = 403
+
+    def __init__(self, cls, id, details=None):
+        super(ObjectCannotBeDeletedError, self).__init__(cls, id)
+        default_details = '{type} with id {id} cannot be deleted.'.format(type=cls.__name__, id=id)
+        self.details = details if details else default_details
+
+
 class ObjectAlreadyDeletedError(RESTError):
     """
     Error which is raised when a consumer attempts to delete an object which
