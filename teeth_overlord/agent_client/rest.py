@@ -28,11 +28,12 @@ class RESTAgentClient(base.BaseAgentClient):
     """Client for interacting with agents via a REST API."""
     def __init__(self, config):
         super(RESTAgentClient, self).__init__(config)
-        self.encoder = encoding.TeethJSONEncoder(encoding.SerializationViews.PUBLIC)
+        view = encoding.SerializationViews.PUBLIC
+        self.encoder = encoding.TeethJSONEncoder(view)
         self.session = requests.Session()
 
     def _get_command_url(self, connection):
-        return 'http://{host}:{port}/v1.0/agent_connections/{connection_id}/command'.format(
+        return 'http://{host}:{port}/v1.0/command'.format(
             host=connection.endpoint_rpc_host,
             port=connection.endpoint_rpc_port,
             connection_id=connection.id
@@ -57,12 +58,14 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def get_agent_connection(self, chassis):
         """Retrieve an agent connection for the specified Chassis."""
-        query = models.AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
+        query = models.AgentConnection.objects
+        query = query.filter(primary_mac_address=chassis.primary_mac_address)
 
         try:
             return query.get()
         except models.AgentConnection.DoesNotExist:
-            raise errors.AgentNotConnectedError(chassis.id, chassis.primary_mac_address)
+            raise errors.AgentNotConnectedError(chassis.id,
+                                                chassis.primary_mac_address)
 
     def cache_images(self, connection, image_ids):
         """Attempt to cache the specified images. Images are specified in
