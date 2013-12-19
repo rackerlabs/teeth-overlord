@@ -14,24 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.tests import TeethMockTestUtilities
+from teeth_overlord import tests
 
-from teeth_overlord.jobs.base import JobClient
+from teeth_overlord.jobs import base as jobs_base
 from teeth_overlord import models
 
 
-class TestModelMock(TeethMockTestUtilities):
+class TestModelMock(tests.TeethMockTestUtilities):
     """Tests for the mock utilities in the TeethUnitTest base class."""
 
     def test_mock_class(self):
 
-        mock = self.add_mock(JobClient)
+        mock = self.add_mock(jobs_base.JobClient)
         mock.submit_job.return_value = 42
 
         # re-import JobClient so the patch is picked up. You probably shouldn't do
         # this if you can help it.
-        from teeth_overlord.jobs.base import JobClient as TestJobClient
-        client = TestJobClient("stuff")
+        from teeth_overlord.jobs import base as test_jobs_base
+        client = test_jobs_base.JobClient("stuff")
         ret = client.submit_job("jobstuff")
 
         mock.submit_job.assert_called_once_with("jobstuff")
