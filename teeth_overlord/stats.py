@@ -16,7 +16,7 @@ limitations under the License.
 
 import functools
 
-from statsd import StatsClient
+import statsd
 
 
 class NoopStatsClient(object):
@@ -29,15 +29,14 @@ class NoopStatsClient(object):
     guage = _noop
     set = _noop
 
-    # TODO implement timer (context manager and decorater)
-    # TODO implement pipeline noop (context manager and method)
-    # TODO implement send (method, sends pipelined commands)
+    # TODO(jimrollenhagen) implement timer (context manager and decorater)
+    # TODO(jimrollenhagen) implement pipeline noop (context manager and method)
+    # TODO(jimrollenhagen) implement send (method, sends pipelined commands)
     # (we aren't using any of these yet)
 
 
 def get_stats_client(config, prefix=None):
-    """
-    Gets statsd client with additional prefix.
+    """Gets statsd client with additional prefix.
     For example, if the config prefix is 'teeth' and 'api' is passed in,
     the prefix would be teeth.api.
     """
@@ -48,15 +47,14 @@ def get_stats_client(config, prefix=None):
 
     if not config.STATSD_ENABLED:
         return NoopStatsClient()
-    return StatsClient(config.STATSD_HOST, config.STATSD_PORT, prefix=prefix)
+    return statsd.StatsClient(config.STATSD_HOST, config.STATSD_PORT, prefix=prefix)
 
 
 def incr_stat(key):
-    """
-    Decorator that increments a stat with the given key.
+    """Decorator that increments a stat with the given key.
     Decorated function must be a bound method on a class that has a stats_client attribute.
     """
-    # TODO what about the case where e.g. no chassis available to create an instance?
+    # TODO(jimrollenhagen) what about the case where e.g. no chassis available to create an instance?
     # this won't raise an exception (right?), but should it be counted as a success?
 
     def incr_decorator(func):
@@ -65,7 +63,7 @@ def incr_stat(key):
             client = self.stats_client
             try:
                 ret = func(self, *args, **kwargs)
-            except:
+            except Exception:
                 client.incr('{}.error'.format(key))
                 raise
             else:

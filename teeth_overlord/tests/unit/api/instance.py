@@ -17,10 +17,10 @@ limitations under the License.
 import json
 
 from teeth_overlord import models
-from teeth_overlord.tests import TeethAPITestCase
+from teeth_overlord import tests
 
 
-class TestInstanceAPI(TeethAPITestCase):
+class TestInstanceAPI(tests.TeethAPITestCase):
 
     def setUp(self):
         super(TestInstanceAPI, self).setUp()
@@ -139,7 +139,7 @@ class TestInstanceAPI(TeethAPITestCase):
 
         pass
 
-        # TODO: Current fake image provider always works
+        # TODO(morgabra): Current fake image provider always works
         #self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor',
         #                                                         name='flavor')])
 

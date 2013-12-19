@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from stevedore.driver import DriverManager
+from stevedore import driver
 
 
 def get_agent_client(config):
-    mgr = DriverManager(
+    mgr = driver.DriverManager(
         namespace='teeth_overlord.agent.clients',
         name=config.AGENT_CLIENT,
         invoke_on_load=True,

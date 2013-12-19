@@ -14,35 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.agent_client.base import BaseAgentClient
+from teeth_overlord.agent_client import base
 
 
-class FakeAgentClient(BaseAgentClient):
-    """
-    A client that fakes interaction with agents.
-    """
+class FakeAgentClient(base.BaseAgentClient):
+    """A client that fakes interaction with agents."""
 
     def get_agent_connection(self, chassis):
-        """
-        Retrieve an agent connection for the specified Chassis.
-        """
+        """Retrieve an agent connection for the specified Chassis."""
         return None
 
     def cache_images(self, connection, image_ids):
-        """
-        Attempt to cache the specified images. Images are specified in
+        """Attempt to cache the specified images. Images are specified in
         priority order, and may not all be cached.
         """
         return
 
     def prepare_image(self, connection, image_id):
-        """
-        Call the `prepare_image` method on the agent.
-        """
+        """Call the `prepare_image` method on the agent."""
         return
 
     def run_image(self, connection, image_id):
-        """
-        Run the specified image.
-        """
+        """Run the specified image."""
         return

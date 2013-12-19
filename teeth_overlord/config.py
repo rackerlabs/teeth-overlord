@@ -18,9 +18,7 @@ import json
 
 
 class Config(object):
-    """
-    Configuration for Teeth Overlord services.
-    """
+    """Configuration for Teeth Overlord services."""
     CASSANDRA_CLUSTER = ['localhost:9160']
     CASSANDRA_CONSISTENCY = 'ONE'
     API_HOST = '0.0.0.0'
@@ -49,9 +47,8 @@ class Config(object):
 
     @classmethod
     def from_json_file(cls, config_path):
-        """
-        Load a configuration from the specified JSON file. Keys should
-        be upper case strings matching the config keys, and values
-        should be of the same type as the default values above.
+        """Load a configuration from the specified JSON file. Keys
+        should be upper case strings matching the config keys, and
+        values should be of the same type as the default values above.
         """
         return cls(**json.loads(open(config_path, 'r').read()))

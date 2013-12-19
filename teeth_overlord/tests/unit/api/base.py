@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.tests import TeethAPITestCase
-from teeth_overlord.api.public import TeethPublicAPI
+from teeth_overlord.api import public
+from teeth_overlord import tests
 
 
-class TestAPI(TeethAPITestCase):
+class TestAPI(tests.TeethAPITestCase):
 
     def test_routes(self):
         public_api_component = self.public_api.components.get('/v1.0')
-        self.assertIsInstance(public_api_component, TeethPublicAPI)
+        self.assertIsInstance(public_api_component, public.TeethPublicAPI)
 
         expected_mappings = {
             # Chassis Models

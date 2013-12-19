@@ -17,45 +17,49 @@ limitations under the License.
 import mock
 import unittest
 
-from statsd import StatsClient
+import statsd
 
-from teeth_overlord.config import Config
-from teeth_overlord.stats import get_stats_client, incr_stat
+from teeth_overlord import config as teeth_config
+from teeth_overlord import stats
+
+
+class SpecificException(Exception):
+    pass
 
 
 class SomeClass(object):
     def __init__(self, config, stats_client):
         self.stats_client = stats_client
 
-    @incr_stat('somestat')
+    @stats.incr_stat('somestat')
     def success_func(self):
         pass
 
-    @incr_stat('somestat')
+    @stats.incr_stat('somestat')
     def error_func(self):
-        raise Exception
+        raise SpecificException
 
 
 class StatsClientTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.config = Config()
+        self.config = teeth_config.Config()
         self.config.STATSD_PREFIX = 'teeth'
-        self.mock_stats_client = mock.Mock(spec=StatsClient)
+        self.mock_stats_client = mock.Mock(spec=statsd.StatsClient)
         self.some_object = SomeClass(self.config, self.mock_stats_client)
 
     def test_get_stats_client_with_no_prefix(self):
-        client = get_stats_client(self.config)
-        self.assertEquals(client._prefix, 'teeth')
+        client = stats.get_stats_client(self.config)
+        self.assertEqual(client._prefix, 'teeth')
 
     def test_get_stats_client_with_prefix(self):
-        client = get_stats_client(self.config, prefix='api')
-        self.assertEquals(client._prefix, 'teeth.api')
+        client = stats.get_stats_client(self.config, prefix='api')
+        self.assertEqual(client._prefix, 'teeth.api')
 
     def test_success_incrs_success_stat(self):
         self.some_object.success_func()
         self.mock_stats_client.incr.assert_called_once_with('somestat.success')
 
     def test_error_incrs_error_stat(self):
-        self.assertRaises(Exception, self.some_object.error_func)
+        self.assertRaises(SpecificException, self.some_object.error_func)
         self.mock_stats_client.incr.assert_called_once_with('somestat.error')

@@ -14,30 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.tests import TeethMockTestUtilities
+from teeth_overlord import tests
 
-from teeth_overlord.jobs.base import JobClient
+from teeth_overlord.jobs import base as jobs_base
 from teeth_overlord import models
 
 
-class TestModelMock(TeethMockTestUtilities):
-    """
-    Tests for the mock utilities in the TeethUnitTest base class.
-    """
+class TestModelMock(tests.TeethMockTestUtilities):
+    """Tests for the mock utilities in the TeethUnitTest base class."""
 
     def test_mock_class(self):
 
-        mock = self.add_mock(JobClient)
+        mock = self.add_mock(jobs_base.JobClient)
         mock.submit_job.return_value = 42
 
         # re-import JobClient so the patch is picked up. You probably shouldn't do
         # this if you can help it.
-        from teeth_overlord.jobs.base import JobClient as TestJobClient
-        client = TestJobClient("stuff")
+        from teeth_overlord.jobs import base as test_jobs_base
+        client = test_jobs_base.JobClient("stuff")
         ret = client.submit_job("jobstuff")
 
         mock.submit_job.assert_called_once_with("jobstuff")
-        self.assertEquals(ret, 42)
+        self.assertEqual(ret, 42)
 
     def test_mock_method(self):
 
@@ -46,7 +44,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.Flavor(name="flavor")
         ret = model.save()
 
-        self.assertEquals(ret, "save_return")
+        self.assertEqual(ret, "save_return")
         mock.assert_called_once_with()
 
     def test_mock_model(self):
@@ -72,7 +70,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.JobRequest(job_type="jobrequest")
         ret = model.get()
 
-        self.assertEquals(ret, "get_return")
+        self.assertEqual(ret, "get_return")
         mock.assert_called_once_with()
 
     def test_add_mock_superclass_method(self):
@@ -83,7 +81,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.JobRequest(job_type="jobrequest")
         ret = model.save()
 
-        self.assertEquals(ret, "save_return")
+        self.assertEqual(ret, "save_return")
         self.get_mock(models.JobRequest, "save").assert_called_once_with()
 
     def test_add_mock_instance_method(self):
@@ -94,7 +92,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.JobRequest(job_type="jobrequest")
         ret = model.touch()
 
-        self.assertEquals(ret, "touch_return")
+        self.assertEqual(ret, "touch_return")
         self.get_mock(models.JobRequest, "touch").assert_called_once_with()
 
     def test_mock_missing_attribute_fails(self):

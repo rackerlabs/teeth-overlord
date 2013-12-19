@@ -14,24 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from abc import ABCMeta, abstractmethod
-from uuid import uuid4
+import abc
 import time
+import uuid
 
-from structlog import get_logger
 from stevedore import driver
+import structlog
 
-from teeth_overlord.models import (
-    JobRequest,
-    JobRequestState
-)
-from teeth_overlord.agent_client import get_agent_client
-from teeth_overlord.service import SynchronousTeethService
-from teeth_overlord.scheduler import TeethInstanceScheduler
-from teeth_overlord.images.base import get_image_provider
-from teeth_overlord.oob.base import get_oob_provider
-from teeth_overlord.marconi import MarconiClient
-from teeth_overlord.stats import get_stats_client
+from teeth_overlord import agent_client
+from teeth_overlord.images import base as images_base
+from teeth_overlord import marconi
+from teeth_overlord import models
+from teeth_overlord.oob import base as oob_base
+from teeth_overlord import scheduler
+from teeth_overlord import service
+from teeth_overlord import stats
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
@@ -63,21 +60,19 @@ CLAIM_GRACE = 60 * 60 * 12
 POLLING_INTERVAL = 0.1
 
 
-class JobExecutor(SynchronousTeethService):
-    """
-    A service which executes job requests from a queue.
-    """
+class JobExecutor(service.SynchronousTeethService):
+    """A service which executes job requests from a queue."""
 
     def __init__(self, config):
         self.config = config
-        self.log = get_logger()
-        self.agent_client = get_agent_client(config)
+        self.log = structlog.get_logger()
+        self.agent_client = agent_client.get_agent_client(config)
         self.job_client = JobClient(config)
-        self.image_provider = get_image_provider(config)
-        self.oob_provider = get_oob_provider(config)
-        self.scheduler = TeethInstanceScheduler()
-        self.queue = MarconiClient(base_url=config.MARCONI_URL)
-        self.stats_client = get_stats_client(config, 'jobs')
+        self.image_provider = images_base.get_image_provider(config)
+        self.oob_provider = oob_base.get_oob_provider(config)
+        self.scheduler = scheduler.TeethInstanceScheduler()
+        self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
+        self.stats_client = stats.get_stats_client(config, 'jobs')
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
@@ -93,11 +88,11 @@ class JobExecutor(SynchronousTeethService):
         try:
             message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE)
         except Exception as e:
-            # TODO: some sort of backoff if queueing system is down
+            # TODO(russellhaering): some sort of backoff if queueing system is down
             self.log.error('error claiming message', exception=e)
             message = None
 
-        # TODO: Process messages in a thread so we can process more messages
+        # TODO(russellhaering): Process messages in a thread so we can process more messages
         #       concurrently without multiple pollers.
         if not message:
             if not self.stopping:
@@ -105,8 +100,8 @@ class JobExecutor(SynchronousTeethService):
             return
 
         try:
-            job_request = JobRequest.objects.get(id=message.body['job_request_id'])
-        except JobRequest.DoesNotExist:
+            job_request = models.JobRequest.objects.get(id=message.body['job_request_id'])
+        except models.JobRequest.DoesNotExist:
             self.log.info('removing message corresponding to non-existent JobRequest',
                           message_href=message.href,
                           job_request_id=message.body['job_request_id'])
@@ -118,41 +113,35 @@ class JobExecutor(SynchronousTeethService):
         job.execute()
 
     def run(self):
-        """
-        Start processing jobs.
-        """
+        """Start processing jobs."""
         super(JobExecutor, self).run()
         while not self.stopping:
             self._process_next_message()
 
 
 class JobClient(object):
-    """
-    A client for submitting job requests.
-    """
+    """A client for submitting job requests."""
     def __init__(self, config):
         self.config = config
-        self.queue = MarconiClient(base_url=config.MARCONI_URL)
+        self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
 
     def submit_job(self, job_type, **params):
-        """
-        Submit a job request. Specify the type of job desired, as well
-        as the pareters to the request. Parameters must be a dict
+        """Submit a job request. Specify the type of job desired, as
+        well as the pareters to the request. Parameters must be a dict
         mapping strings to strings.
         """
-        job_request = JobRequest(job_type=job_type, params=params)
+        job_request = models.JobRequest(job_type=job_type, params=params)
         job_request.save()
         body = {'job_request_id': str(job_request.id)}
         return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)
 
 
 class Job(object):
-    """
-    Abstract base class for defining jobs. Implementations must
+    """Abstract base class for defining jobs. Implementations must
     override `_execute` and be registered as a stevedore plugin
     under the `teeth_overlord.jobs` namespace.
     """
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, executor, request, message):
         self.executor = executor
@@ -161,10 +150,11 @@ class Job(object):
         self.params = request.params
         self.request = request
         self.message = message
-        self.log = get_logger(request_id=str(self.request.id), attempt_id=str(uuid4()),
-                              job_type=request.job_type)
+        self.log = structlog.get_logger(request_id=str(self.request.id),
+                                        attempt_id=str(uuid.uuid4()),
+                                        job_type=request.job_type)
 
-    @abstractmethod
+    @abc.abstractmethod
     def _execute(self):
         raise NotImplementedError()
 
@@ -198,17 +188,16 @@ class Job(object):
             self._update_claim(ttl=INITIAL_RETRY_DELAY)
 
     def execute(self):
-        """
-        Called to execute a job. Marks the request `RUNNING` in the
+        """Called to execute a job. Marks the request `RUNNING` in the
         database, and periodically updates it until the task either
         completes or fails.
         """
-        if self.request.state in (JobRequestState.FAILED, JobRequestState.COMPLETED):
+        if self.request.state in (models.JobRequestState.FAILED, models.JobRequestState.COMPLETED):
             self.log.info('job request no longer valid, not executing', state=self.request.state)
             self._delete_message()
             return
 
-        if self.request.state == JobRequestState.RUNNING:
+        if self.request.state == models.JobRequestState.RUNNING:
             self.log.info('job request was found in RUNNING state, assuming it failed')
             self._reset_request()
             return
