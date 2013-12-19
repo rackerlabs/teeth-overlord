@@ -14,21 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from cqlengine import Token
-from cqlengine import ValidationError
+import cqlengine
 
-from teeth_rest.component import APIComponent, APIServer
-from teeth_rest.responses import (
-    ItemResponse,
-    PaginatedResponse,
-    CreatedResponse,
-    DeletedResponse,
-)
+from teeth_rest import component
+from teeth_rest import responses
 
-from teeth_overlord import models, errors
-from teeth_overlord.jobs.base import JobClient
-from teeth_overlord.images.base import get_image_provider
-from teeth_overlord.stats import get_stats_client, incr_stat
+from teeth_overlord import errors
+from teeth_overlord.images import base as images_base
+from teeth_overlord.jobs import base as jobs_base
+from teeth_overlord import models
+from teeth_overlord import stats
 
 
 DEFAULT_LIMIT = 100
@@ -66,21 +61,17 @@ def _get_limit(request):
         raise errors.InvalidParametersError(msg)
 
 
-class TeethPublicAPI(APIComponent):
-    """
-    The primary Teeth Overlord API.
-    """
+class TeethPublicAPI(component.APIComponent):
+    """The primary Teeth Overlord API."""
     def __init__(self, config, job_client=None, stats_client=None):
         super(TeethPublicAPI, self).__init__()
         self.config = config
-        self.job_client = job_client or JobClient(config)
-        self.stats_client = stats_client or get_stats_client(config, prefix='api')
-        self.image_provider = get_image_provider(config)
+        self.job_client = job_client or jobs_base.JobClient(config)
+        self.stats_client = stats_client or stats.get_stats_client(config, prefix='api')
+        self.image_provider = images_base.get_image_provider(config)
 
     def add_routes(self):
-        """
-        Called during initialization. Override to map relative routes to methods.
-        """
+        """Called during initialization. Override to map relative routes to methods."""
         # ChassisModel Handlers
         self.route('GET', '/chassis_models', self.list_chassis_models)
         self.route('POST', '/chassis_models', self.create_chassis_model)
@@ -124,7 +115,7 @@ class TeethPublicAPI(APIComponent):
         query = cls.objects.all().limit(limit)
 
         if marker:
-            query = query.filter(pk__token__gt=Token(marker))
+            query = query.filter(pk__token__gt=cqlengine.Token(marker))
 
         items = list(query)
 
@@ -134,18 +125,17 @@ class TeethPublicAPI(APIComponent):
         else:
             marker = None
 
-        return PaginatedResponse(request, items, list_method, marker, limit)
+        return responses.PaginatedResponse(request, items, list_method, marker, limit)
 
     def _crud_fetch(self, request, cls, query):
         try:
-            return ItemResponse(query.get())
+            return responses.ItemResponse(query.get())
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
 
-    @incr_stat('chassis_models.create')
+    @stats.incr_stat('chassis_models.create')
     def create_chassis_model(self, request):
-        """
-        Create a ChassisModel. Example::
+        """Create a ChassisModel. Example::
 
             {
                 "name": "Supermicro  1027R-WRFT+",
@@ -157,16 +147,18 @@ class TeethPublicAPI(APIComponent):
         """
         try:
             chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
-        except ValidationError as e:
+        except cqlengine.ValidationError as e:
             raise errors.InvalidContentError(e.message)
 
         chassis_model.save()
-        return CreatedResponse(request, self.fetch_chassis_model, {'chassis_model_id': chassis_model.id})
+        location_params = {'chassis_model_id': chassis_model.id}
+        return responses.CreatedResponse(request,
+                                         self.fetch_chassis_model,
+                                         location_params)
 
-    @incr_stat('chassis_models.list')
+    @stats.incr_stat('chassis_models.list')
     def list_chassis_models(self, request):
-        """
-        List ChassisModels. Example::
+        """List ChassisModels. Example::
 
             {
                 "items": [
@@ -188,10 +180,9 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
 
-    @incr_stat('chassis_models.fetch')
+    @stats.incr_stat('chassis_models.fetch')
     def fetch_chassis_model(self, request, chassis_model_id):
-        """
-        Retrive a ChassisModel. Example::
+        """Retrive a ChassisModel. Example::
 
             {
                 "id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
@@ -203,10 +194,9 @@ class TeethPublicAPI(APIComponent):
         query = models.ChassisModel.filter(id=chassis_model_id)
         return self._crud_fetch(request, models.ChassisModel, query)
 
-    @incr_stat('flavors.create')
+    @stats.incr_stat('flavors.create')
     def create_flavor(self, request):
-        """
-        Create a Flavor. Example::
+        """Create a Flavor. Example::
 
             {
                 "name": "Extra Fast Server",
@@ -216,16 +206,15 @@ class TeethPublicAPI(APIComponent):
         """
         try:
             flavor = models.Flavor.deserialize(self.parse_content(request))
-        except ValidationError as e:
+        except cqlengine.ValidationError as e:
             raise errors.InvalidContentError(e.message)
 
         flavor.save()
-        return CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
+        return responses.CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
 
-    @incr_stat('flavors.list')
+    @stats.incr_stat('flavors.list')
     def list_flavors(self, request):
-        """
-        List Flavors. Example::
+        """List Flavors. Example::
 
             {
                 "items": [
@@ -247,10 +236,9 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.Flavor, self.list_flavors)
 
-    @incr_stat('flavors.fetch')
+    @stats.incr_stat('flavors.fetch')
     def fetch_flavor(self, request, flavor_id):
-        """
-        Retrive a Flavor. Example::
+        """Retrive a Flavor. Example::
 
             {
                 "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
@@ -262,10 +250,10 @@ class TeethPublicAPI(APIComponent):
         query = models.Flavor.objects.filter(id=flavor_id)
         return self._crud_fetch(request, models.Flavor, query)
 
-    @incr_stat('flavor_providers.create')
+    @stats.incr_stat('flavor_providers.create')
     def create_flavor_provider(self, request):
-        """
-        Create a FlavorProvider, which maps a Flavor to a ChassisModel. Example::
+        """Create a FlavorProvider, which maps a Flavor to a ChassisModel.
+        Example::
 
             {
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
@@ -284,21 +272,20 @@ class TeethPublicAPI(APIComponent):
         """
         try:
             flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
-        except ValidationError as e:
+        except cqlengine.ValidationError as e:
             raise errors.InvalidContentError(e.message)
 
         self._validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
-        return CreatedResponse(request, self.fetch_flavor_provider, {
+        return responses.CreatedResponse(request, self.fetch_flavor_provider, {
             'flavor_provider_id': flavor_provider.id
         })
 
-    @incr_stat('flavor_providers.list')
+    @stats.incr_stat('flavor_providers.list')
     def list_flavor_providers(self, request):
-        """
-        List FlavorProviders. Example::
+        """List FlavorProviders. Example::
 
             {
                 "items": [
@@ -322,10 +309,9 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
 
-    @incr_stat('flavor_providers.fetch')
+    @stats.incr_stat('flavor_providers.fetch')
     def fetch_flavor_provider(self, request, flavor_provider_id):
-        """
-        Retrive a FlavorProvider. Example::
+        """Retrive a FlavorProvider. Example::
 
             {
                 "id": "e5061fd0-371b-46ca-b07b-f415f92eb04f",
@@ -339,10 +325,9 @@ class TeethPublicAPI(APIComponent):
         query = models.FlavorProvider.objects.filter(id=flavor_provider_id)
         return self._crud_fetch(request, models.FlavorProvider, query)
 
-    @incr_stat('chassis.create')
+    @stats.incr_stat('chassis.create')
     def create_chassis(self, request):
-        """
-        Create a Chassis. Example::
+        """Create a Chassis. Example::
 
             {
                 "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
@@ -360,7 +345,7 @@ class TeethPublicAPI(APIComponent):
         """
         try:
             chassis = models.Chassis.deserialize(self.parse_content(request))
-        except ValidationError as e:
+        except cqlengine.ValidationError as e:
             raise errors.InvalidContentError(e.message)
 
         chassis_model = self._validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
@@ -368,12 +353,11 @@ class TeethPublicAPI(APIComponent):
         chassis.ipmi_password = chassis_model.ipmi_default_password
         chassis.save()
 
-        return CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
+        return responses.CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
 
-    @incr_stat('chassis.list')
+    @stats.incr_stat('chassis.list')
     def list_chassis(self, request):
-        """
-        List Chassis. Example::
+        """List Chassis. Example::
 
             {
                 "items": [
@@ -409,10 +393,9 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.Chassis, self.list_chassis)
 
-    @incr_stat('chassis.fetch')
+    @stats.incr_stat('chassis.fetch')
     def fetch_chassis(self, request, chassis_id):
-        """
-        Retrive a Chassis. Example::
+        """Retrive a Chassis. Example::
 
             {
                 "id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
@@ -424,10 +407,9 @@ class TeethPublicAPI(APIComponent):
         query = models.Chassis.objects.filter(id=chassis_id)
         return self._crud_fetch(request, models.Chassis, query)
 
-    @incr_stat('chassis.request_delete')
+    @stats.incr_stat('chassis.request_delete')
     def delete_chassis(self, request, chassis_id):
-        """
-        Delete a chassis.
+        """Delete a chassis.
 
         Returns 204 on success.
         """
@@ -449,12 +431,11 @@ class TeethPublicAPI(APIComponent):
         chassis.state = models.ChassisState.DELETED
         chassis.save()
 
-        return DeletedResponse()
+        return responses.DeletedResponse()
 
-    @incr_stat('instances.request_create')
+    @stats.incr_stat('instances.request_create')
     def create_instance(self, request):
-        """
-        Create an Instance. Example::
+        """Create an Instance. Example::
 
             {
                 "name": "web0",
@@ -466,7 +447,7 @@ class TeethPublicAPI(APIComponent):
         """
         try:
             instance = models.Instance.deserialize(self.parse_content(request))
-        except ValidationError as e:
+        except cqlengine.ValidationError as e:
             raise errors.InvalidContentError(e.message)
 
         # Validate the image ID
@@ -477,14 +458,13 @@ class TeethPublicAPI(APIComponent):
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id)
 
-        return CreatedResponse(request, self.fetch_instance, {
+        return responses.CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,
         })
 
-    @incr_stat('instances.list')
+    @stats.incr_stat('instances.list')
     def list_instances(self, request):
-        """
-        List Instances. Example::
+        """List Instances. Example::
 
             {
                 "items": [
@@ -510,10 +490,9 @@ class TeethPublicAPI(APIComponent):
         """
         return self._crud_list(request, models.Instance, self.list_instances)
 
-    @incr_stat('instances.fetch')
+    @stats.incr_stat('instances.fetch')
     def fetch_instance(self, request, instance_id):
-        """
-        Retrieve an instance. Example::
+        """Retrieve an instance. Example::
 
             {
                 "id": "e7269c27-abd8-49f1-ba8a-ac063f61bd65",
@@ -528,10 +507,9 @@ class TeethPublicAPI(APIComponent):
         query = models.Instance.objects.filter(id=instance_id)
         return self._crud_fetch(request, models.Instance, query)
 
-    @incr_stat('instances.request_delete')
+    @stats.incr_stat('instances.request_delete')
     def delete_instance(self, request, instance_id):
-        """
-        Delete an instance.
+        """Delete an instance.
 
         Returns 204 on success.
         """
@@ -549,13 +527,11 @@ class TeethPublicAPI(APIComponent):
         self.job_client.submit_job('instances.delete',
                                    instance_id=instance.id)
 
-        return DeletedResponse()
+        return responses.DeletedResponse()
 
 
-class TeethPublicAPIServer(APIServer):
-    """
-    Server for the teeth overlord API.
-    """
+class TeethPublicAPIServer(component.APIServer):
+    """Server for the teeth overlord API."""
 
     def __init__(self, config, job_client=None):
         super(TeethPublicAPIServer, self).__init__()
