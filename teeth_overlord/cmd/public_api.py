@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from werkzeug.serving import run_simple
+from cherrypy.wsgiserver import CherryPyWSGIServer
 
 from teeth_overlord.config import Config
 from teeth_overlord.service import global_setup
@@ -25,4 +25,8 @@ def run():
     config = Config()
     global_setup(config)
     api = TeethPublicAPIServer(config)
-    run_simple(config.API_HOST, config.API_PORT, api)
+    server = CherryPyWSGIServer((config.API_HOST, config.API_PORT), api)
+    try:  # ^C doesn't work without this try/except
+        server.start()
+    except KeyboardInterrupt:
+        server.stop()
