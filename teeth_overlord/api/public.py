@@ -17,6 +17,7 @@ limitations under the License.
 import cqlengine
 
 from teeth_rest import component
+from teeth_rest import errors as rest_errors
 from teeth_rest import responses
 
 from teeth_overlord import errors
@@ -107,7 +108,7 @@ class TeethPublicAPI(component.APIComponent):
         except cls.DoesNotExist:
             msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
                                                                       type_name=cls.__name__)
-            raise errors.InvalidContentError(msg)
+            raise rest_errors.InvalidContentError(msg)
 
     def _crud_list(self, request, cls, list_method):
         marker = _get_marker(request)
@@ -148,7 +149,7 @@ class TeethPublicAPI(component.APIComponent):
         try:
             chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
         except cqlengine.ValidationError as e:
-            raise errors.InvalidContentError(e.message)
+            raise rest_errors.InvalidContentError(e.message)
 
         chassis_model.save()
         location_params = {'chassis_model_id': chassis_model.id}
@@ -207,7 +208,7 @@ class TeethPublicAPI(component.APIComponent):
         try:
             flavor = models.Flavor.deserialize(self.parse_content(request))
         except cqlengine.ValidationError as e:
-            raise errors.InvalidContentError(e.message)
+            raise rest_errors.InvalidContentError(e.message)
 
         flavor.save()
         return responses.CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
@@ -273,7 +274,7 @@ class TeethPublicAPI(component.APIComponent):
         try:
             flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
         except cqlengine.ValidationError as e:
-            raise errors.InvalidContentError(e.message)
+            raise rest_errors.InvalidContentError(e.message)
 
         self._validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
@@ -346,7 +347,7 @@ class TeethPublicAPI(component.APIComponent):
         try:
             chassis = models.Chassis.deserialize(self.parse_content(request))
         except cqlengine.ValidationError as e:
-            raise errors.InvalidContentError(e.message)
+            raise rest_errors.InvalidContentError(e.message)
 
         chassis_model = self._validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
@@ -448,7 +449,7 @@ class TeethPublicAPI(component.APIComponent):
         try:
             instance = models.Instance.deserialize(self.parse_content(request))
         except cqlengine.ValidationError as e:
-            raise errors.InvalidContentError(e.message)
+            raise rest_errors.InvalidContentError(e.message)
 
         # Validate the image ID
         self.image_provider.get_image_info(instance.image_id)
