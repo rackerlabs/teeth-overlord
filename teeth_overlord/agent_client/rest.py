@@ -18,19 +18,17 @@ import json
 
 import requests
 
+from teeth_overlord.agent_client import base
+from teeth_overlord import encoding
 from teeth_overlord import errors
-from teeth_overlord.encoding import TeethJSONEncoder, SerializationViews
-from teeth_overlord.models import AgentConnection
-from teeth_overlord.agent_client.base import BaseAgentClient
+from teeth_overlord import models
 
 
-class RESTAgentClient(BaseAgentClient):
-    """
-    Client for interacting with agents via a REST API.
-    """
+class RESTAgentClient(base.BaseAgentClient):
+    """Client for interacting with agents via a REST API."""
     def __init__(self, config):
         super(RESTAgentClient, self).__init__(config)
-        self.encoder = TeethJSONEncoder(SerializationViews.PUBLIC)
+        self.encoder = encoding.TeethJSONEncoder(encoding.SerializationViews.PUBLIC)
         self.session = requests.Session()
 
     def _get_command_url(self, connection):
@@ -54,23 +52,20 @@ class RESTAgentClient(BaseAgentClient):
         }
         response = self.session.post(url, data=body, headers=headers)
 
-        # TODO: real error handling
+        # TODO(russellhaering): real error handling
         return json.loads(response.text)
 
     def get_agent_connection(self, chassis):
-        """
-        Retrieve an agent connection for the specified Chassis.
-        """
-        query = AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
+        """Retrieve an agent connection for the specified Chassis."""
+        query = models.AgentConnection.objects.filter(primary_mac_address=chassis.primary_mac_address)
 
         try:
             return query.get()
-        except AgentConnection.DoesNotExist:
+        except models.AgentConnection.DoesNotExist:
             raise errors.AgentNotConnectedError(chassis.id, chassis.primary_mac_address)
 
     def cache_images(self, connection, image_ids):
-        """
-        Attempt to cache the specified images. Images are specified in
+        """Attempt to cache the specified images. Images are specified in
         priority order, and may not all be cached.
         """
         return self._command(connection, 'standby.cache_images', {
@@ -79,18 +74,14 @@ class RESTAgentClient(BaseAgentClient):
         })
 
     def prepare_image(self, connection, image_id):
-        """
-        Call the `prepare_image` method on the agent.
-        """
+        """Call the `prepare_image` method on the agent."""
         return self._command(connection, 'standby.prepare_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
         })
 
     def run_image(self, connection, image_id):
-        """
-        Run the specified image.
-        """
+        """Run the specified image."""
         return self._command(connection, 'standby.run_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
