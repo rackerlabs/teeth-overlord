@@ -14,45 +14,42 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.models import (
-    Chassis,
-    ChassisState,
-)
-from teeth_overlord.jobs.base import Job
-from teeth_overlord.stats import incr_stat
+from teeth_overlord.jobs import base
+from teeth_overlord import models
+from teeth_overlord import stats
 
 
-class DecommissionChassis(Job):
-    """
-    Job which processes a Chassis from the `CLEAN` state to the `READY` state.
+class DecommissionChassis(base.Job):
+    """Job which processes a Chassis from the `CLEAN` state to the
+    `READY` state.
     """
     max_retries = 10
 
-    @incr_stat('chassis.decommission')
+    @stats.incr_stat('chassis.decommission')
     def _execute(self):
         params = self.request.params
-        chassis = Chassis.objects.get(id=params['chassis_id'])
+        chassis = models.Chassis.objects.get(id=params['chassis_id'])
 
-        if chassis.state != ChassisState.CLEAN:
+        if chassis.state != models.ChassisState.CLEAN:
             self.log.info('chassis not in CLEAN state, skipping', current_state=chassis.state)
             return
 
         if self.executor.oob_provider.is_chassis_on(chassis):
             self.executor.oob_provider.power_chassis_off(chassis)
 
-        # TODO: Move Chassis to the decom network
+        # TODO(russellhaering): Move Chassis to the decom network
 
         self.executor.oob_provider.power_chassis_on(chassis)
 
-        # TODO: perform on-server decommissioning
-        # TODO: rotate IPMI password?
+        # TODO(russellhaering): perform on-server decommissioning
+        # TODO(russellhaering): rotate IPMI password?
 
         self.log.info('chassis cleaned, moving to standby network', chassis_id=chassis.id)
         self.executor.oob_provider.power_chassis_off(chassis)
-        # TODO: move chassis to standby network
+        # TODO(russellhaering): move chassis to standby network
         self.executor.oob_provider.power_chassis_on(chassis)
 
-        chassis.state = ChassisState.READY
+        chassis.state = models.ChassisState.READY
         # Dissassociate any instances after clean completes.
         chassis.instance_id = None
         chassis.save()

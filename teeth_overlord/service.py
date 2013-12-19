@@ -17,10 +17,10 @@ limitations under the License.
 import signal
 import traceback
 
-import structlog
 from cqlengine import connection
+import structlog
 
-from teeth_overlord.config import Config
+from teeth_overlord import config as teeth_config
 
 # Sometimes global setup is necessary. Make sure that if we try to do it twice:
 #   a. We don't actually do it twice
@@ -38,8 +38,7 @@ def _capture_stack_trace(logger, method, event):
 
 
 def global_setup(config):
-    """
-    Perform global cofiguration. In a given process, this should only
+    """Perform global cofiguration. In a given process, this should only
     ever be called with a single configuration instance. Doing otherwise
     will result in a runtime exception.
     """
@@ -65,21 +64,17 @@ def global_setup(config):
 
 
 class TeethServiceRunner(object):
-    """
-    Instantiate and run a SynchronousTeethService.
-    """
+    """Instantiate and run a SynchronousTeethService."""
 
     def __init__(self, service_class):
-        self.service = service_class(Config())
+        self.service = service_class(teeth_config.Config())
         self.signal_map = {
             signal.SIGTERM: self._terminate,
             signal.SIGINT: self._terminate,
         }
 
     def run(self):
-        """
-        Run the service.
-        """
+        """Run the service."""
         for signum, handler in self.signal_map.iteritems():
             signal.signal(signum, handler)
 
@@ -90,9 +85,7 @@ class TeethServiceRunner(object):
 
 
 class SynchronousTeethService(object):
-    """
-    Base class for all Teeth services.
-    """
+    """Base class for all Teeth services."""
     def __init__(self, config):
         self.config = config
         self.stopping = False

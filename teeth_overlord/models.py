@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections import OrderedDict
-from datetime import datetime
-from uuid import uuid4
+import collections
+import datetime
 import struct
+import uuid
 
-from cqlengine import ValidationError, columns
-from cqlengine.models import Model
+import cqlengine
+from cqlengine import columns
+from cqlengine import models
 
-from teeth_rest.encoding import Serializable
+from teeth_rest import encoding
 
 KEYSPACE_NAME = 'teeth'
 
@@ -36,15 +37,12 @@ MAX_METADATA_VALUE_LENGTH = 2048
 
 
 def uuid_str():
-    """
-    Generate a string containing a serialized v4 UUID.
-    """
-    return str(uuid4())
+    """Generate a string containing a serialized v4 UUID."""
+    return str(uuid.uuid4())
 
 
 class C2DateTime(columns.DateTime):
-    """
-    Hack until cqlengine supports Cassandra 2.0. See:
+    """Hack until cqlengine supports Cassandra 2.0. See:
     http://stackoverflow.com/a/18992934
     """
 
@@ -55,7 +53,7 @@ class C2DateTime(columns.DateTime):
         return super(C2DateTime, self).to_python(val)
 
 
-class Base(Model, Serializable):
+class Base(models.Model, encoding.Serializable):
     """Base class for all Teeth models."""
     __abstract__ = True
     __keyspace__ = KEYSPACE_NAME
@@ -72,7 +70,8 @@ class MetadataBase(Base):
         super(MetadataBase, self).validate()
 
         if len(self.metadata) > MAX_METADATA_KEY_COUNT:
-            raise ValidationError("Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
+            raise cqlengine.ValidationError(
+                "Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
 
 
 class ChassisState(object):
@@ -85,26 +84,22 @@ class ChassisState(object):
 
 
 class Flavor(Base):
-    """
-    Model for flavors. Users choose a Flavor when they create an instance.
+    """Model for flavors. Users choose a Flavor when they create an
+    instance.
     """
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
 
     def serialize(self, view):
-        """
-        Turn a Flavor into a dict.
-        """
-        return OrderedDict([
+        """Turn a Flavor into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('name', self.name),
         ])
 
     @classmethod
     def deserialize(cls, params):
-        """
-        Turn a dict into a Flavor.
-        """
+        """Turn a dict into a Flavor."""
         flavor = cls(
             id=params.get('id'),
             name=params.get('name')
@@ -114,8 +109,7 @@ class Flavor(Base):
 
 
 class FlavorProvider(Base):
-    """
-    Model which joins Flavors to ChassisModels.
+    """Model which joins Flavors to ChassisModels.
 
     When an instance is created, a list of FlavorProviders will be
     looked up based on the specified flavor. The included
@@ -131,10 +125,8 @@ class FlavorProvider(Base):
     schedule_priority = columns.Integer(required=True)
 
     def serialize(self, view):
-        """
-        Turn a FlavorProvider into a dict.
-        """
-        return OrderedDict([
+        """Turn a FlavorProvider into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('flavor_id', self.flavor_id),
             ('chassis_model_id', self.chassis_model_id),
@@ -143,9 +135,7 @@ class FlavorProvider(Base):
 
     @classmethod
     def deserialize(cls, params):
-        """
-        Turn a dict into a FlavorProvider.
-        """
+        """Turn a dict into a FlavorProvider."""
         flavor_provider = cls(
             flavor_id=params.get('flavor_id'),
             chassis_model_id=params.get('chassis_model_id'),
@@ -156,8 +146,7 @@ class FlavorProvider(Base):
 
 
 class ChassisModel(Base):
-    """
-    Model which represents a Chassis Model. For example, a Dell R720.
+    """Model which represents a Chassis Model. For example, a Dell R720.
 
     ChassisModels include default IPMI credentials, which will be used
     when initializing new hardware.
@@ -168,19 +157,15 @@ class ChassisModel(Base):
     ipmi_default_username = columns.Text()
 
     def serialize(self, view):
-        """
-        Turn a ChassisModel into a dict.
-        """
-        return OrderedDict([
+        """Turn a ChassisModel into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('name', self.name),
         ])
 
     @classmethod
     def deserialize(cls, params):
-        """
-        Turn a dict into a ChassisModel.
-        """
+        """Turn a dict into a ChassisModel."""
         chassis_model = cls(
             name=params.get('name'),
             ipmi_default_password=params.get('ipmi_default_password'),
@@ -191,18 +176,15 @@ class ChassisModel(Base):
 
 
 class Switch(MetadataBase):
-    """
-    Model for a switch.
-    """
+    """Model for a switch."""
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
 
 
 class SwitchPort(MetadataBase):
-    """
-    Model for switch port.
+    """Model for switch port.
 
-    TODO: How should we represent MLAG pairs?
+    TODO(russellhaering): How should we represent MLAG pairs?
     """
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
@@ -210,9 +192,7 @@ class SwitchPort(MetadataBase):
 
 
 class Chassis(MetadataBase):
-    """
-    Model for an individual Chassis.
-    """
+    """Model for an individual Chassis."""
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     state = columns.Ascii(index=True, default=ChassisState.READY)
     chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
@@ -222,10 +202,8 @@ class Chassis(MetadataBase):
     primary_mac_address = columns.Ascii(index=True, required=True)
 
     def serialize(self, view):
-        """
-        Turn a Chassis into a dict.
-        """
-        return OrderedDict([
+        """Turn a Chassis into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('state', self.state),
             ('chassis_model_id', self.chassis_model_id),
@@ -236,9 +214,7 @@ class Chassis(MetadataBase):
 
     @classmethod
     def deserialize(cls, params):
-        """
-        Turn a dict into a Chassis.
-        """
+        """Turn a dict into a Chassis."""
         chassis = cls(
             chassis_model_id=params.get('chassis_model_id'),
             primary_mac_address=params.get('primary_mac_address'),
@@ -249,9 +225,7 @@ class Chassis(MetadataBase):
 
 
 class InstanceState(object):
-    """
-    Possible states than an Instance can be in.
-    """
+    """Possible states than an Instance can be in."""
     BUILD = 'BUILD'
     ACTIVE = 'ACTIVE'
     DELETING = 'DELETING'
@@ -259,9 +233,7 @@ class InstanceState(object):
 
 
 class Instance(MetadataBase):
-    """
-    Model for an Instance.
-    """
+    """Model for an Instance."""
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
@@ -270,10 +242,8 @@ class Instance(MetadataBase):
     state = columns.Ascii(index=True, default=InstanceState.BUILD)
 
     def serialize(self, view):
-        """
-        Turn an Instance into a dict.
-        """
-        return OrderedDict([
+        """Turn an Instance into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('name', self.name),
             ('flavor_id', self.flavor_id),
@@ -285,9 +255,7 @@ class Instance(MetadataBase):
 
     @classmethod
     def deserialize(cls, params):
-        """
-        Turn a dict into an Instance.
-        """
+        """Turn a dict into an Instance."""
         instance = cls(
             id=params.get('id'),
             name=params.get('name'),
@@ -301,8 +269,7 @@ class Instance(MetadataBase):
 
 
 class AgentConnection(Base):
-    """
-    Model for an AgentConnection.
+    """Model for an AgentConnection.
 
     Notably, the `id` field isn't the primary key. We want to be able to
     overwrite these using nothing but the MAC address, so we use that as
@@ -315,10 +282,8 @@ class AgentConnection(Base):
     endpoint_rpc_port = columns.Integer(required=True)
 
     def serialize(self, view):
-        """
-        Turn an AgentConnection into a dict.
-        """
-        return OrderedDict([
+        """Turn an AgentConnection into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('primary_mac_address', self.primary_mac_address),
             ('endpoint_rpc_host', self.endpoint_rpc_host),
@@ -327,9 +292,7 @@ class AgentConnection(Base):
 
 
 class JobRequestState(object):
-    """
-    Possible states that JobRequest can be in.
-    """
+    """Possible states that JobRequest can be in."""
     READY = 'READY'
     RUNNING = 'RUNNING'
     COMPLETED = 'COMPLETED'
@@ -337,38 +300,32 @@ class JobRequestState(object):
 
 
 class JobRequest(Base):
-    """
-    Model for a Job Request.
-    """
+    """Model for a Job Request."""
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
     state = columns.Ascii(index=True, default=JobRequestState.READY)
     failed_attempts = columns.Integer(default=0)
-    submitted_at = C2DateTime(default=datetime.now)
-    updated_at = C2DateTime(default=datetime.now)
+    submitted_at = C2DateTime(default=datetime.datetime.now)
+    updated_at = C2DateTime(default=datetime.datetime.now)
 
     def serialize(self, view):
-        """
-        Turn a JobRequest into a dict.
-        """
-        return OrderedDict([
+        """Turn a JobRequest into a dict."""
+        return collections.OrderedDict([
             ('id', self.id),
             ('job_type', self.job_type),
             ('params', self.params.to_python),
         ])
 
     def touch(self):
-        """
-        Update the `udpated_at` field.
+        """Update the `udpated_at` field.
 
         Note: this does not save the JobRequest.
         """
-        self.updated_at = datetime.now()
+        self.updated_at = datetime.datetime.now()
 
     def start(self):
-        """
-        Mark the job as `RUNNING` and update the `udpated_at` field.
+        """Mark the job as `RUNNING` and update the `udpated_at` field.
 
         Note: this does not save the JobRequest.
         """
@@ -376,8 +333,7 @@ class JobRequest(Base):
         self.touch()
 
     def reset(self):
-        """
-        Mark mark the job as `READY` and update the `updated_at` field.
+        """Mark mark the job as `READY` and update the `updated_at` field.
 
         Note: this does not save the JobRequest.
         """
@@ -387,8 +343,7 @@ class JobRequest(Base):
         self.touch()
 
     def fail(self):
-        """
-        Mark the job as `FAILED` and update the `udpated_at` field.
+        """Mark the job as `FAILED` and update the `udpated_at` field.
 
         Note: this does not save the JobRequest.
         """
@@ -396,8 +351,7 @@ class JobRequest(Base):
         self.touch()
 
     def complete(self):
-        """
-        Mark the job as `COMPLETED` and update the `udpated_at` field.
+        """Mark the job as `COMPLETED` and update the `udpated_at` field.
 
         Note: this does not save the JobRequest.
         """

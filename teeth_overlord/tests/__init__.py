@@ -14,25 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import unittest
-import mock
+import collections
 import json
+import mock
+import unittest
 
-from collections import defaultdict
+from cqlengine import models
 
-from cqlengine.models import Model
+from werkzeug import test
+from werkzeug import wrappers
 
-from werkzeug.test import Client, EnvironBuilder
-from werkzeug.wrappers import BaseRequest, BaseResponse
-
-from teeth_overlord.config import Config
-from teeth_overlord.api.public import TeethPublicAPIServer
-from teeth_overlord.jobs.base import JobClient
+from teeth_overlord.api import public
+from teeth_overlord import config as teeth_config
+from teeth_overlord.jobs import base as jobs_base
 
 
 class FakeQuerySet(object):
-    """
-    Rough queryset mock suitable for monkeypatching in a cqlengine model's
+    """Rough queryset mock suitable for monkeypatching in a cqlengine model's
     'objects' attribute. Behaves roughly the same (chaining works, etc) but
     obviously skips all the db touching code.
 
@@ -159,13 +157,12 @@ class FakeQuerySet(object):
 class BaseAPITests(object):
 
     def assertModelContains(self, i1, i2):
-        """
-        ensure all the stuff in the first instance/dict exists and is equal
+        """Ensure all the stuff in the first instance/dict exists and is equal
         to the stuff in the second instance/dict
         """
-        if isinstance(i1, Model):
+        if isinstance(i1, models.Model):
             i1 = i2._as_dict()
-        if isinstance(i2, Model):
+        if isinstance(i2, models.Model):
             i2 = i2._as_dict()
 
         for k, v in i1.iteritems():
@@ -214,29 +211,28 @@ class BaseAPITests(object):
 class TeethMockTestUtilities(unittest.TestCase):
 
     def setUp(self):
-        self._patches = defaultdict(dict)
+        self._patches = collections.defaultdict(dict)
 
-        self.job_client_mock = mock.Mock(spec=JobClient)
-        self.config = Config()
-        self.public_api = TeethPublicAPIServer(self.config, self.job_client_mock)
+        self.job_client_mock = mock.Mock(spec=jobs_base.JobClient)
+        self.config = teeth_config.Config()
+        self.public_api = public.TeethPublicAPIServer(self.config, self.job_client_mock)
 
     def _get_env_builder(self, method, path, data=None, query=None):
         if data:
             data = json.dumps(data)
 
-        return EnvironBuilder(method=method, path=path, data=data,
-                              content_type='application/json', query_string=query)
+        return test.EnvironBuilder(method=method, path=path, data=data,
+                                   content_type='application/json', query_string=query)
 
     def build_request(self, method, path, data=None, query=None):
-        return self._get_env_builder(method, path, data, query).get_request(BaseRequest)
+        return self._get_env_builder(method, path, data, query).get_request(wrappers.BaseRequest)
 
     def make_request(self, method, path, data=None, query=None):
-        client = Client(self.public_api, BaseResponse)
+        client = test.Client(self.public_api, wrappers.BaseResponse)
         return client.open(self._get_env_builder(method, path, data, query))
 
     def _mock_model(self, cls, return_value=None, side_effect=None):
-        """
-        Patches a cqlengine model with a dummy queryset and a few other
+        """Patches a cqlengine model with a dummy queryset and a few other
         instancemethods that touch the database.
 
         Args:
@@ -255,15 +251,14 @@ class TeethMockTestUtilities(unittest.TestCase):
         return self.get_mock(cls, 'objects')
 
     def _mock_class(self, cls, return_value=None, side_effect=None, autospec=False):
-        """
-        Patches a class wholesale.
+        """Patches a class wholesale.
 
         Args:
             cls: the class to patch.
         Returns:
             a Mock() instance
         """
-        if not cls in self._patches:
+        if cls not in self._patches:
             if isinstance(cls, basestring):
                 patcher = mock.patch(cls, autospec=autospec)
             else:
@@ -279,8 +274,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         return m
 
     def _mock_attr(self, cls, attr, return_value=None, side_effect=None, autospec=False):
-        """
-        Patches an attribute of a class.
+        """Patches an attribute of a class.
 
         Args:
             cls: the class to patch.
@@ -302,8 +296,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         return m
 
     def add_mock(self, cls, attr=None, return_value=None, side_effect=None, autospec=False):
-        """
-        Mocks a given cqlengine model, class, or attribute of a class.
+        """Mocks a given cqlengine model, class, or attribute of a class.
 
         Args:
             cls: the class to patch.
@@ -319,7 +312,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         elif attr:
             # mock an arbitrary attribute of an object
             return self._mock_attr(cls, attr, return_value, side_effect, autospec)
-        elif issubclass(cls, Model):
+        elif issubclass(cls, models.Model):
             # special mock for a cqlengine model
             return self._mock_model(cls, return_value, side_effect)
         else:
@@ -327,8 +320,7 @@ class TeethMockTestUtilities(unittest.TestCase):
             return self._mock_class(cls)
 
     def get_mock(self, cls, attr=None):
-        """
-        Returns a previously added mock.
+        """Returns a previously added mock.
 
         Args:
             cls: the class to patch.

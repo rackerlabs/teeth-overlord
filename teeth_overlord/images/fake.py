@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.images.base import BaseImageProvider, ImageInfo
+from teeth_overlord.images import base
 
 FAKE_IMAGE_INFO = {
     'name': 'Default Example Image',
@@ -25,14 +25,11 @@ FAKE_IMAGE_INFO = {
 }
 
 
-class FakeImageProvider(BaseImageProvider):
-    """
-    A static image provider useful in a dev environment.
-    """
+class FakeImageProvider(base.BaseImageProvider):
+    """A static image provider useful in a dev environment."""
 
     def get_image_info(self, image_id):
+        """Returns an ImageInfo instance with information about the
+        requested image.
         """
-        Returns an ImageInfo instance with information about the requested
-        image.
-        """
-        return ImageInfo(**dict(FAKE_IMAGE_INFO.items() + [('id', image_id)]))
+        return base.ImageInfo(**dict(FAKE_IMAGE_INFO.items() + [('id', image_id)]))

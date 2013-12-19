@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from cqlengine.management import sync_table
+from cqlengine import management
 
-from teeth_overlord.models import all_models
-from teeth_overlord.config import Config
-from teeth_overlord.service import global_setup
+from teeth_overlord import config as teeth_config
+from teeth_overlord import models
+from teeth_overlord import service
 
 
 def run():
-    global_setup(Config())
-    for model in all_models:
-        sync_table(model)
+    service.global_setup(teeth_config.Config())
+    for model in models.all_models:
+        management.sync_table(model)

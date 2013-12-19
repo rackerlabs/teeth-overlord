@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.service import TeethServiceRunner
-from teeth_overlord.jobs.base import JobExecutor
+from teeth_overlord.jobs import base as jobs_base
+from teeth_overlord import service
 
 
 def run():
-    TeethServiceRunner(JobExecutor).run()
+    service.TeethServiceRunner(jobs_base.JobExecutor).run()

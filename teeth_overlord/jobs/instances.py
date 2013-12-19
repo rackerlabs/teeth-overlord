@@ -14,22 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from cqlengine import BatchQuery
+import cqlengine
 
-from teeth_overlord.models import (
-    Chassis,
-    ChassisState,
-    Instance,
-    InstanceState
-)
-from teeth_overlord.jobs.base import Job
-from teeth_overlord.stats import incr_stat
+from teeth_overlord.jobs import base
+from teeth_overlord import models
+from teeth_overlord import stats
 
 
-class CreateInstance(Job):
-    """
-    Job which creates an instance. In order to return a 201 response to
-    the user, we actually create an Instance in the database in the
+class CreateInstance(base.Job):
+    """Job which creates an instance. In order to return a 201 response
+    to the user, we actually create an Instance in the database in the
     `BUIlD` state prior to executing this job, but it is up to the job
     to select and provision an appropriate chassis based on the instance
     parameters.
@@ -37,9 +31,7 @@ class CreateInstance(Job):
     max_retries = 10
 
     def prepare_and_run_image(self, instance, chassis, image_info):
-        """
-        Send the `prepare_image` and `run_image` commands to the agent.
-        """
+        """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
         connection = client.get_agent_connection(chassis)
         client.prepare_image(connection, image_info)
@@ -47,23 +39,21 @@ class CreateInstance(Job):
         return
 
     def mark_active(self, instance, chassis):
-        """
-        Mark the chassis and instance as active.
-        """
-        batch = BatchQuery()
+        """Mark the chassis and instance as active."""
+        batch = cqlengine.BatchQuery()
         instance.chassis_id = chassis.id
-        instance.state = InstanceState.ACTIVE
+        instance.state = models.models.InstanceState.ACTIVE
         instance.batch(batch).save()
-        chassis.state = ChassisState.ACTIVE
+        chassis.state = models.models.ChassisState.ACTIVE
         chassis.instance_id = instance.id
         chassis.batch(batch).save()
         batch.execute()
         return
 
-    @incr_stat('instances.create')
+    @stats.incr_stat('instances.create')
     def _execute(self):
         params = self.request.params
-        instance = Instance.objects.get(id=params['instance_id'])
+        instance = models.Instance.objects.get(id=params['instance_id'])
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(instance.image_id)
 
@@ -72,25 +62,24 @@ class CreateInstance(Job):
         return
 
 
-class DeleteInstance(Job):
-    """
-    Job which deletes an instance.
+class DeleteInstance(base.Job):
+    """Job which deletes an instance.
 
     Prior to the job being submitted, the Instance in the database will
     be put in the `DELETING` state.
     """
     max_retries = 10
 
-    @incr_stat('instances.delete')
+    @stats.incr_stat('instances.delete')
     def _execute(self):
         params = self.request.params
-        instance = Instance.objects.get(id=params['instance_id'])
-        chassis = Chassis.objects.get(id=instance.chassis_id)
+        instance = models.Instance.objects.get(id=params['instance_id'])
+        chassis = models.Chassis.objects.get(id=instance.chassis_id)
 
-        batch = BatchQuery()
-        instance.state = InstanceState.DELETED
+        batch = cqlengine.BatchQuery()
+        instance.state = models.models.InstanceState.DELETED
         instance.batch(batch).save()
-        chassis.state = ChassisState.CLEAN
+        chassis.state = models.models.ChassisState.CLEAN
         chassis.batch(batch).save()
         batch.execute()
         self.executor.oob_provider.power_chassis_off(chassis)
