@@ -214,7 +214,7 @@ class TeethPublicAPI(APIComponent):
         query = models.ChassisModel.filter(id=chassis_model_id)
         return self._crud_fetch(request, models.ChassisModel, query)
 
-    @incr_stat('chassis_model.delete')
+    @incr_stat('chassis_models.delete')
     def delete_chassis_model(self, request, chassis_model_id):
         """
         Delete a ChassisModel.
@@ -305,7 +305,7 @@ class TeethPublicAPI(APIComponent):
         query = models.Flavor.objects.filter(id=flavor_id)
         return self._crud_fetch(request, models.Flavor, query)
 
-    @incr_stat('flavor.delete')
+    @incr_stat('flavors.delete')
     def delete_flavor(self, request, flavor_id):
         """
         Delete a Flavor.
@@ -414,7 +414,7 @@ class TeethPublicAPI(APIComponent):
         query = models.FlavorProvider.objects.filter(id=flavor_provider_id)
         return self._crud_fetch(request, models.FlavorProvider, query)
 
-    @incr_stat('flavor_provider.delete')
+    @incr_stat('flavor_providers.delete')
     def delete_flavor_provider(self, request, flavor_provider_id):
         """
         Delete a Flavor.
@@ -519,7 +519,7 @@ class TeethPublicAPI(APIComponent):
         query = models.Chassis.objects.filter(id=chassis_id)
         return self._crud_fetch(request, models.Chassis, query)
 
-    @incr_stat('chassis.request_delete')
+    @incr_stat('chassis.delete')
     def delete_chassis(self, request, chassis_id):
         """
         Delete a chassis.
