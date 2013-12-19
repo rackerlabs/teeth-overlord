@@ -42,14 +42,6 @@ def uuid_str():
     return str(uuid4())
 
 
-# python 3.4 actually has an Enum implementation
-class Enum(set):
-    def __getattr__(self, name):
-        if name in self:
-            return name
-        raise AttributeError
-
-
 class C2DateTime(columns.DateTime):
     """
     Hack until cqlengine supports Cassandra 2.0. See:
@@ -83,7 +75,7 @@ class MetadataBase(Base):
             raise ValidationError("Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
 
 
-class ChassisState(Enum):
+class ChassisState(object):
     """Possible states that a Chassis may be in."""
     CLEAN = 'CLEAN'
     READY = 'READY'
@@ -262,7 +254,7 @@ class Chassis(MetadataBase):
         return chassis
 
 
-class InstanceState(Enum):
+class InstanceState(object):
     """
     Possible states than an Instance can be in.
     """
@@ -340,7 +332,7 @@ class AgentConnection(Base):
         ])
 
 
-class JobRequestState(Enum):
+class JobRequestState(object):
     """
     Possible states that JobRequest can be in.
     """
