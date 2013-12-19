@@ -14,12 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_rest.errors import RESTError, InvalidContentError
+from teeth_rest import errors
 
 
-class ChassisAlreadyReservedError(RESTError):
-    """
-    Error which occurs when the scheduler recommends a chassis, but
+class ChassisAlreadyReservedError(errors.RESTError):
+    """Error which occurs when the scheduler recommends a chassis, but
     someone else reserves it first. This should generally be handled
     by requesting another chassis from the scheduler.
     """
@@ -29,18 +28,16 @@ class ChassisAlreadyReservedError(RESTError):
         self.details = 'Chassis {chassis_id} is already reserved.'.format(chassis_id=str(chassis.id))
 
 
-class InsufficientCapacityError(RESTError):
-    """
-    Error which occurs when not enough capacity is available to
+class InsufficientCapacityError(errors.RESTError):
+    """Error which occurs when not enough capacity is available to
     fulfill a request.
     """
     message = 'Insufficient capacity'
     details = 'There was not enough capacity available to fulfill your request. Please try back later.'
 
 
-class AgentNotConnectedError(RESTError):
-    """
-    Error which occurs when an RPC call is attempted against a chassis
+class AgentNotConnectedError(errors.RESTError):
+    """Error which occurs when an RPC call is attempted against a chassis
     for which no agent is connected.
     """
     message = 'Agent not connected'
@@ -48,34 +45,28 @@ class AgentNotConnectedError(RESTError):
     def __init__(self, chassis_id, primary_mac_address):
         self.details = ('No agent is connected for chassis {chassis_id} (mac adddress '
                         '{primary_mac_address}).').format(
-            chassis_id=chassis_id,
-            primary_mac_address=primary_mac_address
-        )
+                            chassis_id=chassis_id,
+                            primary_mac_address=primary_mac_address)
 
 
-class AgentConnectionLostError(RESTError):
-    """
-    Error which occurs when an agent's connection is lsot while an RPC
+class AgentConnectionLostError(errors.RESTError):
+    """Error which occurs when an agent's connection is lsot while an RPC
     call is in progress.
     """
     message = 'Agent connection lost'
     details = 'The agent\'s connection was lost while performing your request.'
 
 
-class AgentExecutionError(RESTError):
-    """
-    Exception class which represents errors that occurred in the agent.
-    """
+class AgentExecutionError(errors.RESTError):
+    """Exception class which represents errors that occurred in the agent."""
     message = 'Error executing command'
 
     def __init__(self, details):
         self.details = details
 
 
-class ImageNotFoundError(InvalidContentError):
-    """
-    Error which is raised when an image is not found.
-    """
+class ImageNotFoundError(errors.InvalidContentError):
+    """Error which is raised when an image is not found."""
     message = 'Image not found'
 
     def __init__(self, image_id):
@@ -83,10 +74,8 @@ class ImageNotFoundError(InvalidContentError):
         super(ImageNotFoundError, self).__init__(msg)
 
 
-class InvalidParametersError(RESTError):
-    """
-    Error which is raised for invalid parameters
-    """
+class InvalidParametersError(errors.RESTError):
+    """Error which is raised for invalid parameters."""
     message = 'Invalid query parameters'
     status_code = 400
 
@@ -94,10 +83,9 @@ class InvalidParametersError(RESTError):
         self.details = details
 
 
-class ObjectCannotBeDeletedError(RESTError):
-    """
-    Error which is raised when a consumer attempts to delete an objects which
-    can't be deleted. (ex: foreign key constraint)
+class ObjectCannotBeDeletedError(errors.RESTError):
+    """Error which is raised when a consumer attempts to delete an
+    objects which can't be deleted. (ex: foreign key constraint)
     """
     message = 'Object cannot be deleted'
     status_code = 403
@@ -108,14 +96,13 @@ class ObjectCannotBeDeletedError(RESTError):
         self.details = details if details else default_details
 
 
-class ObjectAlreadyDeletedError(RESTError):
-    """
-    Error which is raised when a consumer attempts to delete an object which
+class ObjectAlreadyDeletedError(errors.RESTError):
+    """Error which is raised when a consumer attempts to delete an object which
     has already been deleted. This error only applies to objects which remain
     user-visible for archival purposes after a DELETE call. If an object has
     been hard deleted, or never existed in the first place (presumably these
-    states are indistinguishable to the system) a `RequestedObjectNotFoundError`
-    should be used instead.
+    states are indistinguishable to the system) a
+    `RequestedObjectNotFoundError` should be used instead.
     """
     message = 'Object already deleted'
     status_code = 403
@@ -125,10 +112,8 @@ class ObjectAlreadyDeletedError(RESTError):
         self.details = '{type} with id {id} has already been deleted.'.format(type=cls.__name__, id=id)
 
 
-class RequestedObjectNotFoundError(RESTError):
-    """
-    Error which is returned when a requested object is not found.
-    """
+class RequestedObjectNotFoundError(errors.RESTError):
+    """Error which is returned when a requested object is not found."""
     message = 'Requested object not found'
     status_code = 404
 
