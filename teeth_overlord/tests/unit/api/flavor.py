@@ -29,9 +29,11 @@ class TestFlavorAPI(TeethAPITestCase):
 
         self.flavor_objects_mock = self.add_mock(models.Flavor)
         self.flavor1 = models.Flavor(id='flavor1',
-                                     name='flavor1_name')
+                                     name='flavor1_name',
+                                     deleted=False)
         self.flavor2 = models.Flavor(id='flavor2',
-                                     name='flavor2_name')
+                                     name='flavor2_name',
+                                     deleted=False)
 
     def test_list_flavors_some(self):
         self.list_some(models.Flavor,
@@ -57,6 +59,12 @@ class TestFlavorAPI(TeethAPITestCase):
                         self.url,
                         [self.flavor1, self.flavor2])
 
+    def test_delete_flavors_none(self):
+        self.delete_none(models.Flavor,
+                         self.flavor_objects_mock,
+                         self.url,
+                         [self.flavor1, self.flavor2])
+
     def test_create_flavors(self):
 
         response = self.make_request('POST', self.url,
@@ -80,3 +88,47 @@ class TestFlavorAPI(TeethAPITestCase):
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.data)
         self.assertEqual(data['message'], 'Invalid request body')
+
+    def test_delete_flavor(self):
+
+        self.flavor_objects_mock.return_value = [self.flavor1]
+        flavor_provider_mock = self.add_mock(models.FlavorProvider, return_value=[])
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
+                                                                   id=self.flavor1.id))
+
+        self.assertEqual(response.status_code, 204)
+
+        # get the saved instance
+        save_mock = self.get_mock(models.Flavor, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        flavor = save_mock.call_args[0][0]
+
+        flavor_provider_mock.assert_called_once_with('filter',
+                                                     deleted=False,
+                                                     flavor_id=self.flavor1.id)
+
+        self.assertEqual(flavor.deleted, True)
+
+    def test_delete_flavor_active_flavor_provider(self):
+        self.flavor_objects_mock.return_value = [self.flavor1]
+        flavor_provider_mock = self.add_mock(models.FlavorProvider,
+                                             return_value=[models.FlavorProvider(flavor_id="fid",
+                                                                                 chassis_model_id="cmid",
+                                                                                 deleted=False)])
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
+                                                                   id=self.flavor1.id))
+
+        self.assertEqual(response.status_code, 403)
+
+        flavor_provider_mock.assert_called_once_with('filter',
+                                                     deleted=False,
+                                                     flavor_id=self.flavor1.id)
+
+        # get the saved instance
+        save_mock = self.get_mock(models.Flavor, 'save')
+        self.assertEqual(save_mock.call_count, 0)
+
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'Object cannot be deleted')

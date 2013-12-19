@@ -42,6 +42,14 @@ def uuid_str():
     return str(uuid4())
 
 
+# python 3.4 actually has an Enum implementation
+class Enum(set):
+    def __getattr__(self, name):
+        if name in self:
+            return name
+        raise AttributeError
+
+
 class C2DateTime(columns.DateTime):
     """
     Hack until cqlengine supports Cassandra 2.0. See:
@@ -75,7 +83,7 @@ class MetadataBase(Base):
             raise ValidationError("Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
 
 
-class ChassisState(object):
+class ChassisState(Enum):
     """Possible states that a Chassis may be in."""
     CLEAN = 'CLEAN'
     READY = 'READY'
@@ -90,6 +98,7 @@ class Flavor(Base):
     """
     id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
+    deleted = columns.Boolean(index=True, required=True, default=False)
 
     def serialize(self, view):
         """
@@ -98,6 +107,7 @@ class Flavor(Base):
         return OrderedDict([
             ('id', self.id),
             ('name', self.name),
+            ('deleted', self.deleted)
         ])
 
     @classmethod
@@ -129,6 +139,7 @@ class FlavorProvider(Base):
     flavor_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
     chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
     schedule_priority = columns.Integer(required=True)
+    deleted = columns.Boolean(index=True, required=True, default=False)
 
     def serialize(self, view):
         """
@@ -139,6 +150,7 @@ class FlavorProvider(Base):
             ('flavor_id', self.flavor_id),
             ('chassis_model_id', self.chassis_model_id),
             ('schedule_priority', self.schedule_priority),
+            ('deleted', self.deleted)
         ])
 
     @classmethod
@@ -166,6 +178,7 @@ class ChassisModel(Base):
     name = columns.Text(required=True)
     ipmi_default_password = columns.Text()
     ipmi_default_username = columns.Text()
+    deleted = columns.Boolean(index=True, required=True, default=False)
 
     def serialize(self, view):
         """
@@ -174,6 +187,7 @@ class ChassisModel(Base):
         return OrderedDict([
             ('id', self.id),
             ('name', self.name),
+            ('deleted', self.deleted)
         ])
 
     @classmethod
@@ -248,7 +262,7 @@ class Chassis(MetadataBase):
         return chassis
 
 
-class InstanceState(object):
+class InstanceState(Enum):
     """
     Possible states than an Instance can be in.
     """
@@ -326,7 +340,7 @@ class AgentConnection(Base):
         ])
 
 
-class JobRequestState(object):
+class JobRequestState(Enum):
     """
     Possible states that JobRequest can be in.
     """

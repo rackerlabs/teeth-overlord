@@ -31,11 +31,13 @@ class TestFlavorProviderAPI(TeethAPITestCase):
         self.flavorprovider1 = models.FlavorProvider(id='flavorprovider1',
                                                      flavor_id='flavor_id',
                                                      chassis_model_id='chassis_model_id',
-                                                     schedule_priority=100)
+                                                     schedule_priority=100,
+                                                     deleted=False)
         self.flavorprovider2 = models.FlavorProvider(id='flavorprovider2',
                                                      flavor_id='flavor_id',
                                                      chassis_model_id='chassis_model_id',
-                                                     schedule_priority=50)
+                                                     schedule_priority=50,
+                                                     deleted=False)
 
     def test_list_flavor_providers_some(self):
         self.list_some(models.FlavorProvider,
@@ -60,6 +62,12 @@ class TestFlavorProviderAPI(TeethAPITestCase):
                         self.flavor_provider_objects_mock,
                         self.url,
                         [self.flavorprovider1, self.flavorprovider2])
+
+    def test_delete_flavor_providers_none(self):
+        self.delete_none(models.FlavorProvider,
+                         self.flavor_provider_objects_mock,
+                         self.url,
+                         [self.flavorprovider1, self.flavorprovider2])
 
     def test_create_flavor_provider(self):
         self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor_id',
@@ -86,6 +94,38 @@ class TestFlavorProviderAPI(TeethAPITestCase):
                          'http://localhost{url}/{id}'.format(url=self.url, id=flavor_provider.id))
 
     def test_create_flavor_provider_missing_data(self):
+        response = self.make_request('POST', self.url,
+                                     data={'flavor_id': 'flavor_id',
+                                           'chassis_model_id': 'chassis_model_id'})
+
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['message'], 'Invalid request body')
+
+    def test_create_flavor_provider_deleted_flavor(self):
+        self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor_id',
+                                                                 name='some_flavor',
+                                                                 deleted=True)])
+        self.add_mock(models.ChassisModel, return_value=[models.ChassisModel(id='chassis_model_id',
+                                                                             name='chassis_model',
+                                                                             deleted=False)])
+
+        response = self.make_request('POST', self.url,
+                                     data={'flavor_id': 'flavor_id',
+                                           'chassis_model_id': 'chassis_model_id'})
+
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['message'], 'Invalid request body')
+
+    def test_create_flavor_provider_deleted_chassis_model(self):
+        self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor_id',
+                                                                 name='some_flavor',
+                                                                 deleted=False)])
+        self.add_mock(models.ChassisModel, return_value=[models.ChassisModel(id='chassis_model_id',
+                                                                             name='chassis_model',
+                                                                             deleted=True)])
+
         response = self.make_request('POST', self.url,
                                      data={'flavor_id': 'flavor_id',
                                            'chassis_model_id': 'chassis_model_id'})
@@ -123,3 +163,19 @@ class TestFlavorProviderAPI(TeethAPITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
         self.assertEqual(self.get_mock(models.FlavorProvider, 'save').call_count, 0)
+
+    def test_delete_flavor_provider(self):
+
+        self.flavor_provider_objects_mock.return_value = [self.flavorprovider1]
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
+                                                                   id=self.flavorprovider1.id))
+
+        self.assertEqual(response.status_code, 204)
+
+        # get the saved instance
+        save_mock = self.get_mock(models.FlavorProvider, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        flavor = save_mock.call_args[0][0]
+
+        self.assertEqual(flavor.deleted, True)
