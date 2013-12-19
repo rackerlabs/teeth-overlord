@@ -14,18 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from cherrypy.wsgiserver import CherryPyWSGIServer
+from cherrypy import wsgiserver
 
-from teeth_overlord.config import Config
-from teeth_overlord.service import global_setup
-from teeth_overlord.api.public import TeethPublicAPIServer
+from teeth_overlord.api import public
+from teeth_overlord import config as teeth_config
+from teeth_overlord import service
 
 
 def run():
-    config = Config()
-    global_setup(config)
-    api = TeethPublicAPIServer(config)
-    server = CherryPyWSGIServer((config.API_HOST, config.API_PORT), api)
+    config = teeth_config.Config()
+    service.global_setup(config)
+    api = public.TeethPublicAPIServer(config)
+    server = wsgiserver.CherryPyWSGIServer((config.API_HOST, config.API_PORT), api)
     try:  # ^C doesn't work without this try/except
         server.start()
     except KeyboardInterrupt:
