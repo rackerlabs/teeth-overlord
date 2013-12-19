@@ -22,6 +22,7 @@ from teeth_overlord import stats
 
 
 class CreateInstance(base.Job):
+
     """Job which creates an instance. In order to return a 201 response
     to the user, we actually create an Instance in the database in the
     `BUIlD` state prior to executing this job, but it is up to the job
@@ -54,8 +55,9 @@ class CreateInstance(base.Job):
     def _execute(self):
         params = self.request.params
         instance = models.Instance.objects.get(id=params['instance_id'])
+        image_id = instance.image_id
         chassis = self.executor.scheduler.reserve_chassis(instance)
-        image_info = self.executor.image_provider.get_image_info(instance.image_id)
+        image_info = self.executor.image_provider.get_image_info(image_id)
 
         self.prepare_and_run_image(instance, chassis, image_info)
         self.mark_active(instance, chassis)
@@ -63,6 +65,7 @@ class CreateInstance(base.Job):
 
 
 class DeleteInstance(base.Job):
+
     """Job which deletes an instance.
 
     Prior to the job being submitted, the Instance in the database will
@@ -83,5 +86,6 @@ class DeleteInstance(base.Job):
         chassis.batch(batch).save()
         batch.execute()
         self.executor.oob_provider.power_chassis_off(chassis)
-        self.executor.job_client.submit_job('chassis.decommission', chassis_id=chassis.id)
+        self.executor.job_client.submit_job('chassis.decommission',
+                                            chassis_id=chassis.id)
         return

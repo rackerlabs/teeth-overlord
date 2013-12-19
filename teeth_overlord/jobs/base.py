@@ -61,6 +61,7 @@ POLLING_INTERVAL = 0.1
 
 
 class JobExecutor(service.SynchronousTeethService):
+
     """A service which executes job requests from a queue."""
 
     def __init__(self, config):
@@ -86,25 +87,33 @@ class JobExecutor(service.SynchronousTeethService):
 
     def _process_next_message(self):
         try:
-            message = self.queue.claim_message(JOB_QUEUE_NAME, CLAIM_TTL, CLAIM_GRACE)
+            message = self.queue.claim_message(JOB_QUEUE_NAME,
+                                               CLAIM_TTL,
+                                               CLAIM_GRACE)
         except Exception as e:
-            # TODO(russellhaering): some sort of backoff if queueing system is down
+            # TODO(russellhaering): some sort of backoff if queueing system is
+            # down
             self.log.error('error claiming message', exception=e)
             message = None
 
-        # TODO(russellhaering): Process messages in a thread so we can process more messages
-        #       concurrently without multiple pollers.
+        # TODO(russellhaering): Process messages in a thread so we can process
+        #                       more messages concurrently without multiple
+        #                       pollers.
         if not message:
             if not self.stopping:
                 time.sleep(POLLING_INTERVAL)
             return
 
+        job_request_id = message.body['job_request_id']
+
         try:
-            job_request = models.JobRequest.objects.get(id=message.body['job_request_id'])
+            job_request = models.JobRequest.objects.get(id=job_request_id)
         except models.JobRequest.DoesNotExist:
-            self.log.info('removing message corresponding to non-existent JobRequest',
+            self.log.info('removing message corresponding to non-existent'
+                          ' JobRequest',
                           message_href=message.href,
-                          job_request_id=message.body['job_request_id'])
+                          job_request_id=job_request_id)
+
             self.queue.delete_message(message)
             return
 
@@ -120,7 +129,9 @@ class JobExecutor(service.SynchronousTeethService):
 
 
 class JobClient(object):
+
     """A client for submitting job requests."""
+
     def __init__(self, config):
         self.config = config
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
@@ -137,6 +148,7 @@ class JobClient(object):
 
 
 class Job(object):
+
     """Abstract base class for defining jobs. Implementations must
     override `_execute` and be registered as a stevedore plugin
     under the `teeth_overlord.jobs` namespace.
@@ -168,7 +180,8 @@ class Job(object):
         try:
             self.executor.queue.update_claim(self.message, ttl)
         except Exception as e:
-            self.log.error('error updating claim on message, ignoring', exception=e)
+            self.log.error('error updating claim on message, ignoring',
+                           exception=e)
 
     def _delete_message(self):
         try:
@@ -179,7 +192,8 @@ class Job(object):
     def _reset_request(self):
         self.request.reset()
         if self.request.failed_attempts >= self.max_retries:
-            self.log.info('job request exceeded retry limit', max_retries=self.max_retries)
+            self.log.info('job request exceeded retry limit',
+                          max_retries=self.max_retries)
             self.request.fail()
             self._save_request()
             self._delete_message()
@@ -192,13 +206,16 @@ class Job(object):
         database, and periodically updates it until the task either
         completes or fails.
         """
-        if self.request.state in (models.JobRequestState.FAILED, models.JobRequestState.COMPLETED):
-            self.log.info('job request no longer valid, not executing', state=self.request.state)
+        if self.request.state in (models.JobRequestState.FAILED,
+                                  models.JobRequestState.COMPLETED):
+            self.log.info('job request no longer valid, not executing',
+                          state=self.request.state)
             self._delete_message()
             return
 
         if self.request.state == models.JobRequestState.RUNNING:
-            self.log.info('job request was found in RUNNING state, assuming it failed')
+            self.log.info('job request was found in RUNNING state, assuming'
+                          ' it failed')
             self._reset_request()
             return
 
