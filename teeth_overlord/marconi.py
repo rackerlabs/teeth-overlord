@@ -17,20 +17,16 @@ limitations under the License.
 import json
 import uuid
 
-from requests import Session
+import requests
 
 
 class MarconiError(Exception):
-    """
-    Marconi-related errors.
-    """
+    """Marconi-related errors."""
     pass
 
 
 class MarconiMessage(object):
-    """
-    Marconi messages.
-    """
+    """Marconi messages."""
     def __init__(self, **kwargs):
         self.body = kwargs.get('body')
         self.ttl = kwargs.get('ttl')
@@ -39,25 +35,21 @@ class MarconiMessage(object):
 
 
 class ClaimedMarconiMessage(MarconiMessage):
-    """
-    Claimed Marconi messages.
-    """
+    """Claimed Marconi messages."""
     def __init__(self, **kwargs):
         super(ClaimedMarconiMessage, self).__init__(**kwargs)
         self.claim_href = kwargs.get('claim_href')
 
 
 class MarconiClient(object):
-    """
-    A lightweight client to Marconi, based on `requests`.
-    """
+    """A lightweight client to Marconi, based on `requests`."""
 
     USER_AGENT = 'marconi-requests'
 
     def __init__(self, base_url):
         self.base_url = base_url
         self.client_id = uuid.uuid4()
-        self.session = Session()
+        self.session = requests.Session()
 
     def _request(self, method, path, expected_status_codes, params=None, data=None):
         url = '{base_url}{path}'.format(
@@ -105,16 +97,12 @@ class MarconiClient(object):
             raise MarconiError(response.status_code, e)
 
     def ensure_queue(self, queue_name):
-        """
-        Ensure that the specified queue exists.
-        """
+        """Ensure that the specified queue exists."""
         path = '/v1/queues/{queue_name}'.format(queue_name=queue_name)
         self._request('PUT', path, [201, 204])
 
     def push_message(self, queue_name, body, ttl):
-        """
-        Push a message to the specified queue.
-        """
+        """Push a message to the specified queue."""
         path = '/v1/queues/{queue_name}/messages'.format(queue_name=queue_name)
         data = [
             {
@@ -127,9 +115,7 @@ class MarconiClient(object):
         return MarconiMessage(body=body, ttl=ttl, age=0, href=obj['resources'][0])
 
     def claim_message(self, queue_name, ttl, grace):
-        """
-        Claim a message from the specified queue.
-        """
+        """Claim a message from the specified queue."""
         path = '/v1/queues/{queue_name}/claims'.format(queue_name=queue_name)
         data = {
             'ttl': ttl,
@@ -147,9 +133,7 @@ class MarconiClient(object):
             return None
 
     def update_claim(self, claimed_message, ttl):
-        """
-        Update a claim. Used to refresh the claim's TTL.
-        """
+        """Update a claim. Used to refresh the claim's TTL."""
         data = {
             'ttl': ttl,
         }
@@ -157,13 +141,9 @@ class MarconiClient(object):
         self._request('PATCH', claimed_message.claim_href, [204], data=data)
 
     def release_claim(self, claimed_message):
-        """
-        Release a claim. Leaves the message in the queue.
-        """
+        """Release a claim. Leaves the message in the queue."""
         self._request('DELETE', claimed_message.claim_href, [204])
 
     def delete_message(self, message):
-        """
-        Delete a message (claimed or not).
-        """
+        """Delete a message (claimed or not)."""
         self._request('DELETE', message.href, [204])
