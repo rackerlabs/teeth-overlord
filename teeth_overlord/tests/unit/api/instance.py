@@ -120,7 +120,7 @@ class TestInstanceAPI(TeethAPITestCase):
 
         pass
 
-        # TODO: Current fake image provider always works
+        # TODO(morgabra): Current fake image provider always works
         #self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor',
         #                                                         name='flavor')])
 

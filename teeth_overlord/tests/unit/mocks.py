@@ -21,9 +21,7 @@ from teeth_overlord import models
 
 
 class TestModelMock(TeethMockTestUtilities):
-    """
-    Tests for the mock utilities in the TeethUnitTest base class.
-    """
+    """Tests for the mock utilities in the TeethUnitTest base class."""
 
     def test_mock_class(self):
 
@@ -37,7 +35,7 @@ class TestModelMock(TeethMockTestUtilities):
         ret = client.submit_job("jobstuff")
 
         mock.submit_job.assert_called_once_with("jobstuff")
-        self.assertEquals(ret, 42)
+        self.assertEqual(ret, 42)
 
     def test_mock_method(self):
 
@@ -46,7 +44,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.Flavor(name="flavor")
         ret = model.save()
 
-        self.assertEquals(ret, "save_return")
+        self.assertEqual(ret, "save_return")
         mock.assert_called_once_with()
 
     def test_mock_model(self):
@@ -72,7 +70,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.JobRequest(job_type="jobrequest")
         ret = model.get()
 
-        self.assertEquals(ret, "get_return")
+        self.assertEqual(ret, "get_return")
         mock.assert_called_once_with()
 
     def test_add_mock_superclass_method(self):
@@ -83,7 +81,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.JobRequest(job_type="jobrequest")
         ret = model.save()
 
-        self.assertEquals(ret, "save_return")
+        self.assertEqual(ret, "save_return")
         self.get_mock(models.JobRequest, "save").assert_called_once_with()
 
     def test_add_mock_instance_method(self):
@@ -94,7 +92,7 @@ class TestModelMock(TeethMockTestUtilities):
         model = models.JobRequest(job_type="jobrequest")
         ret = model.touch()
 
-        self.assertEquals(ret, "touch_return")
+        self.assertEqual(ret, "touch_return")
         self.get_mock(models.JobRequest, "touch").assert_called_once_with()
 
     def test_mock_missing_attribute_fails(self):
