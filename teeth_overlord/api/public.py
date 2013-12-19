@@ -246,7 +246,7 @@ class TeethPublicAPI(APIComponent):
 
         return DeletedResponse()
 
-    @incr_stat('flavor.create')
+    @incr_stat('flavors.create')
     def create_flavor(self, request):
         """
         Create a Flavor. Example::
