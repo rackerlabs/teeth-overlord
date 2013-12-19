@@ -37,16 +37,25 @@ class TeethInstanceScheduler(object):
             except errors.ChassisAlreadyReservedError:
                 continue
 
+    def _get_flavor_provider_priority(self, flavor_provider):
+        return flavor_provider.schedule_priority
+
     def _retrieve_eligible_chassis(self, instance):
         """Retrieve an available Chassis suitable for the instance."""
         # Sort flavor providers by priority
-        flavor_providers = sorted(models.FlavorProvider.objects.filter(flavor_id=instance.flavor_id),
-                                  key=lambda flavor_provider: flavor_provider.schedule_priority,
+        flavor_provider_query = models.FlavorProvider.objects
+        flavor_provider_query = flavor_provider_query.filter(
+            flavor_id=instance.flavor_id)
+
+        flavor_providers = sorted(flavor_provider_query,
+                                  key=self._get_flavor_provider_priority,
                                   reverse=True)
 
         for flavor_provider in flavor_providers:
-            chassis_list = models.Chassis.objects.filter(state=models.ChassisState.READY)
-            chassis_list = chassis_list.filter(chassis_model_id=flavor_provider.chassis_model_id)
+            chassis_list = models.Chassis.objects
+            chassis_list = chassis_list.filter(state=models.ChassisState.READY)
+            chassis_list = chassis_list.filter(
+                chassis_model_id=flavor_provider.chassis_model_id)
             chassis_list = chassis_list.allow_filtering()
 
             if len(chassis_list) > 0:
@@ -60,7 +69,9 @@ class TeethInstanceScheduler(object):
         put it into a `BUILD` state.
         """
         # TODO(russellhaering): Lock around instance reservation
-        # self.lock_manager.lock('/chassis/{chassis_id}'.format(chassis_id=str(chassis.id)))
+        # self.lock_manager.lock('/chassis/{chassis_id}'.format(
+        #     chassis_id=str(chassis.id)
+        # ))
 
         # Re-fetch the chassis while we hold the lock
         chassis = models.Chassis.objects.filter(id=chassis.id).get()
