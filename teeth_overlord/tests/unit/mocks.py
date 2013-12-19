@@ -28,8 +28,8 @@ class TestModelMock(tests.TeethMockTestUtilities):
         mock = self.add_mock(jobs_base.JobClient)
         mock.submit_job.return_value = 42
 
-        # re-import JobClient so the patch is picked up. You probably shouldn't do
-        # this if you can help it.
+        # re-import JobClient so the patch is picked up. You probably shouldn't
+        # do this if you can help it.
         from teeth_overlord.jobs import base as test_jobs_base
         client = test_jobs_base.JobClient("stuff")
         ret = client.submit_job("jobstuff")
@@ -97,5 +97,12 @@ class TestModelMock(tests.TeethMockTestUtilities):
 
     def test_mock_missing_attribute_fails(self):
 
-        self.assertRaises(AttributeError, self.add_mock, models.JobRequest, "foo.bar")
-        self.assertRaises(AttributeError, self.add_mock, models.JobRequest, "foobar")
+        self.assertRaises(AttributeError,
+                          self.add_mock,
+                          models.JobRequest,
+                          "foo.bar")
+
+        self.assertRaises(AttributeError,
+                          self.add_mock,
+                          models.JobRequest,
+                          "foobar")

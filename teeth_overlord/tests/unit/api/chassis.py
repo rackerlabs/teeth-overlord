@@ -61,12 +61,16 @@ class TestChassisAPI(tests.TeethAPITestCase):
                         [self.chassis1, self.chassis2])
 
     def test_create_chassis(self):
-        self.add_mock(models.ChassisModel, return_value=[models.ChassisModel(id='chassis_model_id',
-                                                                             name='chassis_model')])
+        return_value = [
+            models.ChassisModel(id='chassis_model_id', name='chassis_model'),
+        ]
+        self.add_mock(models.ChassisModel, return_value=return_value)
 
-        response = self.make_request('POST', self.url,
-                                     data={'chassis_model_id': 'chassis_model_id',
-                                           'primary_mac_address': 'mac_addr'})
+        data = {
+            'chassis_model_id': 'chassis_model_id',
+            'primary_mac_address': 'mac_addr',
+        }
+        response = self.make_request('POST', self.url, data=data)
 
         # get the saved instance
         save_mock = self.get_mock(models.Chassis, 'save')
@@ -78,22 +82,26 @@ class TestChassisAPI(tests.TeethAPITestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.headers['Location'],
-                         'http://localhost{url}/{id}'.format(url=self.url, id=chassis.id))
+                         'http://localhost{url}/{id}'.format(url=self.url,
+                                                             id=chassis.id))
 
     def test_create_flavor_provider_missing_data(self):
-        response = self.make_request('POST', self.url,
-                                     data={'chassis_model_id': 'chassis_model_id'})
+        data = {'chassis_model_id': 'chassis_model_id'}
+        response = self.make_request('POST', self.url, data=data)
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_instance_bad_chassis_model(self):
-        self.add_mock(models.ChassisModel, side_effect=models.ChassisModel.DoesNotExist)
+        self.add_mock(models.ChassisModel,
+                      side_effect=models.ChassisModel.DoesNotExist)
 
-        response = self.make_request('POST', self.url,
-                                     data={'chassis_model_id': 'does_not_exist',
-                                           'primary_mac_address': 'mac_addr'})
+        data = {
+            'chassis_model_id': 'does_not_exist',
+            'primary_mac_address': 'mac_addr',
+        }
+        response = self.make_request('POST', self.url, data=data)
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
@@ -103,7 +111,9 @@ class TestChassisAPI(tests.TeethAPITestCase):
     def test_delete_chassis(self):
         self.chassis_objects_mock.return_value = [self.chassis1]
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url, id=self.chassis1.id))
+        response = self.make_request('DELETE',
+                                     '{url}/{id}'.format(url=self.url,
+                                                         id=self.chassis1.id))
 
         self.assertEqual(response.status_code, 204)
 
@@ -117,7 +127,9 @@ class TestChassisAPI(tests.TeethAPITestCase):
         self.chassis1.state = models.ChassisState.DELETED
         self.chassis_objects_mock.return_value = [self.chassis1]
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url, id=self.chassis1.id))
+        response = self.make_request('DELETE',
+                                     '{url}/{id}'.format(url=self.url,
+                                                         id=self.chassis1.id))
 
         self.assertEqual(response.status_code, 403)
 
@@ -130,7 +142,9 @@ class TestChassisAPI(tests.TeethAPITestCase):
     def test_delete_chassis_with_active_instance(self):
         self.chassis_objects_mock.return_value = [self.chassis2]
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url, id=self.chassis2.id))
+        response = self.make_request('DELETE',
+                                     '{url}/{id}'.format(url=self.url,
+                                                         id=self.chassis2.id))
 
         self.assertEqual(response.status_code, 403)
 
