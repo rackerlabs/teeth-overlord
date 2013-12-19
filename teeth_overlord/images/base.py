@@ -15,17 +15,15 @@ limitations under the License.
 """
 
 import abc
-from collections import OrderedDict
+import collections
 
 from stevedore import driver
 
-from teeth_rest.encoding import Serializable
+from teeth_rest import encoding
 
 
-class ImageInfo(Serializable):
-    """
-    Information about an image.
-    """
+class ImageInfo(encoding.Serializable):
+    """Information about an image."""
     def __init__(self, **kwargs):
         self.id = kwargs['id']
         self.name = kwargs['name']
@@ -34,7 +32,7 @@ class ImageInfo(Serializable):
 
     def serialize(self, view):
         """Turn an ImageInfo into a dict."""
-        return OrderedDict([
+        return collections.OrderedDict([
             ('id', self.id),
             ('name', self.name),
             ('urls', self.urls),
@@ -43,9 +41,7 @@ class ImageInfo(Serializable):
 
 
 class BaseImageProvider(object):
-    """
-    A provider of images. Basically an abstraction of a glance client.
-    """
+    """A provider of images. Basically an abstraction of a glance client."""
 
     __metaclass__ = abc.ABCMeta
 
@@ -54,9 +50,8 @@ class BaseImageProvider(object):
 
     @abc.abstractmethod
     def get_image_info(self, image_id):
-        """
-        Returns an ImageInfo instance with information about the requested
-        image.
+        """Returns an ImageInfo instance with information about the
+        requested image.
         """
 
 
