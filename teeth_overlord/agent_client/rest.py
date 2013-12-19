@@ -17,9 +17,9 @@ limitations under the License.
 import json
 
 import requests
+from teeth_rest import encoding
 
 from teeth_overlord.agent_client import base
-from teeth_overlord import encoding
 from teeth_overlord import errors
 from teeth_overlord import models
 
