@@ -14,19 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord import models
-from teeth_overlord.tests import TeethMockTestUtilities
-
-from teeth_overlord.scheduler import TeethInstanceScheduler
 from teeth_overlord import errors
+from teeth_overlord import models
+from teeth_overlord import scheduler
+from teeth_overlord import tests
 
 
-class TestInstanceScheduler(TeethMockTestUtilities):
+class TestInstanceScheduler(tests.TeethMockTestUtilities):
 
     def setUp(self):
         super(TestInstanceScheduler, self).setUp()
 
-        self.scheduler = TeethInstanceScheduler()
+        self.scheduler = scheduler.TeethInstanceScheduler()
 
         self.instance1 = models.Instance(id='instance1',
                                          name='instance1_name',

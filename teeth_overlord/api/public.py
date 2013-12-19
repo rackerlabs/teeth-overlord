@@ -208,8 +208,7 @@ class TeethPublicAPI(component.APIComponent):
 
     @stats.incr_stat('chassis_models.delete')
     def delete_chassis_model(self, request, chassis_model_id):
-        """
-        Delete a ChassisModel.
+        """Delete a ChassisModel.
 
         Return 204 on success.
         """
@@ -296,8 +295,7 @@ class TeethPublicAPI(component.APIComponent):
 
     @stats.incr_stat('flavors.delete')
     def delete_flavor(self, request, flavor_id):
-        """
-        Delete a Flavor.
+        """Delete a Flavor.
 
         Return 204 on success.
         """
@@ -403,8 +401,7 @@ class TeethPublicAPI(component.APIComponent):
 
     @stats.incr_stat('flavor_providers.delete')
     def delete_flavor_provider(self, request, flavor_provider_id):
-        """
-        Delete a Flavor.
+        """Delete a Flavor.
 
         Return 204 on success.
         """
