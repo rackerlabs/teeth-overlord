@@ -20,9 +20,7 @@ from stevedore import driver
 
 
 class BaseOutOfBandProvider(object):
-    """
-    Provides support for out-of-band operations.
-    """
+    """Provides support for out-of-band operations."""
 
     __metaclass__ = abc.ABCMeta
 
@@ -31,23 +29,17 @@ class BaseOutOfBandProvider(object):
 
     @abc.abstractmethod
     def is_chassis_on(self, chassis):
-        """
-        Returns a boolean indicating whether the chassis is on.
-        """
+        """Returns a boolean indicating whether the chassis is on."""
         pass
 
     @abc.abstractmethod
     def power_chassis_off(self, chassis):
-        """
-        Power a chassis off.
-        """
+        """Power a chassis off."""
         pass
 
     @abc.abstractmethod
     def power_chassis_on(self, chassis):
-        """
-        Power a chassis on.
-        """
+        """Power a chassis on."""
         pass
 
 
