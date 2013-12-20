@@ -92,12 +92,14 @@ class Flavor(Base):
                       default=uuid_str,
                       max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
+    deleted = columns.Boolean(index=True, required=True, default=False)
 
     def serialize(self, view):
         """Turn a Flavor into a dict."""
         return collections.OrderedDict([
             ('id', self.id),
             ('name', self.name),
+            ('deleted', self.deleted)
         ])
 
     @classmethod
@@ -132,6 +134,7 @@ class FlavorProvider(Base):
                                     required=True,
                                     max_length=MAX_ID_LENGTH)
     schedule_priority = columns.Integer(required=True)
+    deleted = columns.Boolean(index=True, required=True, default=False)
 
     def serialize(self, view):
         """Turn a FlavorProvider into a dict."""
@@ -140,6 +143,7 @@ class FlavorProvider(Base):
             ('flavor_id', self.flavor_id),
             ('chassis_model_id', self.chassis_model_id),
             ('schedule_priority', self.schedule_priority),
+            ('deleted', self.deleted)
         ])
 
     @classmethod
@@ -166,12 +170,14 @@ class ChassisModel(Base):
     name = columns.Text(required=True)
     ipmi_default_password = columns.Text()
     ipmi_default_username = columns.Text()
+    deleted = columns.Boolean(index=True, required=True, default=False)
 
     def serialize(self, view):
         """Turn a ChassisModel into a dict."""
         return collections.OrderedDict([
             ('id', self.id),
             ('name', self.name),
+            ('deleted', self.deleted)
         ])
 
     @classmethod

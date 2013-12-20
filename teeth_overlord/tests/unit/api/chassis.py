@@ -60,6 +60,12 @@ class TestChassisAPI(tests.TeethAPITestCase):
                         self.url,
                         [self.chassis1, self.chassis2])
 
+    def test_delete_chassis_none(self):
+        self.delete_none(models.Chassis,
+                         self.chassis_objects_mock,
+                         self.url,
+                         [self.chassis1, self.chassis2])
+
     def test_create_chassis(self):
         return_value = [
             models.ChassisModel(id='chassis_model_id', name='chassis_model'),
@@ -85,15 +91,34 @@ class TestChassisAPI(tests.TeethAPITestCase):
                          'http://localhost{url}/{id}'.format(url=self.url,
                                                              id=chassis.id))
 
-    def test_create_flavor_provider_missing_data(self):
-        data = {'chassis_model_id': 'chassis_model_id'}
-        response = self.make_request('POST', self.url, data=data)
+    def test_create_chassis_missing_data(self):
+        response = self.make_request(
+            'POST',
+            self.url,
+            data={'chassis_model_id': 'chassis_model_id'})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
 
-    def test_create_instance_bad_chassis_model(self):
+    def test_create_chassis_deleted_chassis_model(self):
+        self.add_mock(models.ChassisModel,
+                      return_value=[models.ChassisModel(id='chassis_model_id',
+                                                        name='chassis_model',
+                                                        deleted=True)])
+
+        response = self.make_request(
+            'POST',
+            self.url,
+            data={'chassis_model_id': 'chassis_model_id',
+                  'primary_mac_address': '1:2:3:4:5'})
+
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('ChassisModel is deleted' in data['details'])
+
+    def test_create_chassis_bad_chassis_model(self):
         self.add_mock(models.ChassisModel,
                       side_effect=models.ChassisModel.DoesNotExist)
 

@@ -86,17 +86,22 @@ class TeethPublicAPI(component.APIComponent):
         self.route('POST', '/chassis_models', self.create_chassis_model)
         self.route('GET', '/chassis_models/<string:chassis_model_id>',
                    self.fetch_chassis_model)
+        self.route('DELETE', '/chassis_models/<string:chassis_model_id>',
+                   self.delete_chassis_model)
 
         # Flavor Handlers
         self.route('GET', '/flavors', self.list_flavors)
         self.route('POST', '/flavors', self.create_flavor)
         self.route('GET', '/flavors/<string:flavor_id>', self.fetch_flavor)
+        self.route('DELETE', '/flavors/<string:flavor_id>', self.delete_flavor)
 
         # FlavorProvider Handlers
         self.route('GET', '/flavor_providers', self.list_flavor_providers)
         self.route('POST', '/flavor_providers', self.create_flavor_provider)
         self.route('GET', '/flavor_providers/<string:flavor_provider_id>',
                    self.fetch_flavor_provider)
+        self.route('DELETE', '/flavor_providers/<string:flavor_provider_id>',
+                   self.delete_flavor_provider)
 
         # Chassis Handlers
         self.route('GET', '/chassis', self.list_chassis)
@@ -117,12 +122,20 @@ class TeethPublicAPI(component.APIComponent):
         id = getattr(instance, field_name)
 
         try:
-            return cls.objects.get(id=id)
+            model = cls.objects.get(id=id)
         except cls.DoesNotExist:
             msg = 'Invalid {field_name}, no such {type_name}.'.format(
                 field_name=field_name,
                 type_name=cls.__name__)
             raise rest_errors.InvalidContentError(msg)
+
+        if hasattr(model, "deleted") and model.deleted:
+            msg = 'Invalid {field_name}, given {type_name} is deleted.'.format(
+                field_name=field_name,
+                type_name=cls.__name__)
+            raise rest_errors.InvalidContentError(msg)
+
+        return model
 
     def _crud_list(self, request, cls, list_method):
         marker = _get_marker(request)
@@ -217,6 +230,41 @@ class TeethPublicAPI(component.APIComponent):
         query = models.ChassisModel.filter(id=chassis_model_id)
         return self._crud_fetch(request, models.ChassisModel, query)
 
+    @stats.incr_stat('chassis_models.delete')
+    def delete_chassis_model(self, request, chassis_model_id):
+        """Delete a ChassisModel.
+
+        Return 204 on success.
+        """
+        try:
+            chassis_model = models.ChassisModel.objects.get(
+                id=chassis_model_id)
+        except models.ChassisModel.DoesNotExist:
+            raise errors.RequestedObjectNotFoundError(models.ChassisModel,
+                                                      chassis_model_id)
+
+        if chassis_model.deleted:
+            raise errors.ObjectAlreadyDeletedError(models.ChassisModel,
+                                                   chassis_model.id)
+
+        flavor_providers_count = (models.FlavorProvider.objects
+                                  .allow_filtering()
+                                  .filter(deleted=False,
+                                          chassis_model_id=chassis_model.id)
+                                  .count())
+
+        if flavor_providers_count > 0:
+            details = ("ChassisModel is referenced in {count} active "
+                       "FlavorProviders").format(count=flavor_providers_count)
+            raise errors.ObjectCannotBeDeletedError(models.ChassisModel,
+                                                    chassis_model.id,
+                                                    details=details)
+
+        chassis_model.deleted = True
+        chassis_model.save()
+
+        return responses.DeletedResponse()
+
     @stats.incr_stat('flavors.create')
     def create_flavor(self, request):
         """Create a Flavor. Example::
@@ -275,6 +323,37 @@ class TeethPublicAPI(component.APIComponent):
         """
         query = models.Flavor.objects.filter(id=flavor_id)
         return self._crud_fetch(request, models.Flavor, query)
+
+    @stats.incr_stat('flavors.delete')
+    def delete_flavor(self, request, flavor_id):
+        """Delete a Flavor.
+
+        Return 204 on success.
+        """
+        try:
+            flavor = models.Flavor.objects.get(id=flavor_id)
+        except models.Flavor.DoesNotExist:
+            raise errors.RequestedObjectNotFoundError(models.Flavor, flavor_id)
+
+        if flavor.deleted:
+            raise errors.ObjectAlreadyDeletedError(models.Flavor, flavor.id)
+
+        flavor_providers_count = (models.FlavorProvider.objects
+                                  .allow_filtering()
+                                  .filter(deleted=False, flavor_id=flavor.id)
+                                  .count())
+
+        if flavor_providers_count > 0:
+            details = ("Flavor is referenced in {count} active "
+                       "FlavorProviders").format(count=flavor_providers_count)
+            raise errors.ObjectCannotBeDeletedError(models.Flavor,
+                                                    flavor.id,
+                                                    details=details)
+
+        flavor.deleted = True
+        flavor.save()
+
+        return responses.DeletedResponse()
 
     @stats.incr_stat('flavor_providers.create')
     def create_flavor_provider(self, request):
@@ -357,6 +436,28 @@ class TeethPublicAPI(component.APIComponent):
         """
         query = models.FlavorProvider.objects.filter(id=flavor_provider_id)
         return self._crud_fetch(request, models.FlavorProvider, query)
+
+    @stats.incr_stat('flavor_providers.delete')
+    def delete_flavor_provider(self, request, flavor_provider_id):
+        """Delete a Flavor.
+
+        Return 204 on success.
+        """
+        try:
+            flavor_provider = models.FlavorProvider.objects.get(
+                id=flavor_provider_id)
+        except models.FlavorProvider.DoesNotExist:
+            raise errors.RequestedObjectNotFoundError(models.FlavorProvider,
+                                                      flavor_provider_id)
+
+        if flavor_provider.deleted:
+            raise errors.ObjectAlreadyDeletedError(models.FlavorProvider,
+                                                   flavor_provider.id)
+
+        flavor_provider.deleted = True
+        flavor_provider.save()
+
+        return responses.DeletedResponse()
 
     @stats.incr_stat('chassis.create')
     def create_chassis(self, request):
@@ -448,7 +549,7 @@ class TeethPublicAPI(component.APIComponent):
         query = models.Chassis.objects.filter(id=chassis_id)
         return self._crud_fetch(request, models.Chassis, query)
 
-    @stats.incr_stat('chassis.request_delete')
+    @stats.incr_stat('chassis.delete')
     def delete_chassis(self, request, chassis_id):
         """Delete a chassis.
 

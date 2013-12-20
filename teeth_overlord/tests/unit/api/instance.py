@@ -68,6 +68,12 @@ class TestInstanceAPI(tests.TeethAPITestCase):
                         self.url,
                         [self.instance1, self.instance2])
 
+    def test_delete_instance_none(self):
+        self.delete_none(models.Instance,
+                         self.instance_objects_mock,
+                         self.url,
+                         [self.instance1, self.instance2])
+
     def test_create_instance(self):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]
         self.add_mock(models.Flavor, return_value=return_value)
@@ -98,6 +104,22 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         expected_location = 'http://localhost{url}/{id}'.format(url=self.url,
                                                                 id=instance.id)
         self.assertEqual(response.headers['Location'], expected_location)
+
+    def test_create_instance_deleted_flavor(self):
+        self.add_mock(models.Flavor,
+                      return_value=[models.Flavor(id='flavor',
+                                                  name='some_flavor',
+                                                  deleted=True)])
+
+        response = self.make_request('POST', self.url,
+                                     data={'name': 'test_instance',
+                                           'flavor_id': 'flavor',
+                                           'image_id': self.valid_image_id})
+
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('Flavor is deleted' in data['details'])
 
     def test_create_instance_missing_data(self):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]

@@ -28,13 +28,19 @@ class TeethInstanceScheduler(object):
     def __init__(self):
         self.log = structlog.get_logger()
 
-    def reserve_chassis(self, instance):
+    def reserve_chassis(self, instance, retry=True):
         """Locate and reserve a chassis for the specified instance."""
+
+        attempts = 0
+
         while True:
             chassis = self._retrieve_eligible_chassis(instance)
             try:
+                attempts = attempts + 1
                 return self._mark_chassis_reserved(chassis, instance)
-            except errors.ChassisAlreadyReservedError:
+            except errors.ChassisAlreadyReservedError as e:
+                if not retry:
+                    raise e
                 continue
 
     def _get_flavor_provider_priority(self, flavor_provider):
@@ -42,10 +48,11 @@ class TeethInstanceScheduler(object):
 
     def _retrieve_eligible_chassis(self, instance):
         """Retrieve an available Chassis suitable for the instance."""
+
         # Sort flavor providers by priority
-        flavor_provider_query = models.FlavorProvider.objects
+        flavor_provider_query = models.FlavorProvider.objects.allow_filtering()
         flavor_provider_query = flavor_provider_query.filter(
-            flavor_id=instance.flavor_id)
+            flavor_id=instance.flavor_id, deleted=False)
 
         flavor_providers = sorted(flavor_provider_query,
                                   key=self._get_flavor_provider_priority,

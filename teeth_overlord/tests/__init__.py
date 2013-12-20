@@ -106,6 +106,11 @@ class FakeQuerySet(object):
         if count == 0:
             raise AssertionError("method was not called")
 
+    def assert_not_called(self, method):
+        (count, _) = self._find_calls(method)
+        if count != 0:
+            raise AssertionError("method was called")
+
     def assert_called_once(self, method):
         (count, _) = self._find_calls(method)
         if count == 0:
@@ -128,6 +133,10 @@ class FakeQuerySet(object):
             raise AssertionError(
                 "method was called {count} times, expected only 1".format(
                     count=count))
+
+    def allow_filtering(self, *args, **kwargs):
+        self._calls.append(('allow_filtering', args, kwargs))
+        return self
 
     def all(self, *args, **kwargs):
         self._calls.append(('all', args, kwargs))
@@ -165,12 +174,12 @@ class BaseAPITests(object):
         to the stuff in the second instance/dict
         """
         if isinstance(i1, models.Model):
-            i1 = i2._as_dict()
+            i1 = i2.serialize(None)
         if isinstance(i2, models.Model):
-            i2 = i2._as_dict()
+            i2 = i2.serialize(None)
 
         for k, v in i1.iteritems():
-            self.assertEqual(unicode(v), unicode(i2[k]))
+            self.assertEqual(v, i2[k])
 
     def list_some(self, model, model_objects_mock, url, mock_data):
         self.assertTrue(isinstance(mock_data[0], model))
@@ -215,6 +224,18 @@ class BaseAPITests(object):
         data = json.loads(response.data)
         self.assertEqual(data['message'], u'Requested object not found')
 
+    def delete_none(self, model, model_objects_mock, url, mock_data):
+        model_objects_mock.side_effect = model.DoesNotExist
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(
+            url=url,
+            id='does_not_exist'))
+
+        self.assertEqual(response.status_code, 404)
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], u'Requested object not found')
+        self.assertEqual(self.get_mock(model, 'save').call_count, 0)
+
 
 class TeethMockTestUtilities(unittest.TestCase):
 
@@ -256,6 +277,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         """
         self._mock_attr(cls, 'save', autospec=True)
         self._mock_attr(cls, 'delete', autospec=True)
+        self._mock_attr(cls, 'batch')
 
         query = FakeQuerySet(return_value, side_effect)
         patcher = mock.patch.object(cls, 'objects', new=query)
