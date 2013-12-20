@@ -35,9 +35,7 @@ class RESTAgentClient(base.BaseAgentClient):
     def _get_command_url(self, connection):
         return 'http://{host}:{port}/v1.0/command'.format(
             host=connection.endpoint_rpc_host,
-            port=connection.endpoint_rpc_port,
-            connection_id=connection.id
-        )
+            port=connection.endpoint_rpc_port)
 
     def _get_command_body(self, method, params):
         return self.encoder.encode({
