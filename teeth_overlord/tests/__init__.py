@@ -106,6 +106,11 @@ class FakeQuerySet(object):
         if count == 0:
             raise AssertionError("method was not called")
 
+    def assert_not_called(self, method):
+        (count, _) = self._find_calls(method)
+        if count != 0:
+            raise AssertionError("method was called")
+
     def assert_called_once(self, method):
         (count, _) = self._find_calls(method)
         if count == 0:

@@ -129,11 +129,11 @@ class TeethPublicAPI(component.APIComponent):
                 type_name=cls.__name__)
             raise rest_errors.InvalidContentError(msg)
 
-        if hasattr(instance, "deleted") and model.deleted:
+        if hasattr(model, "deleted") and model.deleted:
             msg = 'Invalid {field_name}, given {type_name} is deleted.'.format(
                 field_name=field_name,
                 type_name=cls.__name__)
-            raise errors.InvalidContentError(msg)
+            raise rest_errors.InvalidContentError(msg)
 
         return model
 

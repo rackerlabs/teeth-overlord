@@ -110,11 +110,13 @@ class TestChassisAPI(tests.TeethAPITestCase):
         response = self.make_request(
             'POST',
             self.url,
-            data={'chassis_model_id': 'chassis_model_id'})
+            data={'chassis_model_id': 'chassis_model_id',
+                  'primary_mac_address': '1:2:3:4:5'})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('ChassisModel is deleted' in data['details'])
 
     def test_create_chassis_bad_chassis_model(self):
         self.add_mock(models.ChassisModel,

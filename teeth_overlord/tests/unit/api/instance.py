@@ -112,12 +112,14 @@ class TestInstanceAPI(tests.TeethAPITestCase):
                                                   deleted=True)])
 
         response = self.make_request('POST', self.url,
-                                     data={'flavor_id': 'flavor',
+                                     data={'name': 'test_instance',
+                                           'flavor_id': 'flavor',
                                            'image_id': self.valid_image_id})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('Flavor is deleted' in data['details'])
 
     def test_create_instance_missing_data(self):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]

@@ -131,11 +131,13 @@ class TestFlavorProviderAPI(tests.TeethAPITestCase):
             'POST',
             self.url,
             data={'flavor_id': 'flavor_id',
-                  'chassis_model_id': 'chassis_model_id'})
+                  'chassis_model_id': 'chassis_model_id',
+                  'schedule_priority': 100})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('Flavor is deleted', data['details'])
 
     def test_create_flavor_provider_deleted_chassis_model(self):
         self.add_mock(models.Flavor,
@@ -151,11 +153,13 @@ class TestFlavorProviderAPI(tests.TeethAPITestCase):
             'POST',
             self.url,
             data={'flavor_id': 'flavor_id',
-                  'chassis_model_id': 'chassis_model_id'})
+                  'chassis_model_id': 'chassis_model_id',
+                  'schedule_priority': 100})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('ChassisModel is deleted', data['details'])
 
     def test_create_flavor_provider_bad_flavor(self):
         self.add_mock(models.Flavor, side_effect=models.Flavor.DoesNotExist)
