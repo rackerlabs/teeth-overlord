@@ -73,7 +73,8 @@ class TeethPublicAPI(component.APIComponent):
         self.config = config
         self.job_client = job_client or jobs_base.JobClient(config)
         self.stats_client = stats_client or stats.get_stats_client(
-            config, prefix='api')
+            config,
+            prefix='api')
         self.image_provider = images_base.get_image_provider(config)
 
     def add_routes(self):
@@ -164,8 +165,8 @@ class TeethPublicAPI(component.APIComponent):
         Returns 201 with a Location header upon success.
         """
         try:
-            chassis_model = models.ChassisModel.deserialize(
-                self.parse_content(request))
+            body = self.parse_content(request)
+            chassis_model = models.ChassisModel.deserialize(body)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
@@ -296,13 +297,14 @@ class TeethPublicAPI(component.APIComponent):
         Returns 201 with a Location header upon success.
         """
         try:
-            flavor_provider = models.FlavorProvider.deserialize(
-                self.parse_content(request))
+            body = self.parse_content(request)
+            flavor_provider = models.FlavorProvider.deserialize(body)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
-        self._validate_relation(
-            flavor_provider, 'chassis_model_id', models.ChassisModel)
+        self._validate_relation(flavor_provider,
+                                'chassis_model_id',
+                                models.ChassisModel)
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
@@ -379,8 +381,9 @@ class TeethPublicAPI(component.APIComponent):
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
-        chassis_model = self._validate_relation(
-            chassis, 'chassis_model_id', models.ChassisModel)
+        chassis_model = self._validate_relation(chassis,
+                                                'chassis_model_id',
+                                                models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
         chassis.save()
@@ -454,8 +457,8 @@ class TeethPublicAPI(component.APIComponent):
         try:
             chassis = models.Chassis.objects.get(id=chassis_id)
         except models.Chassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.Chassis, chassis_id)
+            raise errors.RequestedObjectNotFoundError(models.Chassis,
+                                                      chassis_id)
 
         if chassis.state == models.ChassisState.DELETED:
             raise errors.ObjectAlreadyDeletedError(models.Chassis, chassis.id)
@@ -556,13 +559,13 @@ class TeethPublicAPI(component.APIComponent):
         try:
             instance = models.Instance.objects.get(id=instance_id)
         except models.Instance.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.Instance, instance_id)
+            raise errors.RequestedObjectNotFoundError(models.Instance,
+                                                      instance_id)
 
         if instance.state in (models.InstanceState.DELETING,
                               models.InstanceState.DELETED):
-            raise errors.ObjectAlreadyDeletedError(
-                models.Instance, instance_id)
+            raise errors.ObjectAlreadyDeletedError(models.Instance,
+                                                   instance_id)
 
         instance.state = models.InstanceState.DELETING
         instance.save()
@@ -580,5 +583,5 @@ class TeethPublicAPIServer(component.APIServer):
     def __init__(self, config, job_client=None):
         super(TeethPublicAPIServer, self).__init__()
         self.config = config
-        self.add_component(
-            '/v1.0', TeethPublicAPI(self.config, job_client=job_client))
+        self.add_component('/v1.0',
+                           TeethPublicAPI(self.config, job_client=job_client))
