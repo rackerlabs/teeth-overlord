@@ -25,7 +25,8 @@ class ChassisAlreadyReservedError(errors.RESTError):
     message = 'Chassis already reserved'
 
     def __init__(self, chassis):
-        self.details = 'Chassis {chassis_id} is already reserved.'.format(chassis_id=str(chassis.id))
+        self.details = 'Chassis {chassis_id} is already reserved.'.format(
+            chassis_id=str(chassis.id))
 
 
 class InsufficientCapacityError(errors.RESTError):
@@ -33,7 +34,8 @@ class InsufficientCapacityError(errors.RESTError):
     fulfill a request.
     """
     message = 'Insufficient capacity'
-    details = 'There was not enough capacity available to fulfill your request. Please try back later.'
+    details = ('There was not enough capacity available to fulfill your '
+               'request. Please try back later.')
 
 
 class AgentNotConnectedError(errors.RESTError):
@@ -43,8 +45,8 @@ class AgentNotConnectedError(errors.RESTError):
     message = 'Agent not connected'
 
     def __init__(self, chassis_id, primary_mac_address):
-        self.details = ('No agent is connected for chassis {chassis_id} (mac adddress '
-                        '{primary_mac_address}).').format(
+        self.details = ('No agent is connected for chassis {chassis_id} (mac '
+                        'adddress {primary_mac_address}).').format(
                             chassis_id=chassis_id,
                             primary_mac_address=primary_mac_address)
 
@@ -92,7 +94,8 @@ class ObjectCannotBeDeletedError(errors.RESTError):
 
     def __init__(self, cls, id, details=None):
         super(ObjectCannotBeDeletedError, self).__init__(cls, id)
-        default_details = '{type} with id {id} cannot be deleted.'.format(type=cls.__name__, id=id)
+        default_details = '{type} with id {id} cannot be deleted.'.format(
+            type=cls.__name__, id=id)
         self.details = details if details else default_details
 
 
@@ -109,7 +112,8 @@ class ObjectAlreadyDeletedError(errors.RESTError):
 
     def __init__(self, cls, id):
         super(ObjectAlreadyDeletedError, self).__init__(cls, id)
-        self.details = '{type} with id {id} has already been deleted.'.format(type=cls.__name__, id=id)
+        self.details = '{type} with id {id} has already been deleted.'.format(
+            type=cls.__name__, id=id)
 
 
 class RequestedObjectNotFoundError(errors.RESTError):
@@ -119,4 +123,5 @@ class RequestedObjectNotFoundError(errors.RESTError):
 
     def __init__(self, cls, id):
         super(RequestedObjectNotFoundError, self).__init__(cls, id)
-        self.details = '{type} with id {id} not found.'.format(type=cls.__name__, id=id)
+        self.details = '{type} with id {id} not found.'.format(
+            type=cls.__name__, id=id)

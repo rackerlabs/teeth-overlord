@@ -38,7 +38,8 @@ def _get_single_param(request, param):
     if len(values) == 1:
         return values[0]
 
-    msg = 'Multiple \'{param}\' query parameters were provided.'.format(param=param)
+    msg = 'Multiple \'{param}\' query parameters were provided.'.format(
+        param=param)
     raise errors.InvalidParametersError(msg)
 
 
@@ -55,7 +56,8 @@ def _get_limit(request):
     try:
         limit = int(limit)
         if limit <= 0:
-            raise errors.InvalidParametersError('The \'limit\' query parameter must be greater than 0.')
+            raise errors.InvalidParametersError(
+                'The \'limit\' query parameter must be greater than 0.')
         return limit
     except ValueError:
         msg = 'The provided \'limit\' query parameter was was not an integer.'
@@ -63,21 +65,29 @@ def _get_limit(request):
 
 
 class TeethPublicAPI(component.APIComponent):
+
     """The primary Teeth Overlord API."""
+
     def __init__(self, config, job_client=None, stats_client=None):
         super(TeethPublicAPI, self).__init__()
         self.config = config
         self.job_client = job_client or jobs_base.JobClient(config)
-        self.stats_client = stats_client or stats.get_stats_client(config, prefix='api')
+        self.stats_client = stats_client or stats.get_stats_client(
+            config,
+            prefix='api')
         self.image_provider = images_base.get_image_provider(config)
 
     def add_routes(self):
-        """Called during initialization. Override to map relative routes to methods."""
+        """Called during initialization. Override to map relative routes to
+        methods.
+        """
         # ChassisModel Handlers
         self.route('GET', '/chassis_models', self.list_chassis_models)
         self.route('POST', '/chassis_models', self.create_chassis_model)
-        self.route('GET', '/chassis_models/<string:chassis_model_id>', self.fetch_chassis_model)
-        self.route('DELETE', '/chassis_models/<string:chassis_model_id>', self.delete_chassis_model)
+        self.route('GET', '/chassis_models/<string:chassis_model_id>',
+                   self.fetch_chassis_model)
+        self.route('DELETE', '/chassis_models/<string:chassis_model_id>',
+                   self.delete_chassis_model)
 
         # Flavor Handlers
         self.route('GET', '/flavors', self.list_flavors)
@@ -88,7 +98,8 @@ class TeethPublicAPI(component.APIComponent):
         # FlavorProvider Handlers
         self.route('GET', '/flavor_providers', self.list_flavor_providers)
         self.route('POST', '/flavor_providers', self.create_flavor_provider)
-        self.route('GET', '/flavor_providers/<string:flavor_provider_id>', self.fetch_flavor_provider)
+        self.route('GET', '/flavor_providers/<string:flavor_provider_id>',
+                   self.fetch_flavor_provider)
         self.route('DELETE', '/flavor_providers/<string:flavor_provider_id>',
                    self.delete_flavor_provider)
 
@@ -96,13 +107,16 @@ class TeethPublicAPI(component.APIComponent):
         self.route('GET', '/chassis', self.list_chassis)
         self.route('POST', '/chassis', self.create_chassis)
         self.route('GET', '/chassis/<string:chassis_id>', self.fetch_chassis)
-        self.route('DELETE', '/chassis/<string:chassis_id>', self.delete_chassis)
+        self.route('DELETE', '/chassis/<string:chassis_id>',
+                   self.delete_chassis)
 
         # Instance Handlers
         self.route('GET', '/instances', self.list_instances)
         self.route('POST', '/instances', self.create_instance)
-        self.route('GET', '/instances/<string:instance_id>', self.fetch_instance)
-        self.route('DELETE', '/instances/<string:instance_id>', self.delete_instance)
+        self.route('GET', '/instances/<string:instance_id>',
+                   self.fetch_instance)
+        self.route('DELETE', '/instances/<string:instance_id>',
+                   self.delete_instance)
 
     def _validate_relation(self, instance, field_name, cls):
         id = getattr(instance, field_name)
@@ -110,8 +124,9 @@ class TeethPublicAPI(component.APIComponent):
         try:
             model = cls.objects.get(id=id)
         except cls.DoesNotExist:
-            msg = 'Invalid {field_name}, no such {type_name}.'.format(field_name=field_name,
-                                                                      type_name=cls.__name__)
+            msg = 'Invalid {field_name}, no such {type_name}.'.format(
+                field_name=field_name,
+                type_name=cls.__name__)
             raise rest_errors.InvalidContentError(msg)
 
         if hasattr(instance, "deleted") and model.deleted:
@@ -137,7 +152,11 @@ class TeethPublicAPI(component.APIComponent):
         else:
             marker = None
 
-        return responses.PaginatedResponse(request, items, list_method, marker, limit)
+        return responses.PaginatedResponse(request,
+                                           items,
+                                           list_method,
+                                           marker,
+                                           limit)
 
     def _crud_fetch(self, request, cls, query):
         try:
@@ -158,7 +177,8 @@ class TeethPublicAPI(component.APIComponent):
         Returns 201 with a Location header upon success.
         """
         try:
-            chassis_model = models.ChassisModel.deserialize(self.parse_content(request))
+            body = self.parse_content(request)
+            chassis_model = models.ChassisModel.deserialize(body)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
@@ -182,7 +202,8 @@ class TeethPublicAPI(component.APIComponent):
                 "links": [
                     {
                         "href": "http://localhost:8080/v1.0/chassis_models?
-                                    marker=e0d4774b-daa6-4361-b4d9-ab367e40d885&limit=1",
+                                    marker=e0d4774b-daa6-4361-b4d9-ab367e40d885
+                                    &limit=1",
                         "rel": "next"
                     }
                 ]
@@ -190,7 +211,9 @@ class TeethPublicAPI(component.APIComponent):
 
         Returns 200 along with a list of ChassisModels upon success.
         """
-        return self._crud_list(request, models.ChassisModel, self.list_chassis_models)
+        return self._crud_list(request,
+                               models.ChassisModel,
+                               self.list_chassis_models)
 
     @stats.incr_stat('chassis_models.fetch')
     def fetch_chassis_model(self, request, chassis_model_id):
@@ -253,7 +276,9 @@ class TeethPublicAPI(component.APIComponent):
             raise rest_errors.InvalidContentError(e.message)
 
         flavor.save()
-        return responses.CreatedResponse(request, self.fetch_flavor, {'flavor_id': flavor.id})
+        return responses.CreatedResponse(request,
+                                         self.fetch_flavor,
+                                         {'flavor_id': flavor.id})
 
     @stats.incr_stat('flavors.list')
     def list_flavors(self, request):
@@ -269,7 +294,8 @@ class TeethPublicAPI(component.APIComponent):
                 "links": [
                     {
                         "href": "http://localhost:8080/v1.0/flavors?
-                                    marker=d5942a92-ac78-49f6-95c8-d837cfd1f8d2&limit=1",
+                                    marker=d5942a92-ac78-49f6-95c8-d837cfd1f8d2
+                                    &limit=1",
                         "rel": "next"
                     }
                 ]
@@ -345,11 +371,14 @@ class TeethPublicAPI(component.APIComponent):
         Returns 201 with a Location header upon success.
         """
         try:
-            flavor_provider = models.FlavorProvider.deserialize(self.parse_content(request))
+            body = self.parse_content(request)
+            flavor_provider = models.FlavorProvider.deserialize(body)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
-        self._validate_relation(flavor_provider, 'chassis_model_id', models.ChassisModel)
+        self._validate_relation(flavor_provider,
+                                'chassis_model_id',
+                                models.ChassisModel)
         self._validate_relation(flavor_provider, 'flavor_id', models.Flavor)
 
         flavor_provider.save()
@@ -366,14 +395,16 @@ class TeethPublicAPI(component.APIComponent):
                     {
                         "id": "e5061fd0-371b-46ca-b07b-f415f92eb04f",
                         "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
-                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "chassis_model_id":
+                            "e0d4774b-daa6-4361-b4d9-ab367e40d885",
                         "schedule_priority": 100
                     }
                 ],
                 "links": [
                     {
                         "href": "http://localhost:8080/v1.0/flavor_providers?
-                                    marker=e0d4774b-daa6-4361-b4d9-ab367e40d885&limit=1",
+                                    marker=e0d4774b-daa6-4361-b4d9-ab367e40d885
+                                    &limit=1",
                         "rel": "next"
                     }
                 ]
@@ -381,7 +412,9 @@ class TeethPublicAPI(component.APIComponent):
 
         Returns 200 with a list of FlavorProviders upon success.
         """
-        return self._crud_list(request, models.FlavorProvider, self.list_flavor_providers)
+        return self._crud_list(request,
+                               models.FlavorProvider,
+                               self.list_flavor_providers)
 
     @stats.incr_stat('flavor_providers.fetch')
     def fetch_flavor_provider(self, request, flavor_provider_id):
@@ -441,12 +474,16 @@ class TeethPublicAPI(component.APIComponent):
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
-        chassis_model = self._validate_relation(chassis, 'chassis_model_id', models.ChassisModel)
+        chassis_model = self._validate_relation(chassis,
+                                                'chassis_model_id',
+                                                models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
         chassis.save()
 
-        return responses.CreatedResponse(request, self.fetch_chassis, {'chassis_id': chassis.id})
+        return responses.CreatedResponse(request,
+                                         self.fetch_chassis,
+                                         {'chassis_id': chassis.id})
 
     @stats.incr_stat('chassis.list')
     def list_chassis(self, request):
@@ -457,26 +494,30 @@ class TeethPublicAPI(component.APIComponent):
                     {
                         "id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
                         "state": "ACTIVE",
-                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "chassis_model_id":
+                            "e0d4774b-daa6-4361-b4d9-ab367e40d885",
                         "primary_mac_address": "bc:76:4e:20:03:5f"
                     },
                     {
                         "id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
                         "state": "BUILD",
-                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "chassis_model_id":
+                            "e0d4774b-daa6-4361-b4d9-ab367e40d885",
                         "primary_mac_address": "bc:76:4e:20:12:44"
                     },
                     {
                         "id": "e2c328c7-fcb5-4989-8bbd-bdd5877dc219",
                         "state": "READY",
-                        "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
+                        "chassis_model_id":
+                            "e0d4774b-daa6-4361-b4d9-ab367e40d885",
                         "primary_mac_address": "40:6c:8f:19:14:17"
                     }
                 ],
                 "links": [
                     {
                         "href": "http://localhost:8080/v1.0/chassis?
-                                    marker=e2c328c7-fcb5-4989-8bbd-bdd5877dc219&limit=3",
+                                    marker=e2c328c7-fcb5-4989-8bbd-bdd5877dc219
+                                    &limit=3",
                         "rel": "next"
                     }
                 ]
@@ -509,17 +550,19 @@ class TeethPublicAPI(component.APIComponent):
         try:
             chassis = models.Chassis.objects.get(id=chassis_id)
         except models.Chassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(models.Chassis, chassis_id)
+            raise errors.RequestedObjectNotFoundError(models.Chassis,
+                                                      chassis_id)
 
         if chassis.state == models.ChassisState.DELETED:
             raise errors.ObjectAlreadyDeletedError(models.Chassis, chassis.id)
 
-        # if instance_id is None, there are no running instances and the chassis has been
-        # cleaned - thus safe to delete.
+        # if instance_id is None, there are no running instances and the
+        # chassis has been cleaned - thus safe to delete.
         if chassis.instance_id is not None:
+            msg = "Chassis has a non-empty instance_id"
             raise errors.ObjectCannotBeDeletedError(models.Chassis,
                                                     chassis.id,
-                                                    details="Chassis has non-empty instance_id")
+                                                    details=msg)
 
         chassis.state = models.ChassisState.DELETED
         chassis.save()
@@ -609,10 +652,13 @@ class TeethPublicAPI(component.APIComponent):
         try:
             instance = models.Instance.objects.get(id=instance_id)
         except models.Instance.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(models.Instance, instance_id)
+            raise errors.RequestedObjectNotFoundError(models.Instance,
+                                                      instance_id)
 
-        if instance.state in (models.InstanceState.DELETING, models.InstanceState.DELETED):
-            raise errors.ObjectAlreadyDeletedError(models.Instance, instance_id)
+        if instance.state in (models.InstanceState.DELETING,
+                              models.InstanceState.DELETED):
+            raise errors.ObjectAlreadyDeletedError(models.Instance,
+                                                   instance_id)
 
         instance.state = models.InstanceState.DELETING
         instance.save()
@@ -624,9 +670,11 @@ class TeethPublicAPI(component.APIComponent):
 
 
 class TeethPublicAPIServer(component.APIServer):
+
     """Server for the teeth overlord API."""
 
     def __init__(self, config, job_client=None):
         super(TeethPublicAPIServer, self).__init__()
         self.config = config
-        self.add_component('/v1.0', TeethPublicAPI(self.config, job_client=job_client))
+        self.add_component('/v1.0',
+                           TeethPublicAPI(self.config, job_client=job_client))

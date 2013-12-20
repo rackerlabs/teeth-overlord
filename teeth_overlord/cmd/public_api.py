@@ -25,7 +25,8 @@ def run():
     config = teeth_config.Config()
     service.global_setup(config)
     api = public.TeethPublicAPIServer(config)
-    server = wsgiserver.CherryPyWSGIServer((config.API_HOST, config.API_PORT), api)
+    listen_address = (config.API_HOST, config.API_PORT)
+    server = wsgiserver.CherryPyWSGIServer(listen_address, api)
     try:  # ^C doesn't work without this try/except
         server.start()
     except KeyboardInterrupt:

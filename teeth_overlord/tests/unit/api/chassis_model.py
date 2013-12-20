@@ -79,10 +79,11 @@ class TestChassisModelAPI(tests.TeethAPITestCase):
 
         self.assertEqual(chassis_model.name, 'created_chassis_model')
         self.assertEqual(response.headers['Location'],
-                         'http://localhost{url}/{id}'.format(url=self.url, id=chassis_model.id))
+                         'http://localhost{url}/{id}'.format(
+                             url=self.url,
+                             id=chassis_model.id))
 
     def test_create_chassis_model_missing_data(self):
-
         response = self.make_request('POST', self.url, {'foo': 'bar'})
 
         self.assertEqual(response.status_code, 400)

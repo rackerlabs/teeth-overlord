@@ -79,7 +79,8 @@ class TestFlavorAPI(tests.TeethAPITestCase):
 
         self.assertEqual(flavor.name, 'created_flavor')
         self.assertEqual(response.headers['Location'],
-                         'http://localhost/v1.0/flavors/{id}'.format(id=flavor.id))
+                         'http://localhost/v1.0/flavors/{id}'.format(
+                             id=flavor.id))
 
     def test_create_flavor_missing_data(self):
 

@@ -36,11 +36,11 @@ class FakeQuerySet(object):
 
     return_value is dumb, and any time the queryset is evaluated
     it will return whatever you pass in. (With the exception of limit(),
-    which is actually implemented)
+    which is actually implemented).
 
     side_effect can be a callable or exception, and will raise or call
     any time the queryset is evaluated. (ex: filter() won't trigger it,
-    but all() will)
+    but all() will).
     """
 
     def __init__(self, return_value=None, side_effect=None):
@@ -111,7 +111,9 @@ class FakeQuerySet(object):
         if count == 0:
             raise AssertionError("method was not called")
         if count > 1:
-            raise AssertionError("method was called {count} times, expected only 1".format(count=count))
+            raise AssertionError(
+                "method was called {count} times, expected only 1".format(
+                    count=count))
 
     def assert_called_with(self, method, *args, **kwargs):
         (count, _) = self._find_calls_with_args(method, args, kwargs)
@@ -123,7 +125,9 @@ class FakeQuerySet(object):
         if count == 0:
             raise AssertionError("method was not called")
         if count > 1:
-            raise AssertionError("method was called {count} times, expected only 1".format(count=count))
+            raise AssertionError(
+                "method was called {count} times, expected only 1".format(
+                    count=count))
 
     def allow_filtering(self, *args, **kwargs):
         self._calls.append(('allow_filtering', args, kwargs))
@@ -142,8 +146,8 @@ class FakeQuerySet(object):
         self._calls.append(('get', args, kwargs))
         self._do_side_effect()
 
-        # get() returns 1 thing or throws, so we want to enforce that if you happen to
-        # configure the mock incorrectly.
+        # get() returns 1 thing or throws, so we want to enforce that if you
+        # happen to configure the mock incorrectly.
         assert(len(self._get_data()) == 1)
         return self._get_data()[0]
 
@@ -196,7 +200,9 @@ class BaseAPITests(object):
         self.assertTrue(isinstance(mock_data[0], model))
         model_objects_mock.return_value = [mock_data[0]]
 
-        response = self.make_request('GET', '{url}/{id}'.format(url=url, id=mock_data[0].id))
+        response = self.make_request('GET', '{url}/{id}'.format(
+            url=url,
+            id=mock_data[0].id))
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -205,7 +211,9 @@ class BaseAPITests(object):
     def fetch_none(self, model, model_objects_mock, url, mock_data):
         model_objects_mock.side_effect = model.DoesNotExist
 
-        response = self.make_request('GET', '{url}/{id}'.format(url=url, id='does_not_exist'))
+        response = self.make_request('GET', '{url}/{id}'.format(
+            url=url,
+            id='does_not_exist'))
 
         self.assertEqual(response.status_code, 404)
         data = json.loads(response.data)
@@ -229,17 +237,22 @@ class TeethMockTestUtilities(unittest.TestCase):
 
         self.job_client_mock = mock.Mock(spec=jobs_base.JobClient)
         self.config = teeth_config.Config()
-        self.public_api = public.TeethPublicAPIServer(self.config, self.job_client_mock)
+        self.public_api = public.TeethPublicAPIServer(self.config,
+                                                      self.job_client_mock)
 
     def _get_env_builder(self, method, path, data=None, query=None):
         if data:
             data = json.dumps(data)
 
-        return test.EnvironBuilder(method=method, path=path, data=data,
-                                   content_type='application/json', query_string=query)
+        return test.EnvironBuilder(method=method,
+                                   path=path,
+                                   data=data,
+                                   content_type='application/json',
+                                   query_string=query)
 
     def build_request(self, method, path, data=None, query=None):
-        return self._get_env_builder(method, path, data, query).get_request(wrappers.BaseRequest)
+        env_builder = self._get_env_builder(method, path, data, query)
+        return env_builder.get_request(wrappers.BaseRequest)
 
     def make_request(self, method, path, data=None, query=None):
         client = test.Client(self.public_api, wrappers.BaseResponse)
@@ -259,13 +272,15 @@ class TeethMockTestUtilities(unittest.TestCase):
         self._mock_attr(cls, 'delete', autospec=True)
         self._mock_attr(cls, 'batch')
 
-        patcher = mock.patch.object(cls, 'objects', new=FakeQuerySet(return_value, side_effect))
+        query = FakeQuerySet(return_value, side_effect)
+        patcher = mock.patch.object(cls, 'objects', new=query)
         self._patches[cls]['objects'] = patcher.start()
         self.addCleanup(patcher.stop)
 
         return self.get_mock(cls, 'objects')
 
-    def _mock_class(self, cls, return_value=None, side_effect=None, autospec=False):
+    def _mock_class(self, cls, return_value=None, side_effect=None,
+                    autospec=False):
         """Patches a class wholesale.
 
         Args:
@@ -288,12 +303,14 @@ class TeethMockTestUtilities(unittest.TestCase):
             m.side_effect = side_effect
         return m
 
-    def _mock_attr(self, cls, attr, return_value=None, side_effect=None, autospec=False):
+    def _mock_attr(self, cls, attr, return_value=None, side_effect=None,
+                   autospec=False):
         """Patches an attribute of a class.
 
         Args:
             cls: the class to patch.
-            attr: the attribute to patch ("some_method", "some_object.some_method", etc)
+            attr: the attribute to patch ("some_method",
+                    "some_object.some_method", etc)
             return_value: optional return_value of the mock
             side_effect: option side_effect of the mock
         Returns:
@@ -310,7 +327,8 @@ class TeethMockTestUtilities(unittest.TestCase):
             m.side_effect = side_effect
         return m
 
-    def add_mock(self, cls, attr=None, return_value=None, side_effect=None, autospec=False):
+    def add_mock(self, cls, attr=None, return_value=None, side_effect=None,
+                 autospec=False):
         """Mocks a given cqlengine model, class, or attribute of a class.
 
         Args:
@@ -326,7 +344,11 @@ class TeethMockTestUtilities(unittest.TestCase):
             return self._mock_class(cls, return_value, side_effect, autospec)
         elif attr:
             # mock an arbitrary attribute of an object
-            return self._mock_attr(cls, attr, return_value, side_effect, autospec)
+            return self._mock_attr(cls,
+                                   attr,
+                                   return_value,
+                                   side_effect,
+                                   autospec)
         elif issubclass(cls, models.Model):
             # special mock for a cqlengine model
             return self._mock_model(cls, return_value, side_effect)

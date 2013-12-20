@@ -31,10 +31,12 @@ class FakeOutOfBandProvider(base.BaseOutOfBandProvider):
 
     def power_chassis_off(self, chassis):
         """Power a chassis off."""
-        self.log.info('faking chassis power-off command', chassis_id=chassis.id)
+        self.log.info('faking chassis power-off command',
+                      chassis_id=chassis.id)
         return True
 
     def power_chassis_on(self, chassis):
         """Power a chassis on."""
-        self.log.info('faking chassis power-on command', chassis_id=chassis.id)
+        self.log.info('faking chassis power-on command',
+                      chassis_id=chassis.id)
         return True

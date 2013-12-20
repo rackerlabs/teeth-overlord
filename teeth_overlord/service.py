@@ -45,7 +45,9 @@ def global_setup(config):
     global _global_config
     if _global_config is None:
         _global_config = config
-        connection.setup(config.CASSANDRA_CLUSTER, consistency=config.CASSANDRA_CONSISTENCY)
+        connection.setup(config.CASSANDRA_CLUSTER,
+                         consistency=config.CASSANDRA_CONSISTENCY)
+
         processors = [
             _capture_stack_trace,
         ]
@@ -60,7 +62,8 @@ def global_setup(config):
             processors=processors
         )
     elif _global_config != config:
-        raise Exception('global_setup called twice with different configurations')
+        raise Exception('global_setup called twice with different '
+                        'configurations')
 
 
 class TeethServiceRunner(object):

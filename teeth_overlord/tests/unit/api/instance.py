@@ -75,12 +75,16 @@ class TestInstanceAPI(tests.TeethAPITestCase):
                          [self.instance1, self.instance2])
 
     def test_create_instance(self):
-        self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor', name='some_flavor')])
+        return_value = [models.Flavor(id='flavor', name='some_flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
 
-        response = self.make_request('POST', self.url,
-                                     data={'name': 'created_instance',
-                                           'flavor_id': 'flavor',
-                                           'image_id': self.valid_image_id})
+        data = {
+            'name': 'created_instance',
+            'flavor_id': 'flavor',
+            'image_id': self.valid_image_id,
+        }
+
+        response = self.make_request('POST', self.url, data=data)
 
         # get the saved instance
         save_mock = self.get_mock(models.Instance, 'save')
@@ -91,12 +95,15 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(instance.flavor_id, 'flavor')
         self.assertEqual(instance.image_id, self.valid_image_id)
 
-        self.job_client_mock.submit_job.assert_called_once_with('instances.create',
-                                                                instance_id=instance.id)
+        self.job_client_mock.submit_job.assert_called_once_with(
+            'instances.create',
+            instance_id=instance.id)
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.headers['Location'],
-                         'http://localhost{url}/{id}'.format(url=self.url, id=instance.id))
+
+        expected_location = 'http://localhost{url}/{id}'.format(url=self.url,
+                                                                id=instance.id)
+        self.assertEqual(response.headers['Location'], expected_location)
 
     def test_create_instance_deleted_flavor(self):
         self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor',
@@ -112,7 +119,8 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_instance_missing_data(self):
-        self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor', name='some_flavor')])
+        return_value = [models.Flavor(id='flavor', name='some_flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
 
         response = self.make_request('POST', self.url,
                                      data={'flavor_id': 'flavor',
@@ -140,8 +148,8 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         pass
 
         # TODO(morgabra): Current fake image provider always works
-        #self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor',
-        #                                                         name='flavor')])
+        #return_value = [models.Flavor(id='flavor', name='flavor')]
+        #self.add_mock(models.Flavor, return_value=return_value)
 
         #response = self.make_request('POST', self.url,
         #                             data={"name": "created_instance",
@@ -155,12 +163,14 @@ class TestInstanceAPI(tests.TeethAPITestCase):
     def test_delete_instance(self):
         self.instance_objects_mock.return_value = [self.instance1]
 
-        response = self.make_request('DELETE', '{url}/foobar'.format(url=self.url))
+        response = self.make_request('DELETE',
+                                     '{url}/foobar'.format(url=self.url))
 
         self.assertEqual(response.status_code, 204)
         self.instance_objects_mock.assert_called_once_with('get', id='foobar')
-        self.job_client_mock.submit_job.assert_called_once_with('instances.delete',
-                                                                instance_id='instance1')
+        self.job_client_mock.submit_job.assert_called_once_with(
+            'instances.delete',
+            instance_id='instance1')
 
         save_mock = self.get_mock(models.Instance, 'save')
         self.assertEqual(save_mock.call_count, 1)
@@ -169,13 +179,15 @@ class TestInstanceAPI(tests.TeethAPITestCase):
     def test_delete_instance_already_deleted(self):
         self.instance_objects_mock.return_value = [self.instance2]
 
-        response = self.make_request('DELETE', '{url}/foobar'.format(url=self.url))
+        response = self.make_request('DELETE',
+                                     '{url}/foobar'.format(url=self.url))
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.instance2.state, models.InstanceState.DELETED)
 
         self.instance2.state = models.InstanceState.DELETING
-        response = self.make_request('DELETE', '{url}/foobar'.format(url=self.url))
+        response = self.make_request('DELETE',
+                                     '{url}/foobar'.format(url=self.url))
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.instance2.state, models.InstanceState.DELETING)
@@ -183,6 +195,7 @@ class TestInstanceAPI(tests.TeethAPITestCase):
     def test_delete_instance_does_not_exist(self):
         self.instance_objects_mock.side_effect = models.Instance.DoesNotExist
 
-        response = self.make_request('DELETE', '{url}/foobar'.format(url=self.url))
+        response = self.make_request('DELETE',
+                                     '{url}/foobar'.format(url=self.url))
 
         self.assertEqual(response.status_code, 404)

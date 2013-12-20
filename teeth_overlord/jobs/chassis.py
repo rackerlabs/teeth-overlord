@@ -20,6 +20,7 @@ from teeth_overlord import stats
 
 
 class DecommissionChassis(base.Job):
+
     """Job which processes a Chassis from the `CLEAN` state to the
     `READY` state.
     """
@@ -31,7 +32,8 @@ class DecommissionChassis(base.Job):
         chassis = models.Chassis.objects.get(id=params['chassis_id'])
 
         if chassis.state != models.ChassisState.CLEAN:
-            self.log.info('chassis not in CLEAN state, skipping', current_state=chassis.state)
+            self.log.info('chassis not in CLEAN state, skipping',
+                          current_state=chassis.state)
             return
 
         if self.executor.oob_provider.is_chassis_on(chassis):
@@ -44,7 +46,8 @@ class DecommissionChassis(base.Job):
         # TODO(russellhaering): perform on-server decommissioning
         # TODO(russellhaering): rotate IPMI password?
 
-        self.log.info('chassis cleaned, moving to standby network', chassis_id=chassis.id)
+        self.log.info('chassis cleaned, moving to standby network',
+                      chassis_id=chassis.id)
         self.executor.oob_provider.power_chassis_off(chassis)
         # TODO(russellhaering): move chassis to standby network
         self.executor.oob_provider.power_chassis_on(chassis)

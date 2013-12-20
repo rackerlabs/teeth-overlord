@@ -18,7 +18,9 @@ from teeth_overlord.images import base
 
 FAKE_IMAGE_INFO = {
     'name': 'Default Example Image',
-    'urls': ['http://example.org/images/8226c769-3739-4ee6-921c-82110da6c669.raw'],
+    'urls': [
+        'http://example.org/images/8226c769-3739-4ee6-921c-82110da6c669.raw',
+    ],
     'hashes': {
         'md5': 'c2e5db72bd7fd153f53ede5da5a06de3',
     },
@@ -32,4 +34,5 @@ class FakeImageProvider(base.BaseImageProvider):
         """Returns an ImageInfo instance with information about the
         requested image.
         """
-        return base.ImageInfo(**dict(FAKE_IMAGE_INFO.items() + [('id', image_id)]))
+        image_info = dict(FAKE_IMAGE_INFO.items() + [('id', image_id)])
+        return base.ImageInfo(**image_info)
