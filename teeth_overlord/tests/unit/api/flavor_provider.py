@@ -127,7 +127,8 @@ class TestFlavorProviderAPI(tests.TeethAPITestCase):
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
-        mocked_flavor_provider_save = self.get_mock(models.FlavorProvider, 'save')
+        mocked_flavor_provider_save = self.get_mock(models.FlavorProvider,
+                                                    'save')
         self.assertEqual(mocked_flavor_provider_save.call_count, 0)
 
     def test_create_flavor_provider_bad_chassis_model(self):
@@ -146,5 +147,6 @@ class TestFlavorProviderAPI(tests.TeethAPITestCase):
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(data['message'], 'Invalid request body')
-        mocked_flavor_provider_save = self.get_mock(models.FlavorProvider, 'save')
+        mocked_flavor_provider_save = self.get_mock(models.FlavorProvider,
+                                                    'save')
         self.assertEqual(mocked_flavor_provider_save.call_count, 0)
