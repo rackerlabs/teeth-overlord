@@ -179,3 +179,19 @@ class TestFlavorProviderAPI(tests.TeethAPITestCase):
         flavor = save_mock.call_args[0][0]
 
         self.assertEqual(flavor.deleted, True)
+
+    def test_delete_flavor_provider_already_deleted(self):
+
+        self.flavorprovider1.deleted = True
+        self.flavor_provider_objects_mock.return_value = [self.flavorprovider1]
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
+                                                                   id=self.flavorprovider1.id))
+
+        self.assertEqual(response.status_code, 403)
+
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'Object already deleted')
+
+        save_mock = self.get_mock(models.FlavorProvider, 'save')
+        self.assertEqual(save_mock.call_count, 0)

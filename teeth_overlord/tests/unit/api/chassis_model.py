@@ -132,3 +132,19 @@ class TestChassisModelAPI(tests.TeethAPITestCase):
 
         data = json.loads(response.data)
         self.assertEqual(data['message'], 'Object cannot be deleted')
+
+    def test_delete_flavor_already_deleted(self):
+
+        self.chassismodel1.deleted = True
+        self.chassis_model_objects_mock.return_value = [self.chassismodel1]
+
+        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
+                                                                   id=self.chassismodel1.id))
+
+        self.assertEqual(response.status_code, 403)
+
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'Object already deleted')
+
+        save_mock = self.get_mock(models.ChassisModel, 'save')
+        self.assertEqual(save_mock.call_count, 0)
