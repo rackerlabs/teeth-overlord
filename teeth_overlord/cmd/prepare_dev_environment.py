@@ -21,7 +21,8 @@ import requests
 
 def post(path, item):
     url = 'http://localhost:8080' + path
-    response = requests.post(url, json.dumps(item), headers={'Content-Type': 'application/json'})
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(url, json.dumps(item), headers=headers)
     return response.headers.get('location').rsplit('/')[-1]
 
 

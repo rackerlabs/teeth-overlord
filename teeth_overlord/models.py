@@ -71,7 +71,8 @@ class MetadataBase(Base):
 
         if len(self.metadata) > MAX_METADATA_KEY_COUNT:
             raise cqlengine.ValidationError(
-                "Exceeded limit of {} 'metadata' keys.".format(MAX_METADATA_KEY_COUNT))
+                "Exceeded limit of {} 'metadata' keys.".format(
+                    MAX_METADATA_KEY_COUNT))
 
 
 class ChassisState(object):
@@ -87,7 +88,9 @@ class Flavor(Base):
     """Model for flavors. Users choose a Flavor when they create an
     instance.
     """
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
 
     def serialize(self, view):
@@ -119,9 +122,15 @@ class FlavorProvider(Base):
     provide multiple flavors, or a flavor to be provided by multiple
     chassis models.
     """
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
-    flavor_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
-    chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
+    flavor_id = columns.Text(index=True,
+                             required=True,
+                             max_length=MAX_ID_LENGTH)
+    chassis_model_id = columns.Text(index=True,
+                                    required=True,
+                                    max_length=MAX_ID_LENGTH)
     schedule_priority = columns.Integer(required=True)
 
     def serialize(self, view):
@@ -151,7 +160,9 @@ class ChassisModel(Base):
     ChassisModels include default IPMI credentials, which will be used
     when initializing new hardware.
     """
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
     ipmi_default_password = columns.Text()
     ipmi_default_username = columns.Text()
@@ -177,7 +188,9 @@ class ChassisModel(Base):
 
 class Switch(MetadataBase):
     """Model for a switch."""
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
 
 
@@ -186,16 +199,23 @@ class SwitchPort(MetadataBase):
 
     TODO(russellhaering): How should we represent MLAG pairs?
     """
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
     switch_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
 
 
 class Chassis(MetadataBase):
     """Model for an individual Chassis."""
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
-    state = columns.Ascii(index=True, default=ChassisState.READY)
-    chassis_model_id = columns.Text(index=True, required=True, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
+    state = columns.Ascii(index=True,
+                          default=ChassisState.READY)
+    chassis_model_id = columns.Text(index=True,
+                                    required=True,
+                                    max_length=MAX_ID_LENGTH)
     instance_id = columns.Text(max_length=MAX_ID_LENGTH)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
@@ -234,7 +254,9 @@ class InstanceState(object):
 
 class Instance(MetadataBase):
     """Model for an Instance."""
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     name = columns.Text(required=True)
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
@@ -301,7 +323,9 @@ class JobRequestState(object):
 
 class JobRequest(Base):
     """Model for a Job Request."""
-    id = columns.Text(primary_key=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     job_type = columns.Ascii(required=True)
     params = columns.Map(columns.Ascii, columns.Ascii)
     state = columns.Ascii(index=True, default=JobRequestState.READY)
@@ -358,4 +382,12 @@ class JobRequest(Base):
         self.state = JobRequestState.COMPLETED
         self.touch()
 
-all_models = [Chassis, Instance, AgentConnection, JobRequest, Flavor, FlavorProvider, ChassisModel]
+all_models = [
+    Chassis,
+    Instance,
+    AgentConnection,
+    JobRequest,
+    Flavor,
+    FlavorProvider,
+    ChassisModel
+]

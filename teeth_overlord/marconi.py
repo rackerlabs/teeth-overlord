@@ -51,7 +51,8 @@ class MarconiClient(object):
         self.client_id = uuid.uuid4()
         self.session = requests.Session()
 
-    def _request(self, method, path, expected_status_codes, params=None, data=None):
+    def _request(self, method, path, expected_status_codes, params=None,
+                 data=None):
         url = '{base_url}{path}'.format(
             base_url=self.base_url,
             path=path,
@@ -69,7 +70,11 @@ class MarconiClient(object):
         else:
             body = None
 
-        response = self.session.request(method, url, headers=headers, data=body, params=params)
+        response = self.session.request(method,
+                                        url,
+                                        headers=headers,
+                                        data=body,
+                                        params=params)
 
         if response.status_code not in expected_status_codes:
             if response.text:
@@ -112,7 +117,10 @@ class MarconiClient(object):
         ]
 
         obj = self._extract_json(self._request('POST', path, [201], data=data))
-        return MarconiMessage(body=body, ttl=ttl, age=0, href=obj['resources'][0])
+        return MarconiMessage(body=body,
+                              ttl=ttl,
+                              age=0,
+                              href=obj['resources'][0])
 
     def claim_message(self, queue_name, ttl, grace):
         """Claim a message from the specified queue."""
@@ -125,10 +133,16 @@ class MarconiClient(object):
             'limit': 1,
         }
 
-        response = self._request('POST', path, [201, 204], data=data, params=params)
+        response = self._request('POST',
+                                 path,
+                                 [201, 204],
+                                 data=data,
+                                 params=params)
+
         obj = self._extract_json(response)
         if obj:
-            return ClaimedMarconiMessage(claim_href=response.headers['Location'], **obj[0])
+            claim_href = response.headers['Location']
+            return ClaimedMarconiMessage(claim_href=claim_href, **obj[0])
         else:
             return None
 
