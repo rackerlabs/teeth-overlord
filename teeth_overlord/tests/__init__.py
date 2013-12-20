@@ -222,7 +222,9 @@ class BaseAPITests(object):
     def delete_none(self, model, model_objects_mock, url, mock_data):
         model_objects_mock.side_effect = model.DoesNotExist
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=url, id='does_not_exist'))
+        response = self.make_request('DELETE', '{url}/{id}'.format(
+            url=url,
+            id='does_not_exist'))
 
         self.assertEqual(response.status_code, 404)
         data = json.loads(response.data)

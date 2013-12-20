@@ -32,32 +32,36 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
                                          flavor_id='flavor1',
                                          image_id='image1')
 
-        self.flavorprovider1 = models.FlavorProvider(flavor_id='flavor1',
-                                                     chassis_model_id='chassismodel1',
-                                                     deleted=False)
+        self.flavorprovider1 = models.FlavorProvider(
+            flavor_id='flavor1',
+            chassis_model_id='chassismodel1',
+            deleted=False)
 
-        self.chassis1 = models.Chassis(id='chassis1',
-                                       state=models.ChassisState.READY,
-                                       primary_mac_address='1:2:3:4:5')
-
-        # hardcoded valid imageid from the static image provider
-        self.valid_image_id = '8226c769-3739-4ee6-921c-82110da6c669'
+        self.chassis1 = models.Chassis(
+            id='chassis1',
+            state=models.ChassisState.READY,
+            primary_mac_address='1:2:3:4:5')
 
     def test_reserve_chassis(self):
         self.add_mock(models.Instance)
-        chassis_mock = self.add_mock(models.Chassis, return_value=[self.chassis1])
-        flavor_provider_mock = self.add_mock(models.FlavorProvider,
-                                             return_value=[self.flavorprovider1])
+        chassis_mock = self.add_mock(models.Chassis,
+                                     return_value=[self.chassis1])
+        flavor_provider_mock = self.add_mock(
+            models.FlavorProvider,
+            return_value=[self.flavorprovider1])
 
         self.scheduler.reserve_chassis(self.instance1, retry=False)
 
-        flavor_provider_mock.assert_called_once_with('filter',
-                                                     deleted=False,
-                                                     flavor_id=self.instance1.flavor_id)
-        chassis_mock.assert_called_once_with('filter',
-                                             state=models.ChassisState.READY)
-        chassis_mock.assert_called_once_with('filter',
-                                             chassis_model_id=self.flavorprovider1.chassis_model_id)
+        flavor_provider_mock.assert_called_once_with(
+            'filter',
+            deleted=False,
+            flavor_id=self.instance1.flavor_id)
+        chassis_mock.assert_called_once_with(
+            'filter',
+            state=models.ChassisState.READY)
+        chassis_mock.assert_called_once_with(
+            'filter',
+            chassis_model_id=self.flavorprovider1.chassis_model_id)
 
         self.assertEqual(self.instance1.chassis_id, self.chassis1.id)
         self.assertEqual(self.instance1.state, models.InstanceState.BUILD)
@@ -73,20 +77,24 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
         self.chassis1.state = models.ChassisState.ACTIVE
         chassis_mock = self.add_mock(models.Chassis,
                                      return_value=[self.chassis1])
-        flavor_provider_mock = self.add_mock(models.FlavorProvider,
-                                             return_value=[self.flavorprovider1])
+        flavor_provider_mock = self.add_mock(
+            models.FlavorProvider,
+            return_value=[self.flavorprovider1])
 
         self.assertRaises(errors.ChassisAlreadyReservedError,
                           self.scheduler.reserve_chassis,
                           self.instance1,
                           retry=False)
-        flavor_provider_mock.assert_called_once_with('filter',
-                                                     deleted=False,
-                                                     flavor_id=self.instance1.flavor_id)
-        chassis_mock.assert_called_once_with('filter',
-                                             state=models.ChassisState.READY)
-        chassis_mock.assert_called_once_with('filter',
-                                             chassis_model_id=self.flavorprovider1.chassis_model_id)
+        flavor_provider_mock.assert_called_once_with(
+            'filter',
+            deleted=False,
+            flavor_id=self.instance1.flavor_id)
+        chassis_mock.assert_called_once_with(
+            'filter',
+            state=models.ChassisState.READY)
+        chassis_mock.assert_called_once_with(
+            'filter',
+            chassis_model_id=self.flavorprovider1.chassis_model_id)
 
     def test_reserve_chassis_no_capacity(self):
         flavor_provider_mock = self.add_mock(models.FlavorProvider,
@@ -96,6 +104,7 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
                           self.scheduler.reserve_chassis,
                           self.instance1,
                           retry=False)
-        flavor_provider_mock.assert_called_once_with('filter',
-                                                     deleted=False,
-                                                     flavor_id=self.instance1.flavor_id)
+        flavor_provider_mock.assert_called_once_with(
+            'filter',
+            deleted=False,
+            flavor_id=self.instance1.flavor_id)

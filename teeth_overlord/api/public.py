@@ -130,8 +130,9 @@ class TeethPublicAPI(component.APIComponent):
             raise rest_errors.InvalidContentError(msg)
 
         if hasattr(instance, "deleted") and model.deleted:
-            msg = 'Invalid {field_name}, given {type_name} is deleted.'.format(field_name=field_name,
-                                                                               type_name=cls.__name__)
+            msg = 'Invalid {field_name}, given {type_name} is deleted.'.format(
+                field_name=field_name,
+                type_name=cls.__name__)
             raise errors.InvalidContentError(msg)
 
         return model
@@ -236,21 +237,25 @@ class TeethPublicAPI(component.APIComponent):
         Return 204 on success.
         """
         try:
-            chassis_model = models.ChassisModel.objects.get(id=chassis_model_id)
+            chassis_model = models.ChassisModel.objects.get(
+                id=chassis_model_id)
         except models.ChassisModel.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(models.ChassisModel, chassis_model_id)
+            raise errors.RequestedObjectNotFoundError(models.ChassisModel,
+                                                      chassis_model_id)
 
         if chassis_model.deleted:
-            raise errors.ObjectAlreadyDeletedError(models.ChassisModel, chassis_model.id)
+            raise errors.ObjectAlreadyDeletedError(models.ChassisModel,
+                                                   chassis_model.id)
 
         flavor_providers_count = (models.FlavorProvider.objects
                                   .allow_filtering()
-                                  .filter(deleted=False, chassis_model_id=chassis_model.id)
+                                  .filter(deleted=False,
+                                          chassis_model_id=chassis_model.id)
                                   .count())
 
         if flavor_providers_count > 0:
-            details = "ChassisModel is referenced in {count} active FlavorProviders".format(
-                count=flavor_providers_count)
+            details = ("ChassisModel is referenced in {count} active "
+                       "FlavorProviders").format(count=flavor_providers_count)
             raise errors.ObjectCannotBeDeletedError(models.ChassisModel,
                                                     chassis_model.id,
                                                     details=details)
@@ -339,8 +344,8 @@ class TeethPublicAPI(component.APIComponent):
                                   .count())
 
         if flavor_providers_count > 0:
-            details = "Flavor is referenced in {count} active FlavorProviders".format(
-                count=flavor_providers_count)
+            details = ("Flavor is referenced in {count} active "
+                       "FlavorProviders").format(count=flavor_providers_count)
             raise errors.ObjectCannotBeDeletedError(models.Flavor,
                                                     flavor.id,
                                                     details=details)
@@ -439,12 +444,15 @@ class TeethPublicAPI(component.APIComponent):
         Return 204 on success.
         """
         try:
-            flavor_provider = models.FlavorProvider.objects.get(id=flavor_provider_id)
+            flavor_provider = models.FlavorProvider.objects.get(
+                id=flavor_provider_id)
         except models.FlavorProvider.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(models.FlavorProvider, flavor_provider_id)
+            raise errors.RequestedObjectNotFoundError(models.FlavorProvider,
+                                                      flavor_provider_id)
 
         if flavor_provider.deleted:
-            raise errors.ObjectAlreadyDeletedError(models.FlavorProvider, flavor_provider.id)
+            raise errors.ObjectAlreadyDeletedError(models.FlavorProvider,
+                                                   flavor_provider.id)
 
         flavor_provider.deleted = True
         flavor_provider.save()

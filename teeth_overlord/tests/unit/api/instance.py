@@ -106,9 +106,10 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(response.headers['Location'], expected_location)
 
     def test_create_instance_deleted_flavor(self):
-        self.add_mock(models.Flavor, return_value=[models.Flavor(id='flavor',
-                                                                 name='some_flavor',
-                                                                 deleted=True)])
+        self.add_mock(models.Flavor,
+                      return_value=[models.Flavor(id='flavor',
+                                                  name='some_flavor',
+                                                  deleted=True)])
 
         response = self.make_request('POST', self.url,
                                      data={'flavor_id': 'flavor',

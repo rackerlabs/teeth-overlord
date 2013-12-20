@@ -93,10 +93,12 @@ class TestFlavorAPI(tests.TeethAPITestCase):
     def test_delete_flavor(self):
 
         self.flavor_objects_mock.return_value = [self.flavor1]
-        flavor_provider_mock = self.add_mock(models.FlavorProvider, return_value=[])
+        flavor_provider_mock = self.add_mock(models.FlavorProvider,
+                                             return_value=[])
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
-                                                                   id=self.flavor1.id))
+        response = self.make_request(
+            'DELETE',
+            '{url}/{id}'.format(url=self.url, id=self.flavor1.id))
 
         self.assertEqual(response.status_code, 204)
 
@@ -105,27 +107,31 @@ class TestFlavorAPI(tests.TeethAPITestCase):
         self.assertEqual(save_mock.call_count, 1)
         flavor = save_mock.call_args[0][0]
 
-        flavor_provider_mock.assert_called_once_with('filter',
-                                                     deleted=False,
-                                                     flavor_id=self.flavor1.id)
+        flavor_provider_mock.assert_called_once_with(
+            'filter',
+            deleted=False,
+            flavor_id=self.flavor1.id)
 
         self.assertEqual(flavor.deleted, True)
 
     def test_delete_flavor_active_flavor_provider(self):
         self.flavor_objects_mock.return_value = [self.flavor1]
-        flavor_provider_mock = self.add_mock(models.FlavorProvider,
-                                             return_value=[models.FlavorProvider(flavor_id="fid",
-                                                                                 chassis_model_id="cmid",
-                                                                                 deleted=False)])
+        flavor_provider_mock = self.add_mock(
+            models.FlavorProvider,
+            return_value=[models.FlavorProvider(flavor_id="fid",
+                                                chassis_model_id="cmid",
+                                                deleted=False)])
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
-                                                                   id=self.flavor1.id))
+        response = self.make_request(
+            'DELETE',
+            '{url}/{id}'.format(url=self.url, id=self.flavor1.id))
 
         self.assertEqual(response.status_code, 403)
 
-        flavor_provider_mock.assert_called_once_with('filter',
-                                                     deleted=False,
-                                                     flavor_id=self.flavor1.id)
+        flavor_provider_mock.assert_called_once_with(
+            'filter',
+            deleted=False,
+            flavor_id=self.flavor1.id)
 
         # get the saved instance
         save_mock = self.get_mock(models.Flavor, 'save')
@@ -139,8 +145,9 @@ class TestFlavorAPI(tests.TeethAPITestCase):
         self.flavor1.deleted = True
         self.flavor_objects_mock.return_value = [self.flavor1]
 
-        response = self.make_request('DELETE', '{url}/{id}'.format(url=self.url,
-                                                                   id=self.flavor1.id))
+        response = self.make_request(
+            'DELETE',
+            '{url}/{id}'.format(url=self.url, id=self.flavor1.id))
 
         self.assertEqual(response.status_code, 403)
 

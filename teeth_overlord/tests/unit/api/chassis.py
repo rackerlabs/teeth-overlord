@@ -92,8 +92,10 @@ class TestChassisAPI(tests.TeethAPITestCase):
                                                              id=chassis.id))
 
     def test_create_chassis_missing_data(self):
-        response = self.make_request('POST', self.url,
-                                     data={'chassis_model_id': 'chassis_model_id'})
+        response = self.make_request(
+            'POST',
+            self.url,
+            data={'chassis_model_id': 'chassis_model_id'})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
@@ -105,8 +107,10 @@ class TestChassisAPI(tests.TeethAPITestCase):
                                                         name='chassis_model',
                                                         deleted=True)])
 
-        response = self.make_request('POST', self.url,
-                                     data={'chassis_model_id': 'chassis_model_id'})
+        response = self.make_request(
+            'POST',
+            self.url,
+            data={'chassis_model_id': 'chassis_model_id'})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
