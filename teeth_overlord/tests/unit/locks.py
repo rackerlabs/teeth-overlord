@@ -14,4 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import unittest
 
+from teeth_overlord import locks
+
+
+class DictLockManagerTestCase(unittest.TestCase):
+    def setUp(self):
+        self.lock_manager = locks.DictLockManager()
+
+    def test_lock(self):
+        asset = '/chassis/chassis_id'
+        self.lock_manager.lock(asset)
+        self.assertEqual(self.lock_manager.is_locked(asset), True)
+
+    def test_lock_already_locked(self):
+        asset = '/chassis/chassis_id'
+        self.lock_manager.lock(asset)
+        self.assertEqual(self.lock_manager.is_locked(asset), True)
+        self.assertRaises(locks.AssetLockedError,
+                          self.lock_manager.lock,
+                          asset)
+
+    def test_unlock(self):
+        asset = '/chassis/chassis_id'
+        self.lock_manager.lock(asset)
+        self.assertEqual(self.lock_manager.is_locked(asset), True)
+        self.lock_manager.unlock(asset)
+        self.assertEqual(self.lock_manager.is_locked(asset), False)
