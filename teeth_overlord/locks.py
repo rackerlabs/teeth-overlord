@@ -25,15 +25,44 @@ def _lock_key(asset):
     return '/locks{}'.format(asset)
 
 
-class DictLockManager(object):
+class Lock(object):
+    """Context manager to get a lock."""
+    def __init__(self, manager, asset):
+        self.manager = manager
+        self.asset = asset
+
+    def __enter__(self):
+        self.manager.lock(self.asset)
+
+    def __exit__(self, type, value, traceback):
+        if type is None:
+            self.manager.unlock(self.asset)
+
+
+class BaseLockManager(object):
+    def __init__(self):
+        raise NotImplementedError
+
+    def lock(self, asset):
+        raise NotImplementedError
+
+    def unlock(self, asset):
+        raise NotImplementedError
+
+    def is_locked(self, asset):
+        raise NotImplementedError
+
+
+class DictLockManager(BaseLockManager):
     def __init__(self):
         self.client = {}
 
     def lock(self, asset):
         """Set a lock for an asset."""
-        key = _lock_key(asset)
-        if self.client.get(key):
+        if self.is_locked(asset):
             raise AssetLockedError
+
+        key = _lock_key(asset)
         self.client[key] = True
 
     def unlock(self, asset):
@@ -43,31 +72,40 @@ class DictLockManager(object):
             del self.client[key]
 
     def is_locked(self, asset):
+        """Check if an asset is locked."""
         key = _lock_key(asset)
-        return self.client.get(key) is True
+        return self.client.get(key) is not None
 
 
-class EtcdLockManager(object):
+class EtcdLockManager(BaseLockManager):
     def __init__(self, config):
         self.client = etcd.Client(config.ETCD_HOST, config.ETCD_PORT)
 
     def lock(self, asset):
         """Set a lock for an asset."""
-        key = _lock_key(asset)
-
-        if self.client.get(key):
+        if self.is_locked(asset):
             raise AssetLockedError
 
+        key = _lock_key(asset)
         self.client.set(key, True)
 
     def unlock(self, asset):
         """Clear a lock for an asset."""
         key = _lock_key(asset)
-        self.client.delete(key)
+        try:
+            self.client.delete(key)
+        except KeyError:
+            # already unlocked
+            pass
 
     def is_locked(self, asset):
+        """Check if an asset is locked."""
         key = _lock_key(asset)
-        return self.client.get(key) is True
+        try:
+            self.client.get(key)
+            return True
+        except KeyError:
+            return False
 
 
 def get_lock_manager(config):
