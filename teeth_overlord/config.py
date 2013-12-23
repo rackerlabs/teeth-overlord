@@ -30,7 +30,7 @@ class Config(object):
     JOBSERVER_HOST = '0.0.0.0'
     JOBSERVER_PORT = 8083
     ETCD_HOST = 'localhost'
-    ETCD_PORT = '4001'
+    ETCD_PORT = 4001
     ETCD_ENABLED = True
     MARCONI_URL = 'http://localhost:8888'
     IMAGE_PROVIDER = 'fake'
