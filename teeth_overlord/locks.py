@@ -17,7 +17,7 @@ limitations under the License.
 import etcd
 
 
-class AssetLockedException(Exception):
+class AssetLockedError(Exception):
     pass
 
 
@@ -33,7 +33,7 @@ class DictLockManager(object):
         """Set a lock for an asset."""
         key = _lock_key(asset)
         if self.client.get(key):
-            raise AssetLockedException
+            raise AssetLockedError
         self.client[key] = True
 
     def unlock(self, asset):
@@ -52,7 +52,7 @@ class EtcdLockManager(object):
         key = _lock_key(asset)
 
         if self.client.get(key):
-            raise AssetLockedException
+            raise AssetLockedError
 
         self.client.set(key, True)
 
