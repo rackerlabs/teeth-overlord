@@ -25,9 +25,9 @@ class LockManagerBaseTestCase(object):
         self.lock_manager.lock(self.asset)
         self.assertEqual(self.lock_manager.is_locked(self.asset), True)
 
-    def _lock_with_context_manager(self):
-        with locks.Lock(self.lock_manager, self.asset):
-            pass
+    def _lock_and_unlock_with_context_manager(self):
+        with self.lock_manager.get_lock(self.asset):
+            self.assertEqual(self.lock_manager.is_locked(self.asset), True)
 
     def test_lock(self):
         self._lock_with_lock_manager()
@@ -49,14 +49,13 @@ class LockManagerBaseTestCase(object):
         self.assertEqual(self.lock_manager.is_locked(self.asset_two), True)
 
     def test_lock_context_manager(self):
-        with locks.Lock(self.lock_manager, self.asset):
-            self.assertEqual(self.lock_manager.is_locked(self.asset), True)
+        self._lock_and_unlock_with_context_manager()
         self.assertEqual(self.lock_manager.is_locked(self.asset), False)
 
     def test_lock_context_manager_already_locked(self):
         self._lock_with_lock_manager()
         self.assertRaises(locks.AssetLockedError,
-                          self._lock_with_context_manager)
+                          self._lock_and_unlock_with_context_manager)
         # make sure asset is still locked
         self.assertEqual(self.lock_manager.is_locked(self.asset), True)
 

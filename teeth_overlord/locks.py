@@ -43,6 +43,9 @@ class BaseLockManager(object):
     def __init__(self):
         raise NotImplementedError
 
+    def get_lock(self, asset):
+        return Lock(self, asset)
+
     def lock(self, asset):
         raise NotImplementedError
 
