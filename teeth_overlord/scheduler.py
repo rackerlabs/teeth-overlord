@@ -77,28 +77,27 @@ class TeethInstanceScheduler(object):
         """Mark the selected chassis as belonging to this instance, and
         put it into a `BUILD` state.
         """
+        asset = '/chassis/{chassis_id}'.format(
+            chassis_id=str(chassis.id)
+        )
         try:
-            self.lock_manager.lock('/chassis/{chassis_id}'.format(
-                chassis_id=str(chassis.id)
-            ))
+            with self.lock_manager.get_lock(asset):
+
+                # Re-fetch the chassis while we hold the lock
+                chassis = models.Chassis.objects.filter(id=chassis.id).get()
+
+                if chassis.state != models.ChassisState.READY:
+                    raise errors.ChassisAlreadyReservedError(chassis)
+
+                batch = cqlengine.BatchQuery()
+                instance.chassis_id = chassis.id
+                instance.state = models.InstanceState.BUILD
+                instance.batch(batch).save()
+                chassis.state = models.ChassisState.BUILD
+                chassis.batch(batch).save()
+                batch.execute()
+
         except locks.AssetLockedError:
             raise errors.ChassisAlreadyReservedError(chassis)
 
-        # Re-fetch the chassis while we hold the lock
-        chassis = models.Chassis.objects.filter(id=chassis.id).get()
-
-        if chassis.state != models.ChassisState.READY:
-            raise errors.ChassisAlreadyReservedError(chassis)
-
-        batch = cqlengine.BatchQuery()
-        instance.chassis_id = chassis.id
-        instance.state = models.InstanceState.BUILD
-        instance.batch(batch).save()
-        chassis.state = models.ChassisState.BUILD
-        chassis.batch(batch).save()
-        batch.execute()
-
-        self.lock_manager.unlock('/chassis/{chassis_id}'.format(
-            chassis_id=str(chassis.id)
-        ))
         return chassis
