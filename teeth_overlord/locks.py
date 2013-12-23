@@ -37,10 +37,14 @@ class DictLockManager(object):
         self.client[key] = True
 
     def unlock(self, asset):
-        """Clear a lock for an asset"""
+        """Clear a lock for an asset."""
         key = _lock_key(asset)
         if key in self.client:
             del self.client[key]
+
+    def is_locked(self, asset):
+        key = _lock_key(asset)
+        return self.client.get(key) is True
 
 
 class EtcdLockManager(object):
@@ -57,9 +61,13 @@ class EtcdLockManager(object):
         self.client.set(key, True)
 
     def unlock(self, asset):
-        """Clear a lock for an asset"""
+        """Clear a lock for an asset."""
         key = _lock_key(asset)
         self.client.delete(key)
+
+    def is_locked(self, asset):
+        key = _lock_key(asset)
+        return self.client.get(key) is True
 
 
 def get_lock_manager(config):
