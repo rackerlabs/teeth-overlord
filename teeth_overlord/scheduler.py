@@ -77,9 +77,7 @@ class TeethInstanceScheduler(object):
         """Mark the selected chassis as belonging to this instance, and
         put it into a `BUILD` state.
         """
-        asset = '/chassis/{chassis_id}'.format(
-            chassis_id=str(chassis.id)
-        )
+        asset = '/chassis/{chassis_id}'.format(chassis_id=str(chassis.id))
         try:
             with self.lock_manager.get_lock(asset):
 
