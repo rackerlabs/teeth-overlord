@@ -20,6 +20,36 @@ from teeth_overlord import config as teeth_config
 from teeth_overlord import locks
 
 
+class MockEtcdClient(object):
+    """etcd client for testing that acts (almost)like the real thing.
+
+    Currently just mocks get/set/delete for a leaf node, as that's all
+    we are using right now.
+    """
+
+    def __init__(self):
+        self.datastore = {}
+
+    def get(self, key):
+        """Gets a value for given key.
+
+        If key exists, returns value.
+        If not, raises a KeyError.
+        """
+        return self.datastore[key]
+
+    def set(self, key, value):
+        """Sets a value for a given key."""
+        self.datastore[key] = value
+
+    def delete(self, key):
+        """Deletes a given key.
+
+        If key does not exist, raises a KeyError.
+        """
+        del self.datastore[key]
+
+
 class LockManagerBaseTestCase(object):
     def _lock_with_lock_manager(self):
         self.lock_manager.lock(self.asset)
@@ -70,7 +100,8 @@ class DictLockManagerTestCase(LockManagerBaseTestCase, unittest.TestCase):
 class EtcdLockManagerTestCase(LockManagerBaseTestCase, unittest.TestCase):
     def setUp(self):
         config = teeth_config.Config()
-        self.lock_manager = locks.EtcdLockManager(config)
+        mock_client = MockEtcdClient()
+        self.lock_manager = locks.EtcdLockManager(config, client=mock_client)
         self.asset = '/chassis/chassis_id'
         self.asset_two = '/chassis/chassis_id_two'
 

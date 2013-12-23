@@ -81,8 +81,11 @@ class DictLockManager(BaseLockManager):
 
 
 class EtcdLockManager(BaseLockManager):
-    def __init__(self, config):
-        self.client = etcd.Client(config.ETCD_HOST, config.ETCD_PORT)
+    def __init__(self, config, client=None):
+        if client is not None:
+            self.client = client
+        else:
+            self.client = etcd.Client(config.ETCD_HOST, config.ETCD_PORT)
 
     def lock(self, asset):
         """Set a lock for an asset."""
