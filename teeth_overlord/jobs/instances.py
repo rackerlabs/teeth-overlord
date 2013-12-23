@@ -43,9 +43,9 @@ class CreateInstance(base.Job):
         """Mark the chassis and instance as active."""
         batch = cqlengine.BatchQuery()
         instance.chassis_id = chassis.id
-        instance.state = models.models.InstanceState.ACTIVE
+        instance.state = models.InstanceState.ACTIVE
         instance.batch(batch).save()
-        chassis.state = models.models.ChassisState.ACTIVE
+        chassis.state = models.ChassisState.ACTIVE
         chassis.instance_id = instance.id
         chassis.batch(batch).save()
         batch.execute()
@@ -80,9 +80,9 @@ class DeleteInstance(base.Job):
         chassis = models.Chassis.objects.get(id=instance.chassis_id)
 
         batch = cqlengine.BatchQuery()
-        instance.state = models.models.InstanceState.DELETED
+        instance.state = models.InstanceState.DELETED
         instance.batch(batch).save()
-        chassis.state = models.models.ChassisState.CLEAN
+        chassis.state = models.ChassisState.CLEAN
         chassis.batch(batch).save()
         batch.execute()
         self.executor.oob_provider.power_chassis_off(chassis)
