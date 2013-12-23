@@ -16,29 +16,65 @@ limitations under the License.
 
 import unittest
 
+from teeth_overlord import config as teeth_config
 from teeth_overlord import locks
 
 
-class DictLockManagerTestCase(unittest.TestCase):
-    def setUp(self):
-        self.lock_manager = locks.DictLockManager()
+class LockManagerBaseTestCase(object):
+    def _lock_with_lock_manager(self):
+        self.lock_manager.lock(self.asset)
+        self.assertEqual(self.lock_manager.is_locked(self.asset), True)
+
+    def _lock_with_context_manager(self):
+        with locks.Lock(self.lock_manager, self.asset):
+            pass
 
     def test_lock(self):
-        asset = '/chassis/chassis_id'
-        self.lock_manager.lock(asset)
-        self.assertEqual(self.lock_manager.is_locked(asset), True)
+        self._lock_with_lock_manager()
 
     def test_lock_already_locked(self):
-        asset = '/chassis/chassis_id'
-        self.lock_manager.lock(asset)
-        self.assertEqual(self.lock_manager.is_locked(asset), True)
+        self._lock_with_lock_manager()
         self.assertRaises(locks.AssetLockedError,
                           self.lock_manager.lock,
-                          asset)
+                          self.asset)
 
     def test_unlock(self):
-        asset = '/chassis/chassis_id'
-        self.lock_manager.lock(asset)
-        self.assertEqual(self.lock_manager.is_locked(asset), True)
-        self.lock_manager.unlock(asset)
-        self.assertEqual(self.lock_manager.is_locked(asset), False)
+        self._lock_with_lock_manager()
+        self.lock_manager.unlock(self.asset)
+        self.assertEqual(self.lock_manager.is_locked(self.asset), False)
+
+    def test_lock_two_assets(self):
+        self._lock_with_lock_manager()
+        self.lock_manager.lock(self.asset_two)
+        self.assertEqual(self.lock_manager.is_locked(self.asset_two), True)
+
+    def test_lock_context_manager(self):
+        with locks.Lock(self.lock_manager, self.asset):
+            self.assertEqual(self.lock_manager.is_locked(self.asset), True)
+        self.assertEqual(self.lock_manager.is_locked(self.asset), False)
+
+    def test_lock_context_manager_already_locked(self):
+        self._lock_with_lock_manager()
+        self.assertRaises(locks.AssetLockedError,
+                          self._lock_with_context_manager)
+        # make sure asset is still locked
+        self.assertEqual(self.lock_manager.is_locked(self.asset), True)
+
+
+class DictLockManagerTestCase(LockManagerBaseTestCase, unittest.TestCase):
+    def setUp(self):
+        self.lock_manager = locks.DictLockManager()
+        self.asset = '/chassis/chassis_id'
+        self.asset_two = '/chassis/chassis_id_two'
+
+
+class EtcdLockManagerTestCase(LockManagerBaseTestCase, unittest.TestCase):
+    def setUp(self):
+        config = teeth_config.Config()
+        self.lock_manager = locks.EtcdLockManager(config)
+        self.asset = '/chassis/chassis_id'
+        self.asset_two = '/chassis/chassis_id_two'
+
+    def tearDown(self):
+        self.lock_manager.unlock(self.asset)
+        self.lock_manager.unlock(self.asset_two)
