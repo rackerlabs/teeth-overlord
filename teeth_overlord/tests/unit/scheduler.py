@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord import config
+from teeth_overlord import config as teeth_config
 from teeth_overlord import errors
 from teeth_overlord import locks
 from teeth_overlord import models
@@ -27,7 +27,7 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
     def setUp(self):
         super(TestInstanceScheduler, self).setUp()
 
-        config = config.Config()
+        config = teeth_config.Config()
         lock_manager = locks.DictLockManager()
 
         self.scheduler = scheduler.TeethInstanceScheduler(
