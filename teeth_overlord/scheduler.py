@@ -20,13 +20,15 @@ import cqlengine
 import structlog
 
 from teeth_overlord import errors
+from teeth_overlord import locks
 from teeth_overlord import models
 
 
 class TeethInstanceScheduler(object):
     """Schedule instances onto chassis."""
-    def __init__(self):
+    def __init__(self, config, lock_manager=None):
         self.log = structlog.get_logger()
+        self.lock_manager = lock_manager or locks.get_lock_manager(config)
 
     def reserve_chassis(self, instance, retry=True):
         """Locate and reserve a chassis for the specified instance."""
@@ -75,10 +77,12 @@ class TeethInstanceScheduler(object):
         """Mark the selected chassis as belonging to this instance, and
         put it into a `BUILD` state.
         """
-        # TODO(russellhaering): Lock around instance reservation
-        # self.lock_manager.lock('/chassis/{chassis_id}'.format(
-        #     chassis_id=str(chassis.id)
-        # ))
+        try:
+            self.lock_manager.lock('/chassis/{chassis_id}'.format(
+                chassis_id=str(chassis.id)
+            ))
+        except locks.AssetLockedError:
+            raise errors.ChassisAlreadyReservedError(chassis)
 
         # Re-fetch the chassis while we hold the lock
         chassis = models.Chassis.objects.filter(id=chassis.id).get()
@@ -94,5 +98,7 @@ class TeethInstanceScheduler(object):
         chassis.batch(batch).save()
         batch.execute()
 
-        # TODO(russellhaering): unlock
+        self.lock_manager.unlock('/chassis/{chassis_id}'.format(
+            chassis_id=str(chassis.id)
+        ))
         return chassis
