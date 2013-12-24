@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import abc
+from multiprocessing import pool
 import time
 import uuid
 
@@ -60,6 +61,11 @@ CLAIM_GRACE = 60 * 60 * 12
 POLLING_INTERVAL = 0.1
 
 
+def _execute_in_pool(executor, job_class, job_request, message):
+    job = job_class(executor, job_request, message)
+    job.execute()
+
+
 class JobExecutor(service.SynchronousTeethService):
 
     """A service which executes job requests from a queue."""
@@ -75,6 +81,7 @@ class JobExecutor(service.SynchronousTeethService):
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
         self.stats_client = stats.get_stats_client(config, 'jobs')
         self._job_type_cache = {}
+        self.pool = pool.ThreadPool(config.JOB_POOL_SIZE)
 
     def _get_job_class(self, job_type):
         if job_type not in self._job_type_cache:
@@ -96,9 +103,6 @@ class JobExecutor(service.SynchronousTeethService):
             self.log.error('error claiming message', exception=e)
             message = None
 
-        # TODO(russellhaering): Process messages in a thread so we can process
-        #                       more messages concurrently without multiple
-        #                       pollers.
         if not message:
             if not self.stopping:
                 time.sleep(POLLING_INTERVAL)
@@ -118,8 +122,8 @@ class JobExecutor(service.SynchronousTeethService):
             return
 
         cls = self._get_job_class(job_request.job_type)
-        job = cls(self, job_request, message)
-        job.execute()
+        args = [self, cls, job_request, message]
+        self.pool.apply_async(_execute_in_pool, args)
 
     def run(self):
         """Start processing jobs."""
