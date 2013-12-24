@@ -103,9 +103,6 @@ class JobExecutor(service.SynchronousTeethService):
             self.log.error('error claiming message', exception=e)
             message = None
 
-        # TODO(russellhaering): Process messages in a thread so we can process
-        #                       more messages concurrently without multiple
-        #                       pollers.
         if not message:
             if not self.stopping:
                 time.sleep(POLLING_INTERVAL)
