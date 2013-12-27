@@ -101,3 +101,58 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         scheduler.reserve_chassis.assert_called_once_with(self.instance)
         self._did_prepare_and_run_image()
         self._instance_is_marked_active()
+
+
+class DeleteInstanceTestCase(tests.TeethAPITestCase):
+    def setUp(self):
+        super(DeleteInstanceTestCase, self).setUp()
+
+        self.instance_objects_mock = self.add_mock(models.Instance)
+        self.chassis_objects_mock = self.add_mock(models.Chassis)
+
+        self.instance = models.Instance(id='test_instance',
+                                        state=models.InstanceState.ACTIVE,
+                                        name='instance',
+                                        chassis_id='test_chassis',
+                                        flavor_id='flavor_id',
+                                        image_id='image_id')
+        self.chassis = models.Chassis(id='test_chassis',
+                                      instance_id='test_instance',
+                                      state=models.ChassisState.ACTIVE,
+                                      chassis_model_id='chassis_model_id',
+                                      primary_mac_address='00:00:00:00:00:00')
+        request_params = {'instance_id': 'test_instance'}
+        self.job_request = models.JobRequest(id='test_request',
+                                             job_type='instances.delete',
+                                             params=request_params)
+
+        self.instance_objects_mock.return_value = [self.instance]
+        self.chassis_objects_mock.return_value = [self.chassis]
+
+        self.executor = jobs_tests_base.MockJobExecutor()
+        self.message = {
+            'ttl': 1200,
+            'body': {'job_request_id': 'test_request'}
+        }
+        self.job = instance_jobs.DeleteInstance(self.executor,
+                                                self.job_request,
+                                                self.message)
+
+    def test_instance_delete_job(self):
+        self.job._execute()
+
+        instance_batch_mock = self.get_mock(models.Instance, 'batch')
+        self.assertEqual(self.instance.state, models.InstanceState.DELETED)
+        self.assertEqual(instance_batch_mock().save.call_count, 1)
+
+        chassis_batch_mock = self.get_mock(models.Chassis, 'batch')
+        self.assertEqual(self.chassis.state, models.ChassisState.CLEAN)
+        self.assertEqual(chassis_batch_mock().save.call_count, 1)
+
+        oob = self.executor.oob_provider
+        oob.power_chassis_off.assert_called_once_with(self.chassis)
+
+        job_client = self.executor.job_client
+        job_client.submit_job.assert_called_once_with(
+            'chassis.decommission',
+            chassis_id=self.chassis.id)

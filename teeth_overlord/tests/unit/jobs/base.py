@@ -28,13 +28,14 @@ from teeth_overlord import scheduler
 
 
 class MockJobExecutor(jobs_base.JobExecutor):
+    """Job executor with nearly all attributes mocked out."""
     def __init__(self):
         self.config = config.Config()
         self.log = structlog.get_logger()
         self.agent_client = mock.Mock(spec=agent_fake.FakeAgentClient)
         self.job_client = mock.Mock(spec=jobs_base.JobClient)
-        self.image_provider = image_fake.FakeImageProvider(config)
-        self.oob_provider = oob_fake.FakeOutOfBandProvider(config)
+        self.image_provider = mock.Mock(spec=image_fake.FakeImageProvider)
+        self.oob_provider = mock.Mock(spec=oob_fake.FakeOutOfBandProvider)
         self.scheduler = mock.Mock(spec=scheduler.TeethInstanceScheduler)
         self.queue = mock.Mock(spec=marconi.MarconiClient)
         self.stats_client = mock.Mock(spec=statsd.StatsClient)
