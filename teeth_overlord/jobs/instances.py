@@ -37,7 +37,6 @@ class CreateInstance(base.Job):
         connection = client.get_agent_connection(chassis)
         client.prepare_image(connection, image_info)
         client.run_image(connection, image_info)
-        return
 
     def mark_active(self, instance, chassis):
         """Mark the chassis and instance as active."""
@@ -49,7 +48,6 @@ class CreateInstance(base.Job):
         chassis.instance_id = instance.id
         chassis.batch(batch).save()
         batch.execute()
-        return
 
     @stats.incr_stat('instances.create')
     def _execute(self):
@@ -61,7 +59,6 @@ class CreateInstance(base.Job):
 
         self.prepare_and_run_image(instance, chassis, image_info)
         self.mark_active(instance, chassis)
-        return
 
 
 class DeleteInstance(base.Job):
