@@ -31,10 +31,12 @@ class CreateInstance(base.Job):
     """
     max_retries = 10
 
-    def prepare_and_run_image(self, instance, chassis, image_info):
+    def prepare_and_run_image(self, instance, chassis, image_info,
+                              connection=None):
         """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
-        connection = client.get_agent_connection(chassis)
+        if connection is None:
+            connection = client.get_agent_connection(chassis)
         client.prepare_image(connection, image_info)
         client.run_image(connection, image_info)
 
