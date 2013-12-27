@@ -52,7 +52,7 @@ class MockEtcdClient(object):
 
 class LockManagerBaseTestCase(object):
     def _lock_with_lock_manager(self):
-        self.lock_manager.lock(self.asset)
+        self.lock_manager.try_lock(self.asset)
         self.assertEqual(self.lock_manager.is_locked(self.asset), True)
 
     def _lock_and_unlock_with_context_manager(self):
@@ -65,7 +65,7 @@ class LockManagerBaseTestCase(object):
     def test_lock_already_locked(self):
         self._lock_with_lock_manager()
         self.assertRaises(locks.AssetLockedError,
-                          self.lock_manager.lock,
+                          self.lock_manager.try_lock,
                           self.asset)
 
     def test_unlock(self):
@@ -75,7 +75,7 @@ class LockManagerBaseTestCase(object):
 
     def test_lock_two_assets(self):
         self._lock_with_lock_manager()
-        self.lock_manager.lock(self.asset_two)
+        self.lock_manager.try_lock(self.asset_two)
         self.assertEqual(self.lock_manager.is_locked(self.asset_two), True)
 
     def test_lock_context_manager(self):

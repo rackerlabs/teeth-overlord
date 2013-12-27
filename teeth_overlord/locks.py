@@ -25,14 +25,14 @@ def _lock_key(asset):
     return '/locks{}'.format(asset)
 
 
-class Lock(object):
+class TryLock(object):
     """Context manager to get a lock."""
     def __init__(self, manager, asset):
         self.manager = manager
         self.asset = asset
 
     def __enter__(self):
-        self.manager.lock(self.asset)
+        self.manager.try_lock(self.asset)
 
     def __exit__(self, type, value, traceback):
         if type is None:
@@ -44,9 +44,9 @@ class BaseLockManager(object):
         raise NotImplementedError
 
     def get_lock(self, asset):
-        return Lock(self, asset)
+        return TryLock(self, asset)
 
-    def lock(self, asset):
+    def try_lock(self, asset):
         raise NotImplementedError
 
     def unlock(self, asset):
@@ -60,7 +60,7 @@ class DictLockManager(BaseLockManager):
     def __init__(self):
         self.client = {}
 
-    def lock(self, asset):
+    def try_lock(self, asset):
         """Set a lock for an asset."""
         if self.is_locked(asset):
             raise AssetLockedError
@@ -87,7 +87,7 @@ class EtcdLockManager(BaseLockManager):
         else:
             self.client = etcd.Client(config.ETCD_HOST, config.ETCD_PORT)
 
-    def lock(self, asset):
+    def try_lock(self, asset):
         """Set a lock for an asset."""
         if self.is_locked(asset):
             raise AssetLockedError
