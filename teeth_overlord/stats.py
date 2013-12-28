@@ -26,7 +26,7 @@ class NoopStatsClient(object):
     incr = _noop
     decr = _noop
     timing = _noop
-    guage = _noop
+    gauge = _noop
     set = _noop
 
     # TODO(jimrollenhagen) implement timer (context manager and decorater)
