@@ -15,6 +15,8 @@ limitations under the License.
 """
 
 import abc
+import signal
+import threading
 import time
 import uuid
 
@@ -65,7 +67,7 @@ class JobExecutor(service.SynchronousTeethService):
     """A service which executes job requests from a queue."""
 
     def __init__(self, config):
-        self.config = config
+        super(JobExecutor, self).__init__(config)
         self.log = structlog.get_logger()
         self.agent_client = agent_client.get_agent_client(config)
         self.job_client = JobClient(config)
@@ -121,11 +123,23 @@ class JobExecutor(service.SynchronousTeethService):
         job = cls(self, job_request, message)
         job.execute()
 
+    def _process_messages(self):
+        while not self.stopping.isSet():
+            self._process_next_message()
+
     def run(self):
         """Start processing jobs."""
         super(JobExecutor, self).run()
-        while not self.stopping:
-            self._process_next_message()
+        threads = [threading.Thread(target=self._process_messages)
+                   for i in xrange(0, self.config.JOB_EXECUTION_THREADS)]
+
+        for thread in threads:
+            thread.start()
+
+        signal.pause()
+
+        for thread in threads:
+            thread.join()
 
 
 class JobClient(object):
