@@ -63,3 +63,22 @@ class StatsClientTestCase(unittest.TestCase):
     def test_error_incrs_error_stat(self):
         self.assertRaises(SpecificException, self.some_object.error_func)
         self.mock_stats_client.incr.assert_called_once_with('somestat.error')
+
+
+class ConcurrencyGaugeTestCase(unittest.TestCase):
+    def test_concurrency_guage(self):
+        mock_stats_client = mock.Mock(spec=statsd.StatsClient)
+        concurrency_gauge = stats.ConcurrencyGauge(mock_stats_client, 'foo')
+
+        with concurrency_gauge:
+            mock_stats_client.gauge.assertCalledOnceWith('foo', 1)
+            mock_stats_client.gauge.reset_mock()
+
+            with concurrency_gauge:
+                mock_stats_client.gauge.assertCalledOnceWith('foo', 2)
+                mock_stats_client.gauge.reset_mock()
+
+            mock_stats_client.gauge.assertCalledOnceWith('foo', 1)
+            mock_stats_client.gauge.reset_mock()
+
+        mock_stats_client.gauge.assertCalledOnceWith('foo', 0)
