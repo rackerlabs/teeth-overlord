@@ -17,7 +17,6 @@ limitations under the License.
 import abc
 import signal
 import threading
-import time
 import uuid
 
 from stevedore import driver
@@ -74,6 +73,7 @@ class JobExecutor(service.SynchronousTeethService):
         self.image_provider = images_base.get_image_provider(config)
         self.oob_provider = oob_base.get_oob_provider(config)
         self.scheduler = scheduler.TeethInstanceScheduler()
+        self.claim_lock = threading.Lock()
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
         self.stats_client = stats.get_stats_client(config, 'jobs')
         self._job_type_cache = {}
@@ -88,23 +88,27 @@ class JobExecutor(service.SynchronousTeethService):
         return self._job_type_cache[job_type].driver
 
     def _process_next_message(self):
-        try:
-            message = self.queue.claim_message(JOB_QUEUE_NAME,
-                                               CLAIM_TTL,
-                                               CLAIM_GRACE)
-        except Exception as e:
-            # TODO(russellhaering): some sort of backoff if queueing system is
-            # down
-            self.log.error('error claiming message', exception=e)
-            message = None
+        with self.claim_lock:
+            # Now that we actually have the lock, bail out early if we're
+            # supposed to be stopping
+            if self.stopping.isSet():
+                return
 
-        # TODO(russellhaering): Process messages in a thread so we can process
-        #                       more messages concurrently without multiple
-        #                       pollers.
-        if not message:
-            if not self.stopping:
-                time.sleep(POLLING_INTERVAL)
-            return
+            try:
+                message = self.queue.claim_message(JOB_QUEUE_NAME,
+                                                   CLAIM_TTL,
+                                                   CLAIM_GRACE)
+            except Exception as e:
+                # TODO(russellhaering): some sort of backoff if queueing system
+                # is down
+                self.log.error('error claiming message', exception=e)
+                message = None
+
+            if not message:
+                # Wait up to POLLING_INTERVAL seconds before releasing the
+                # lock, but bail out early if the stopping flag gets set.
+                self.stopping.wait(POLLING_INTERVAL)
+                return
 
         job_request_id = message.body['job_request_id']
 
