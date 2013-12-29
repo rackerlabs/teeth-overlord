@@ -76,6 +76,8 @@ class JobExecutor(service.SynchronousTeethService):
         self.claim_lock = threading.Lock()
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
         self.stats_client = stats.get_stats_client(config, 'jobs')
+        self.concurrent_jobs_gauge = stats.ConcurrencyGauge(self.stats_client,
+                                                            'concurrent_jobs')
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
@@ -123,9 +125,10 @@ class JobExecutor(service.SynchronousTeethService):
             self.queue.delete_message(message)
             return
 
-        cls = self._get_job_class(job_request.job_type)
-        job = cls(self, job_request, message)
-        job.execute()
+        with self.concurrent_jobs_gauge:
+            cls = self._get_job_class(job_request.job_type)
+            job = cls(self, job_request, message)
+            job.execute()
 
     def _process_messages(self):
         while not self.stopping.isSet():
