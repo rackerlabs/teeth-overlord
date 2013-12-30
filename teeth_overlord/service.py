@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import signal
+import threading
 import traceback
 
 from cqlengine import connection
@@ -91,13 +92,13 @@ class SynchronousTeethService(object):
     """Base class for all Teeth services."""
     def __init__(self, config):
         self.config = config
-        self.stopping = False
+        self.stopping = threading.Event()
 
     def run(self):
         """Run the service to completion."""
         global_setup(self.config)
-        self.stopping = False
+        self.stopping.clear()
 
     def stop(self):
         """Attempt to gracefully stop."""
-        self.stopping = True
+        self.stopping.set()

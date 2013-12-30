@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import functools
+import threading
 
 import statsd
 
@@ -26,13 +27,48 @@ class NoopStatsClient(object):
     incr = _noop
     decr = _noop
     timing = _noop
-    guage = _noop
+    gauge = _noop
     set = _noop
 
     # TODO(jimrollenhagen) implement timer (context manager and decorater)
     # TODO(jimrollenhagen) implement pipeline noop (context manager and method)
     # TODO(jimrollenhagen) implement send (method, sends pipelined commands)
     # (we aren't using any of these yet)
+
+
+class ConcurrencyGauge(object):
+    """A context manager which emits a gauge metric indicating how many
+    concurrent active contexts it is in use by. For example, to measure how
+    many calls to `do_long_running_work()` are executing concurrently from a
+    given location::
+
+        with a_concurrency_gauge:
+            do_long_running_work()
+
+    It would generally not make sense to have two guages with the same name, as
+    they would tend to overwrite each other's values.
+
+    (Also, one could do this by specifying "delta" values to a statsd gauge,
+    but doing so is failure-prone without some sort of "checkpointing" to
+    account for packet loss or even just process restarts).
+    """
+    def __init__(self, client, name):
+        self.value = 0
+        self.lock = threading.Lock()
+        self.client = client
+        self.name = name
+
+    def __enter__(self):
+        with self.lock:
+            self.value += 1
+
+        self.client.gauge(self.name, self.value)
+
+    def __exit__(self, type, value, traceback):
+        with self.lock:
+            self.value -= 1
+
+        self.client.gauge(self.name, self.value)
 
 
 def get_stats_client(config, prefix=None):
