@@ -223,6 +223,8 @@ class Chassis(MetadataBase):
                                     required=True,
                                     max_length=MAX_ID_LENGTH)
     instance_id = columns.Text(max_length=MAX_ID_LENGTH)
+    ipmi_host = columns.Text()
+    ipmi_port = columns.Integer(default=623)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
     primary_mac_address = columns.Ascii(index=True, required=True)
