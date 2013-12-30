@@ -36,12 +36,14 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
                                        ipmi_username='ipmi_user',
                                        ipmi_password='ipmi_pass')
 
-        self.ipmi_call_args = ['ipmitool',
-                               '-I', 'lanplus',
-                               '-H', self.chassis1.ipmi_host,
-                               '-p', str(self.chassis1.ipmi_port),
-                               '-U', self.chassis1.ipmi_username,
-                               '-P', self.chassis1.ipmi_password]
+        self.ipmi_call_args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.chassis1.ipmi_host,
+            '-p', str(self.chassis1.ipmi_port),
+            '-U', self.chassis1.ipmi_username,
+            '-P', self.chassis1.ipmi_password
+        ]
 
         patcher = mock.patch.object(subprocess, 'check_output')
         self.subprocess_mock = patcher.start()
@@ -73,9 +75,10 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
     def test_is_chassis_on_unknown_state(self):
         self.subprocess_mock.return_value = 'Unknown State\n'
 
-        on = self.ipmitool_provider.is_chassis_on(self.chassis1)
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.is_chassis_on,
+                          self.chassis1)
 
-        self.assertFalse(on)
         self.subprocess_mock.assert_called_once_with(self.ipmi_call_args +
                                                      ['power', 'status'])
 
@@ -95,7 +98,8 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
         self.subprocess_mock.side_effect = [
             'Chassis Power Control: Up/On\n',
             'Chassis Power is off\n',
-            'Chassis Power is on\n']
+            'Chassis Power is on\n'
+        ]
 
         on = self.ipmitool_provider.power_chassis_on(self.chassis1)
 
@@ -110,7 +114,8 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
         self.subprocess_mock.side_effect = [
             'Chassis Power Control: Down/Off\n',
             'Chassis Power is on\n',
-            'Chassis Power is off\n']
+            'Chassis Power is off\n'
+        ]
 
         on = self.ipmitool_provider.power_chassis_off(self.chassis1)
 
@@ -125,11 +130,13 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
         self.subprocess_mock.side_effect = [
             'Chassis Power Control: Up/On\n',
             'Chassis Power is off\n',
-            'Chassis Power is off\n']
+            'Chassis Power is off\n'
+        ]
 
-        on = self.ipmitool_provider.power_chassis_on(self.chassis1)
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.power_chassis_on,
+                          self.chassis1)
 
-        self.assertFalse(on)
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
                                              ['power', 'on'])
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
@@ -140,11 +147,13 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
         self.subprocess_mock.side_effect = [
             'Chassis Power Control: Down/Off\n',
             'Chassis Power is on\n',
-            'Chassis Power is on\n']
+            'Chassis Power is on\n'
+        ]
 
-        on = self.ipmitool_provider.power_chassis_off(self.chassis1)
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.power_chassis_off,
+                          self.chassis1)
 
-        self.assertFalse(on)
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
                                              ['power', 'off'])
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
@@ -176,9 +185,10 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
     def test_power_on_unknown_state(self):
         self.subprocess_mock.side_effect = ['Unknown State\n']
 
-        on = self.ipmitool_provider.power_chassis_on(self.chassis1)
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.power_chassis_on,
+                          self.chassis1)
 
-        self.assertFalse(on)
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
                                              ['power', 'on'])
         self.assertEqual(self.subprocess_mock.call_count, 1)
@@ -186,9 +196,10 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
     def test_power_off_unknown_state(self):
         self.subprocess_mock.side_effect = ['Unknown State\n']
 
-        on = self.ipmitool_provider.power_chassis_off(self.chassis1)
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.power_chassis_off,
+                          self.chassis1)
 
-        self.assertFalse(on)
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
                                              ['power', 'off'])
         self.assertEqual(self.subprocess_mock.call_count, 1)
@@ -218,17 +229,19 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
         self.assertEqual(self.subprocess_mock.call_count, 1)
 
     def test_set_boot_device_invalid_device(self):
-        on = self.ipmitool_provider.set_boot_device(self.chassis1, 'foobar')
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.set_boot_device,
+                          self.chassis1, 'foobar')
 
-        self.assertFalse(on)
         self.assertEqual(self.subprocess_mock.call_count, 0)
 
-    def test_set_boot_device_failure(self):
+    def test_set_boot_device_unkown_state(self):
         self.subprocess_mock.return_value = 'Unknown State\n'
 
-        on = self.ipmitool_provider.set_boot_device(self.chassis1, 'pxe')
+        self.assertRaises(ipmitool.IPMIToolException,
+                          self.ipmitool_provider.set_boot_device,
+                          self.chassis1, 'pxe')
 
-        self.assertFalse(on)
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
                                              ['chassis', 'bootdev', 'pxe'])
         self.assertEqual(self.subprocess_mock.call_count, 1)
@@ -240,6 +253,7 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
         self.assertRaises(ipmitool.IPMIToolException,
                           self.ipmitool_provider.set_boot_device,
                           self.chassis1, 'pxe')
+
         self.subprocess_mock.assert_any_call(self.ipmi_call_args +
                                              ['chassis', 'bootdev', 'pxe'])
         self.assertEqual(self.subprocess_mock.call_count, 1)

@@ -24,32 +24,22 @@ from teeth_overlord.oob import base
 POWER_ON = 'Chassis Power Control: Up/On\n'
 POWER_OFF = 'Chassis Power Control: Down/Off\n'
 POWER_STATE = 'Chassis Power is {}\n'
-POWER_STATES = ['on', 'off']
 
 BOOT_DEVICE = 'Set Boot Device to {}\n'
-BOOT_DEVICES = ['none',  # Do not change boot device order
-                'pxe',  # Force PXE boot
-                'disk',  # Force boot from default Hard-drive
-                'safe',  # Force boot from default Hard-drive,
-                         # request Safe Mode
-                'diag',  # Force boot from Diagnostic Partition
-                'cdrom',  # Force boot from CD/DVD
-                'bios',  # Force boot into BIOS Setup
-                'floppy']  # Force boot from Floppy/primary
-                           # removable media
+BOOT_DEVICES = [
+    'none',  # Do not change boot device order
+    'pxe',  # Force PXE boot
+    'disk',  # Force boot from default Hard-drive
+    'safe',  # like 'disk', also request safe mode
+    'diag',  # Force boot from Diagnostic Partition
+    'cdrom',  # Force boot from CD/DVD
+    'bios',  # Force boot into BIOS Setup
+    'floppy'  # Force boot from Floppy/primary
+]
 
 
 class IPMIToolException(Exception):
-
-    def __init__(self, returncode, output, cmd):
-        self.returncode = returncode
-        self.output = output
-        self.cmd = cmd
-
-        msg = ("command '{}' failed with non-zero exit status {}"
-               .format(self.cmd, self.returncode))
-
-        super(IPMIToolException, self).__init__(msg)
+    pass
 
 
 class IPMIToolProvider(base.BaseOutOfBandProvider):
@@ -80,9 +70,10 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
                 if self.wait_time:
                     time.sleep(self.wait_time)
 
-        self.log.error("power state never changed to {} after {} attempts."
-                       .format(state, self.max_attempts))
-        return False
+        msg = "power state never changed to {} after {} attempts.".format(
+            state, self.max_attempts)
+        self.log.error(msg, chassis_id=chassis.id)
+        raise IPMIToolException(msg)
 
     def _exec_ipmitool(self, chassis, command):
 
@@ -91,12 +82,14 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
         username = chassis.ipmi_username
         password = chassis.ipmi_password
 
-        args = ['ipmitool',
-                '-I', 'lanplus',
-                '-H', host,
-                '-p', port,
-                '-U', username,
-                '-P', password]
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', host,
+            '-p', port,
+            '-U', username,
+            '-P', password
+        ]
         args = args + command.split(' ')
 
         log_dict = {'chassis_id': chassis.id,
@@ -109,13 +102,10 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
             self.log.info('finished ipmi command', result=result, **log_dict)
             return result
         except subprocess.CalledProcessError as e:
-            new_e = IPMIToolException(returncode=e.returncode,
-                                      output=e.output,
-                                      cmd=e.cmd)
             self.log.error('failed ipmi command',
-                           exception=str(new_e),
+                           exception=str(e),
                            **log_dict)
-            raise new_e
+            raise IPMIToolException(str(e))
 
     def is_chassis_on(self, chassis):
 
@@ -126,30 +116,34 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
         elif state == POWER_STATE.format('off'):
             return False
         else:
-            self.log.error('unknown power state: {}'.format(state))
-            return False
+            msg = 'unknown power state: {}'.format(state)
+            self.log.error(msg, chassis_id=chassis.id)
+            raise IPMIToolException(msg)
 
     def power_chassis_off(self, chassis):
         state = self._exec_ipmitool(chassis, 'power off')
         if state == POWER_OFF:
             return self._wait_for_power_state(chassis, 'off')
         else:
-            self.log.error('unknown power off state: {}'.format(state))
-            return False
+            msg = 'unknown power off state: {}'.format(state)
+            self.log.error(msg, chassis_id=chassis.id)
+            raise IPMIToolException(msg)
 
     def power_chassis_on(self, chassis):
         state = self._exec_ipmitool(chassis, 'power on')
         if state == POWER_ON:
             return self._wait_for_power_state(chassis, 'on')
         else:
-            self.log.error('unknown power on state: {}'.format(state))
-            return False
+            msg = 'unknown power on state: {}'.format(state)
+            self.log.error(msg, chassis_id=chassis.id)
+            raise IPMIToolException(msg)
 
     def set_boot_device(self, chassis, device, persistent=False):
 
         if device not in BOOT_DEVICES:
-            self.log.error('unknown boot device: {}'.format(device))
-            return False
+            msg = 'unknown boot device: {}'.format(device)
+            self.log.error(msg, chassis_id=chassis.id, device=device)
+            raise IPMIToolException(msg)
 
         cmd = "chassis bootdev {}".format(device)
         if persistent:
@@ -159,5 +153,6 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
         if state == BOOT_DEVICE.format(device):
             return True
         else:
-            self.log.error("failed setting boot device to {}".format(device))
-            return False
+            msg = "unknown set boot device state: {}".format(state)
+            self.log.error(msg, chassis_id=chassis.id, device=device)
+            raise IPMIToolException(msg)
