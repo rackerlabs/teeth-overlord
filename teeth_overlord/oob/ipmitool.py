@@ -55,6 +55,12 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
         self.log = structlog.get_logger()
 
     def _wait_for_power_state(self, chassis, state):
+        """Checks chassis power state in a loop.
+
+        Returns true when chassis power state matches given state.
+
+        Throws IPMIToolException if self.max_attempts is reached.
+        """
 
         attempts = 0
 
@@ -76,6 +82,10 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
         raise IPMIToolException(msg)
 
     def _exec_ipmitool(self, chassis, command):
+        """Formats a command an calls 'ipmitool' targeted at a given chassis.
+
+        Returns 'ipmitool' command stdout
+        """
 
         host = chassis.ipmi_host
         port = str(chassis.ipmi_port)
@@ -108,6 +118,7 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
             raise IPMIToolException(str(e))
 
     def is_chassis_on(self, chassis):
+        """Returns a boolean indicating whether a chassis is on."""
 
         state = self._exec_ipmitool(chassis, 'power status')
 
@@ -121,6 +132,8 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
             raise IPMIToolException(msg)
 
     def power_chassis_off(self, chassis):
+        """Power a chassis off."""
+
         state = self._exec_ipmitool(chassis, 'power off')
         if state == POWER_OFF:
             return self._wait_for_power_state(chassis, 'off')
@@ -130,6 +143,8 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
             raise IPMIToolException(msg)
 
     def power_chassis_on(self, chassis):
+        """Power a chassis on."""
+
         state = self._exec_ipmitool(chassis, 'power on')
         if state == POWER_ON:
             return self._wait_for_power_state(chassis, 'on')
@@ -139,6 +154,7 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
             raise IPMIToolException(msg)
 
     def set_boot_device(self, chassis, device, persistent=False):
+        """Set boot device for next reboot."""
 
         if device not in BOOT_DEVICES:
             msg = 'unknown boot device: {}'.format(device)
