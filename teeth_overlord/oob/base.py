@@ -43,8 +43,8 @@ class BaseOutOfBandProvider(object):
         pass
 
     @abc.abstractmethod
-    def set_boot_device(self, chassis, device):
-        """Set the boot device."""
+    def set_boot_device(self, chassis, device, persistent=False):
+        """Set boot device for next reboot."""
         pass
 
 
