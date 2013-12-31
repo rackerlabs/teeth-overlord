@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import abc
-import time
+import signal
+import threading
 import uuid
 
 from stevedore import driver
@@ -65,15 +66,18 @@ class JobExecutor(service.SynchronousTeethService):
     """A service which executes job requests from a queue."""
 
     def __init__(self, config):
-        self.config = config
+        super(JobExecutor, self).__init__(config)
         self.log = structlog.get_logger()
         self.agent_client = agent_client.get_agent_client(config)
         self.job_client = JobClient(config)
         self.image_provider = images_base.get_image_provider(config)
         self.oob_provider = oob_base.get_oob_provider(config)
         self.scheduler = scheduler.TeethInstanceScheduler()
+        self.claim_lock = threading.Lock()
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
         self.stats_client = stats.get_stats_client(config, 'jobs')
+        self.concurrent_jobs_gauge = stats.ConcurrencyGauge(self.stats_client,
+                                                            'concurrent_jobs')
         self._job_type_cache = {}
 
     def _get_job_class(self, job_type):
@@ -86,23 +90,27 @@ class JobExecutor(service.SynchronousTeethService):
         return self._job_type_cache[job_type].driver
 
     def _process_next_message(self):
-        try:
-            message = self.queue.claim_message(JOB_QUEUE_NAME,
-                                               CLAIM_TTL,
-                                               CLAIM_GRACE)
-        except Exception as e:
-            # TODO(russellhaering): some sort of backoff if queueing system is
-            # down
-            self.log.error('error claiming message', exception=e)
-            message = None
+        with self.claim_lock:
+            # Now that we actually have the lock, bail out early if we're
+            # supposed to be stopping
+            if self.stopping.isSet():
+                return
 
-        # TODO(russellhaering): Process messages in a thread so we can process
-        #                       more messages concurrently without multiple
-        #                       pollers.
-        if not message:
-            if not self.stopping:
-                time.sleep(POLLING_INTERVAL)
-            return
+            try:
+                message = self.queue.claim_message(JOB_QUEUE_NAME,
+                                                   CLAIM_TTL,
+                                                   CLAIM_GRACE)
+            except Exception as e:
+                # TODO(russellhaering): some sort of backoff if queueing system
+                # is down
+                self.log.error('error claiming message', exception=e)
+                message = None
+
+            if not message:
+                # Wait up to POLLING_INTERVAL seconds before releasing the
+                # lock, but bail out early if the stopping flag gets set.
+                self.stopping.wait(POLLING_INTERVAL)
+                return
 
         job_request_id = message.body['job_request_id']
 
@@ -117,15 +125,28 @@ class JobExecutor(service.SynchronousTeethService):
             self.queue.delete_message(message)
             return
 
-        cls = self._get_job_class(job_request.job_type)
-        job = cls(self, job_request, message)
-        job.execute()
+        with self.concurrent_jobs_gauge:
+            cls = self._get_job_class(job_request.job_type)
+            job = cls(self, job_request, message)
+            job.execute()
+
+    def _process_messages(self):
+        while not self.stopping.isSet():
+            self._process_next_message()
 
     def run(self):
         """Start processing jobs."""
         super(JobExecutor, self).run()
-        while not self.stopping:
-            self._process_next_message()
+        threads = [threading.Thread(target=self._process_messages)
+                   for i in xrange(0, self.config.JOB_EXECUTION_THREADS)]
+
+        for thread in threads:
+            thread.start()
+
+        signal.pause()
+
+        for thread in threads:
+            thread.join()
 
 
 class JobClient(object):
