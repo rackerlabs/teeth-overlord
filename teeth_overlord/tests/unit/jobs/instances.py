@@ -54,30 +54,24 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                                 self.job_request,
                                                 self.message)
 
-    def _did_prepare_and_run_image(self):
         client = self.executor.agent_client
-        client.get_agent_connection.assert_called_once()
-        client.prepare_image.assert_called_once()
-        client.run_image.assert_called_once()
+        client.get_agent_connection.return_value = None
+        scheduler = self.executor.scheduler
+        scheduler.reserve_chassis.return_value = self.chassis
+
+    def _did_prepare_and_run_image(self):
+        image_info = self.executor.image_provider.get_image_info('image_id')
+        client = self.executor.agent_client
+        connection = None
+
+        client.get_agent_connection.assert_called_once_with(self.chassis)
+        client.prepare_image.assert_called_once_with(connection, image_info)
+        client.run_image.assert_called_once_with(connection, image_info)
 
     def test_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
         self.job.prepare_and_run_image(self.instance, self.chassis, image_info)
-        client = self.executor.agent_client
-        client.get_agent_connection.assert_called_once_with(self.chassis)
         self._did_prepare_and_run_image()
-
-    def test_prepare_and_run_image_with_connection(self):
-        image_info = self.executor.image_provider.get_image_info('image_id')
-        client = self.executor.agent_client
-        connection = client.get_agent_connection(self.chassis)
-
-        self.job.prepare_and_run_image(self.instance,
-                                       self.chassis,
-                                       image_info,
-                                       connection=connection)
-        client.prepare_image.assert_called_once_with(connection, image_info)
-        client.run_image.assert_called_once_with(connection, image_info)
 
     def _instance_is_marked_active(self):
         instance_batch_mock = self.get_mock(models.Instance, 'batch')
