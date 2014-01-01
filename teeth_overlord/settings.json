@@ -1,0 +1,38 @@
+{
+"CASSANDRA_CLUSTER": ["localhost:9160"],
+"CASSANDRA_CONSISTENCY": "ONE",
+
+"API_HOST": "0.0.0.0",
+"API_PORT": 8080,
+
+"AGENT_ENDPOINT_AGENT_HOST": "0.0.0.0",
+"AGENT_ENDPOINT_AGENT_PORT": 8081,
+"AGENT_ENDPOINT_RPC_HOST": "0.0.0.0",
+"AGENT_ENDPOINT_RPC_PORT": 8082,
+
+"JOBSERVER_HOST": "0.0.0.0",
+"JOBSERVER_PORT": 8083,
+"JOB_EXECUTION_THREADS": 16,
+
+"ETCD_ADDRESSES": ["localhost:4001"],
+
+"MARCONI_URL": "http://localhost:8888",
+
+"IMAGE_PROVIDER": "fake",
+"OOB_PROVIDER": "fake",
+"AGENT_CLIENT": "fake",
+"PRETTY_LOGGING": true,
+
+"STATSD_HOST": "localhost",
+"STATSD_PORT": 8125,
+"STATSD_PREFIX": "teeth",
+"STATSD_ENABLED": true,
+
+"CONFIG_FILES": [
+],
+
+"CONFIG_SOURCES": [
+    "teeth_overlord.config.EnvSource"
+]
+
+}
