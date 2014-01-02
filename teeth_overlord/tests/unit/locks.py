@@ -64,7 +64,7 @@ class EtcdLockManagerTestCase(unittest.TestCase):
         with self.lock_manager.acquire('/test'):
             time.time.return_value = 1.3
             # give the thread just enough time to run once
-            time.sleep(0.001)
+            time.sleep(0.01)
             lock = self.get_locks()[0]
             self.assertEqual(lock.renew.call_count, 0)
 
@@ -73,6 +73,6 @@ class EtcdLockManagerTestCase(unittest.TestCase):
         with self.lock_manager.acquire('/test'):
             time.time.return_value = 1.4
             # give the thread just enough time to run once
-            time.sleep(0.001)
+            time.sleep(0.01)
             lock = self.get_locks()[0]
             self.assertEqual(lock.renew.call_count, 1)
