@@ -41,12 +41,12 @@ class MockLock(object):
 class EtcdLockManagerTestCase(unittest.TestCase):
     def setUp(self):
         self.client = mock.Mock(autospec=etcd.Client)
-        self.mock_lock = mock.Mock(autospec=MockLock)
-        self.lock = self.mock_lock()
+        mock_lock = mock.Mock(autospec=MockLock)
+        self.lock = mock_lock()
         self.lock.key = '/test'
         self.lock.ttl = 1
         self.client.get_lock.return_value = self.lock
-        #self.client.get_lock.return_value = MockLock('/test', ttl=1)
+
         _config = config.Config()
         self.lock_manager = locks.EtcdLockManager(_config, client=self.client)
         self.get_locks = self.lock_manager._locks.values
@@ -54,7 +54,6 @@ class EtcdLockManagerTestCase(unittest.TestCase):
     def tearDown(self):
         self.lock_manager.stop()
 
-    @mock.patch('time.time', mock.MagicMock(return_value=1))
     def test_context_manager_locks(self):
         with self.lock_manager.acquire('/test'):
             self.assertEqual(len(self.get_locks()), 1)
@@ -65,8 +64,8 @@ class EtcdLockManagerTestCase(unittest.TestCase):
         with self.lock_manager.acquire('/test'):
             time.time.return_value = 1.3
             # give the thread just enough time to run once
-            time.sleep(0.01)
-            lock = self.lock_manager._locks.values()[0]
+            time.sleep(0.001)
+            lock = self.get_locks()[0]
             self.assertEqual(lock.renew.call_count, 0)
 
     @mock.patch('time.time', mock.MagicMock(return_value=1))
@@ -74,6 +73,6 @@ class EtcdLockManagerTestCase(unittest.TestCase):
         with self.lock_manager.acquire('/test'):
             time.time.return_value = 1.4
             # give the thread just enough time to run once
-            time.sleep(0.01)
-            lock = self.lock_manager._locks.values()[0]
+            time.sleep(0.001)
+            lock = self.get_locks()[0]
             self.assertEqual(lock.renew.call_count, 1)
