@@ -47,34 +47,35 @@ class EtcdLockManager(object):
 
     def _keep_locks_open(self):
         while not self.stopping:
+            next_update = self._check_locks()
             now = time.time()
-            next_interval = self._check_locks(now)
+            next_interval = next_update - now
             self._event.wait(next_interval)
 
-    def _check_locks(self, now):
-        interval = 60  # check at least once per minute
+    def _check_locks(self):
+        next_update = time.time() + 60  # check at least once per minute
         locks = []
         with self._lock:
             locks = self._locks.values()
             self._event.clear()
         for lock in locks:
-            time_to_renew = self._check_and_renew(lock, now)
-            interval = min(interval, time_to_renew)
-        return interval
+            time_to_renew = self._check_and_renew(lock)
+            next_update = min(next_update, time_to_renew)
+        return next_update
 
-    def _check_and_renew(self, lock, now):
-        if self._should_renew(lock, now):
+    def _check_and_renew(self, lock):
+        if self._should_renew(lock):
             try:
                 lock.renew(lock.ttl)
             except etcd.EtcdException:
                 # lock was released or expired, clean it up
                 self._release(lock.key)
-            lock.expires_at = now + lock.ttl
-        current_ttl = lock.expires_at - now
-        time_to_renewal = current_ttl - lock.two_thirds_ttl
-        return time_to_renewal
+            lock.expires_at = time.time() + lock.ttl
+        next_update = lock.expires_at - lock.two_thirds_ttl
+        return next_update
 
-    def _should_renew(self, lock, now):
+    def _should_renew(self, lock):
+        now = time.time()
         current_ttl = lock.expires_at - now
         return current_ttl <= lock.two_thirds_ttl
 
