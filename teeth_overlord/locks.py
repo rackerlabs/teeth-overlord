@@ -63,9 +63,11 @@ class EtcdLockManager(object):
 
     def _check_and_renew(self, lock, now):
         if self._should_renew(lock, now):
-            # need to renew NOW
-            # TODO(jimrollenhagen) add a try/except EtcdException here
-            lock.renew(lock.ttl)
+            try:
+                lock.renew(lock.ttl)
+            except etcd.EtcdException:
+                # lock was released or expired, clean it up
+                self._release(lock.key)
             lock.expires_at = now + lock.ttl
         current_ttl = lock.expires_at - now
         time_to_renewal = current_ttl - lock.two_thirds_ttl
@@ -92,6 +94,9 @@ class EtcdLockManager(object):
             self._event.set()
 
     def _release(self, key):
-        # TODO(jimrollenhagen) wrap in try/except KeyError?
-        self._locks[key].release()
+        try:
+            self._locks[key].release()
+        except etcd.EtcdException:
+            # lock was already released or expired
+            pass
         del self._locks[key]
