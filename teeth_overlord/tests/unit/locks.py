@@ -51,9 +51,6 @@ class EtcdLockManagerTestCase(unittest.TestCase):
         self.lock_manager = locks.EtcdLockManager(_config, client=self.client)
         self.get_locks = self.lock_manager._locks.values
 
-    def tearDown(self):
-        self.lock_manager.stop()
-
     def test_context_manager_locks(self):
         with self.lock_manager.acquire('/test'):
             self.assertEqual(len(self.get_locks()), 1)

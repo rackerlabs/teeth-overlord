@@ -36,9 +36,10 @@ class EtcdLockManager(object):
         self._locks = {}
         self.stopping = False
         self._thread = threading.Thread(target=self._keep_locks_open)
+        self._thread.daemon = True
         self._thread.start()
 
-    def stop(self):
+    def __del__(self):
         self.stopping = True
         with self._lock:
             self._event.set()
