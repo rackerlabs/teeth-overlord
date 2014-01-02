@@ -95,9 +95,11 @@ class EtcdLockManager(object):
             self._event.set()
 
     def _release(self, key):
+        with self._lock:
+            lock = self._locks[key]
+            del self._locks[key]
         try:
-            self._locks[key].release()
+            lock.release()
         except etcd.EtcdException:
             # lock was already released or expired
             pass
-        del self._locks[key]
