@@ -43,7 +43,7 @@ class EtcdLockManager(object):
         self.stopping = True
         with self._lock:
             self._event.set()
-            self._thread.join()
+        self._thread.join()
 
     def _keep_locks_open(self):
         while not self.stopping:
