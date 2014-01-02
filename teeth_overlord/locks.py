@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import threading
 import time
 
@@ -30,35 +31,67 @@ class EtcdLockManager(object):
         else:
             self.client = etcd.Client(config.ETCD_HOST, config.ETCD_PORT)
 
-        self._thread = threading.Thread(target=self._keep_locks_open)
         self._event = threading.Event()
+        self._lock = threading.Lock()
         self._locks = {}
+        self.stopping = False
+        self._thread = threading.Thread(target=self._keep_locks_open)
+        self._thread.start()
+
+    def stop(self):
+        self.stopping = True
+        with self._lock:
+            self._event.set()
+            self._thread.join()
 
     def _keep_locks_open(self):
-        while True:
+        while not self.stopping:
             now = time.time()
-            interval = 60  # poll at least once per minute
-            for lock in self._locks.itervalues():
-                current_ttl = lock.expires_at - now
-                if (current_ttl <= lock.two_thirds_ttl):
-                    # need to renew NOW
-                    lock.renew(lock.ttl)
-                    lock.expires_at = now + lock.ttl
-                time_to_renewal = current_ttl - lock.two_thirds_ttl
-                interval = min(interval, time_to_renewal)
-            self._event.clear()
-            self._event.wait(interval)
+            next_interval = self._check_locks(now)
+            self._event.wait(next_interval)
 
-    def acquire(self, key, ttl=1, value=None):
+    def _check_locks(self, now):
+        interval = 60  # check at least once per minute
+        locks = []
+        with self._lock:
+            locks = self._locks.values()
+            self._event.clear()
+        for lock in locks:
+            time_to_renew = self._check_and_renew(lock, now)
+            interval = min(interval, time_to_renew)
+        return interval
+
+    def _check_and_renew(self, lock, now):
+        if self._should_renew(lock, now):
+            # need to renew NOW
+            # TODO(jimrollenhagen) add a try/except EtcdException here
+            lock.renew(lock.ttl)
+            lock.expires_at = now + lock.ttl
+        current_ttl = lock.expires_at - now
+        time_to_renewal = current_ttl - lock.two_thirds_ttl
+        return time_to_renewal
+
+    def _should_renew(self, lock, now):
+        current_ttl = lock.expires_at - now
+        return current_ttl <= lock.two_thirds_ttl
+
+    @contextlib.contextmanager
+    def acquire(self, key, **kwargs):
+        self._acquire(key, **kwargs)
+        yield
+        self._release(key)
+
+    def _acquire(self, key, ttl=1, value=None):
         lock = self.client.get_lock(key, ttl=ttl, value=value)
         lock.acquire()
         now = time.time()
         lock.expires_at = now + ttl
         lock.two_thirds_ttl = 2.0 * ttl / 3.0
-        self._locks[key] = lock
-        self._event.set()
+        with self._lock:
+            self._locks[key] = lock
+            self._event.set()
 
-    def release(self, key):
+    def _release(self, key):
         # TODO(jimrollenhagen) wrap in try/except KeyError?
         self._locks[key].release()
         del self._locks[key]
