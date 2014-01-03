@@ -29,7 +29,8 @@ class Config(object):
     AGENT_ENDPOINT_RPC_PORT = 8082
     JOBSERVER_HOST = '0.0.0.0'
     JOBSERVER_PORT = 8083
-    ETCD_ADDRESSES = ['localhost:4001']
+    ETCD_HOST = 'localhost'
+    ETCD_PORT = 4001
     MARCONI_URL = 'http://localhost:8888'
     IMAGE_PROVIDER = 'fake'
     OOB_PROVIDER = 'fake'
