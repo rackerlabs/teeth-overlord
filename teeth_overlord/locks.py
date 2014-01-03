@@ -50,8 +50,8 @@ class EtcdLockManager(object):
             next_update = self._check_locks()
             now = time.time()
             next_interval = next_update - now
+            # if next interval is negative, loop immediately
             if next_interval > 0:
-                # if next interval is positive, loop immediately
                 self._event.wait(next_interval)
 
     def _check_locks(self):
