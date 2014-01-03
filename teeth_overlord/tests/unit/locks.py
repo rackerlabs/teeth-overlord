@@ -73,3 +73,68 @@ class EtcdLockManagerTestCase(unittest.TestCase):
             time.sleep(0.01)
             lock = self.get_locks()[0]
             self.assertEqual(lock.renew.call_count, 1)
+
+    @mock.patch('time.time', mock.MagicMock(return_value=1))
+    def test_should_renew(self):
+        _should_renew = self.lock_manager._should_renew
+        self.lock.two_thirds_ttl = 2
+
+        time.time.return_value = 1
+        self.lock.expires_at = 4
+        self.assertEqual(_should_renew(self.lock), False)
+
+        time.time.return_value = 1
+        self.lock.expires_at = 3
+        self.assertEqual(_should_renew(self.lock), True)
+
+        time.time.return_value = 1
+        self.lock.expires_at = 2
+        self.assertEqual(_should_renew(self.lock), True)
+
+    @mock.patch('time.time', mock.MagicMock(return_value=1))
+    def test_check_and_renew(self):
+        self.lock.ttl = 3
+        self.lock.expires_at = 0  # should get set in _check_and_renew
+        self.lock.two_thirds_ttl = 2
+
+        next_update = self.lock_manager._check_and_renew(self.lock)
+        self.assertEqual(self.lock.renew.call_count, 1)
+        self.assertEqual(self.lock.expires_at, 4)
+        self.assertEqual(next_update, 2)
+        self.lock.renew.reset_mock()
+
+        self.lock.ttl = 3
+        self.lock.expires_at = 5
+        self.lock.two_thirds_ttl = 2
+
+        next_update = self.lock_manager._check_and_renew(self.lock)
+        self.assertEqual(self.lock.renew.call_count, 0)
+        self.assertEqual(self.lock.expires_at, 5)
+        self.assertEqual(next_update, 3)
+
+    @mock.patch('time.time', mock.MagicMock(return_value=1))
+    def test_check_locks(self):
+        self.lock_manager._locks = {}
+        next_update = self.lock_manager._check_locks()
+        self.assertEqual(next_update, 61)
+
+        self.lock.ttl = 3
+        self.lock.expires_at = 4
+        self.lock.two_thirds_ttl = 2
+        self.lock_manager._locks = {self.lock.key: self.lock}
+        next_update = self.lock_manager._check_locks()
+        self.assertEqual(next_update, 2)
+
+        self.lock.ttl = 3
+        self.lock.expires_at = 5
+        self.lock.two_thirds_ttl = 2
+        self.lock_manager._locks = {self.lock.key: self.lock}
+        next_update = self.lock_manager._check_locks()
+        self.assertEqual(next_update, 3)
+
+        self.lock.ttl = 300
+        self.lock.expires_at = 0
+        self.lock.two_thirds_ttl = 200
+        self.lock_manager._locks = {self.lock.key: self.lock}
+        next_update = self.lock_manager._check_locks()
+        self.assertEqual(next_update, 61)
