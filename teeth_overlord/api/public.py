@@ -118,9 +118,6 @@ class TeethPublicAPI(component.APIComponent):
         self.route('DELETE', '/instances/<string:instance_id>',
                    self.delete_instance)
 
-        # Agent Handlers
-        self.route('PUT', '/agents/<string:mac_address>', self.update_agent)
-
     def _validate_relation(self, instance, field_name, cls):
         id = getattr(instance, field_name)
 
@@ -678,21 +675,6 @@ class TeethPublicAPI(component.APIComponent):
                                    instance_id=instance.id)
 
         return responses.DeletedResponse()
-
-    @stats.incr_stat('agents.update')
-    def update_agent(self, request, mac_address):
-        try:
-            agent = models.Agent.objects.get(primary_mac_address=mac_address)
-        except models.Agent.DoesNotExist:
-            agent = models.Agent(primary_mac_address=mac_address)
-
-        agent.version = request.form.get('version')
-        agent.url = request.form.get('url')
-        agent.mode = request.form.get('mode')
-        agent.ttl(models.Agent.TTL)
-        agent.save()
-
-        return responses.UpdatedResponse()
 
 
 class TeethPublicAPIServer(component.APIServer):
