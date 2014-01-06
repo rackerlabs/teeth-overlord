@@ -14,8 +14,6 @@
 "JOBSERVER_PORT": 8083,
 "JOB_EXECUTION_THREADS": 16,
 
-"ETCD_ADDRESSES": ["localhost:4001"],
-
 "MARCONI_URL": "http://localhost:8888",
 
 "IMAGE_PROVIDER": "fake",
@@ -28,11 +26,11 @@
 "STATSD_PREFIX": "teeth",
 "STATSD_ENABLED": true,
 
-"CONFIG_FILES": [
-],
+"ETCD_ADDRESSES": ["localhost:4001"],
 
 "CONFIG_SOURCES": [
-    "teeth_overlord.config.EnvSource"
+    ["teeth_overlord.config.sources.EnvSource"],
+    ["teeth_overlord.config.sources.EtcdSource", "ETCD_ADDRESSES"]
 ]
 
 }
