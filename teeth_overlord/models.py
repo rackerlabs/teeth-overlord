@@ -296,27 +296,45 @@ class Instance(MetadataBase):
         return instance
 
 
-class AgentConnection(Base):
-    """Model for an AgentConnection.
+class AgentState(object):
+    """Possible states that an Agent can be in."""
+    STANDBY = 'STANDBY'
+    DECOM = 'DECOM'
 
-    Notably, the `id` field isn't the primary key. We want to be able to
-    overwrite these using nothing but the MAC address, so we use that as
-    the primary key, but set an indexed `id` field for consistency.
+
+class Agent(Base):
+    """Model for an Agent.
+
+    `primary_mac_address` is the primary key here.
     """
-    id = columns.Text(index=True, default=uuid_str, max_length=MAX_ID_LENGTH)
     primary_mac_address = columns.Ascii(primary_key=True)
     agent_version = columns.Ascii(required=True)
-    endpoint_rpc_host = columns.Ascii(required=True)
-    endpoint_rpc_port = columns.Integer(required=True)
+    agent_url = columns.Ascii(required=True)
+    agent_mode = columns.Ascii(required=True,
+                               default=AgentState.STANDBY,
+                               index=True)
+    chassis_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn an AgentConnection into a dict."""
         return collections.OrderedDict([
-            ('id', self.id),
             ('primary_mac_address', self.primary_mac_address),
-            ('endpoint_rpc_host', self.endpoint_rpc_host),
-            ('endpoint_rpc_port', self.endpoint_rpc_port),
+            ('agent_version', self.agent_version),
+            ('agent_url', self.agent_url),
+            ('agent_mode', self.agent_mode),
         ])
+
+    @classmethod
+    def deserialize(cls, params):
+        """Turn a dict into an Agent."""
+        agent = cls(
+            primary_mac_address=params.get('primary_mac_address'),
+            agent_version=params.get('agent_version'),
+            agent_url=params.get('agent_url'),
+            agent_mode=params.get('agent_mode'),
+        )
+        agent.validate()
+        return agent
 
 
 class JobRequestState(object):
@@ -391,7 +409,7 @@ class JobRequest(Base):
 all_models = [
     Chassis,
     Instance,
-    AgentConnection,
+    Agent,
     JobRequest,
     Flavor,
     FlavorProvider,
