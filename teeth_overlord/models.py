@@ -79,6 +79,7 @@ class ChassisPowerState(object):
     """Possible power states that a chassis may be in."""
     ON = 'ON'
     OFF = 'OFF'
+    UNKNOWN = 'UNKNOWN'
 
 
 class ChassisState(object):
