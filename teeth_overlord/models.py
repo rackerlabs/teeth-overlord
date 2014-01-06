@@ -325,18 +325,6 @@ class Agent(Base):
             ('mode', self.mode),
         ])
 
-    @classmethod
-    def deserialize(cls, params):
-        """Turn a dict into an Agent."""
-        agent = cls(
-            primary_mac_address=params.get('primary_mac_address'),
-            version=params.get('version'),
-            url=params.get('url'),
-            mode=params.get('mode'),
-        )
-        agent.validate()
-        return agent
-
 
 class JobRequestState(object):
     """Possible states that JobRequest can be in."""
