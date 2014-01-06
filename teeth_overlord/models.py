@@ -307,6 +307,7 @@ class Agent(Base):
 
     `primary_mac_address` is the primary key here.
     """
+    TTL = 180
     primary_mac_address = columns.Ascii(primary_key=True)
     version = columns.Ascii(required=True)
     url = columns.Ascii(required=True)
