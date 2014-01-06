@@ -145,7 +145,7 @@ class Config(object):
         for k,v in self._type_map.iteritems():
             if isinstance(value, k):
                 # we rely on ConfigValue to validate this
-                self._config[name] = v(value)
+                self._config[name.upper()] = v(value)
                 return self.get(name)
 
         raise ValueError("Cannot set key '{}' to value '{}', unknown type '{}'".format(name, value, type(value)))
@@ -165,6 +165,7 @@ class LazyConfig(object):
 
         self._setup_lock = threading.Lock()
 
+        self._sources = []
         self._callbacks = []
 
     def __getattr__(self, name):
@@ -175,11 +176,19 @@ class LazyConfig(object):
         else:
             return object.__getattribute__(self, name)
 
+    def __getitem__(self, name):
+        if name.isupper():
+            if not self._config:
+                self._setup()
+            return self._config.get(name)
+        else:
+            # throw
+            return self[name]
+
     def _setup(self, user_config=None):
-        # We want to be sure we only ever setup a config once per instance.
         self._setup_lock.acquire()
-        if not self._config:
-            try:
+        try:
+            if not self._config:
                 # If we are given a config directly with set_config(), use that.
                 if self._user_config:
                     config = self._user_config
@@ -198,8 +207,8 @@ class LazyConfig(object):
 
                 self._run_sources()
                 self._run_callbacks()
-            finally:
-                self._setup_lock.release()
+        finally:
+            self._setup_lock.release()
 
     def _load_module(self, name):
         module = name.split('.')
@@ -209,11 +218,10 @@ class LazyConfig(object):
     def _run_callbacks(self):
         for cb in self._callbacks:
             cb(self)
-        self._callbacks = set()
 
     def _run_sources(self):
         # run any sources specified in the config file
-        sources = self._config.get('CONFIG_SOURCES', False) or []
+        sources = (self._config.get('CONFIG_SOURCES', False) or []) + self._sources
         for source in sources:
             module = source[0]
             args = source[1:]
@@ -223,6 +231,12 @@ class LazyConfig(object):
                 if val is not None:
                     self._config.set(k, val)
 
+    def setup(self):
+        """Force configuration evaluation."""
+        if self._config:
+            raise ConfigException("Already called setup().")
+        self._setup()
+
     def set_config(self, user_config):
         """Set the configuration to a given dict, do not load a settings file."""
         self._user_config = user_config
@@ -231,9 +245,10 @@ class LazyConfig(object):
         """Load settings from a JSON file at the given path."""
         self._config_file = f
 
+    def add_source(self, s):
+        self._sources.append(s)
+
     def add_callback(self, cb):
         """Call the given object after config setup, guaranteed to only call once."""
         self._callbacks.append(cb)
 
-
-settings = LazyConfig()

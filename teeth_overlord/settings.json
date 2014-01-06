@@ -26,11 +26,12 @@
 "STATSD_PREFIX": "teeth",
 "STATSD_ENABLED": true,
 
-"ETCD_ADDRESSES": ["localhost:4001"],
+"ETCD_HOST": "localhost",
+"ETCD_PORT": 4001,
+"ETC_CONFIG_DIR": "teeth_config",
 
 "CONFIG_SOURCES": [
     ["teeth_overlord.config.sources.EnvSource"],
-    ["teeth_overlord.config.sources.EtcdSource", "ETCD_ADDRESSES"]
+    ["teeth_overlord.config.sources.EtcdSource", "ETCD_HOST", "ETCD_PORT", "ETC_CONFIG_DIR"]
 ]
-
 }

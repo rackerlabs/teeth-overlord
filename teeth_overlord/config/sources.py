@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import os
+import etcd
 
 
 class ConfigSource(object):
@@ -40,9 +41,18 @@ class EnvSource(ConfigSource):
 class EtcdSource(ConfigSource):
     """Replaces settings with values from etcd."""
 
-    def __init__(self, conf, addresses_key):
+    def __init__(self, conf, host_key, port_key, dir_key):
         super(EtcdSource, self).__init__(conf)
-        self._addresses_key = addresses_key
+        self._host = self._conf[host_key]
+        self._port = self._conf[port_key]
+        self._dir = self._conf[dir_key]
+        self._client = etcd.Client(host=self._host, port=self._port)
+
+    def _mkpath(self, key):
+        return "{}/{}".format(self._dir, key)
 
     def get(self, key):
-        pass
+        try:
+            return self._client.get(self._mkpath(key)).value
+        except KeyError:
+            pass
