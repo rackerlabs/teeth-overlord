@@ -75,6 +75,12 @@ class MetadataBase(Base):
                     MAX_METADATA_KEY_COUNT))
 
 
+class ChassisPowerState(object):
+    """Possible power states that a chassis may be in."""
+    ON = 'ON'
+    OFF = 'OFF'
+
+
 class ChassisState(object):
     """Possible states that a Chassis may be in."""
     CLEAN = 'CLEAN'
@@ -219,6 +225,7 @@ class Chassis(MetadataBase):
                       max_length=MAX_ID_LENGTH)
     state = columns.Ascii(index=True,
                           default=ChassisState.READY)
+    power_state = columns.Ascii(index=True, default=ChassisPowerState.ON)
     chassis_model_id = columns.Text(index=True,
                                     required=True,
                                     max_length=MAX_ID_LENGTH)
@@ -252,9 +259,8 @@ class Chassis(MetadataBase):
 
 class InstanceState(object):
     """Possible states than an Instance can be in."""
-    BUILD = 'BUILD'
+    INACTIVE = 'INACTIVE'
     ACTIVE = 'ACTIVE'
-    DELETING = 'DELETING'
     DELETED = 'DELETED'
 
 
@@ -267,7 +273,11 @@ class Instance(MetadataBase):
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
-    state = columns.Ascii(index=True, default=InstanceState.BUILD)
+    job_id = columns.Text(max_length=MAX_ID_LENGTH)
+
+    state = columns.Ascii(index=True, default=InstanceState.INACTIVE)
+    chassis_state = columns.Ascii()
+    power_state = columns.Ascii()  # chassis power state
 
     def serialize(self, view):
         """Turn an Instance into a dict."""
@@ -294,6 +304,10 @@ class Instance(MetadataBase):
 
         instance.validate()
         return instance
+
+    def get_job_state(self):
+        # look up job state by self.job_id
+        pass
 
 
 class AgentConnection(Base):
