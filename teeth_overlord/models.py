@@ -308,20 +308,20 @@ class Agent(Base):
     `primary_mac_address` is the primary key here.
     """
     primary_mac_address = columns.Ascii(primary_key=True)
-    agent_version = columns.Ascii(required=True)
-    agent_url = columns.Ascii(required=True)
-    agent_mode = columns.Ascii(required=True,
-                               default=AgentState.STANDBY,
-                               index=True)
+    version = columns.Ascii(required=True)
+    url = columns.Ascii(required=True)
+    mode = columns.Ascii(required=True,
+                         default=AgentState.STANDBY,
+                         index=True)
     chassis_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn an AgentConnection into a dict."""
         return collections.OrderedDict([
             ('primary_mac_address', self.primary_mac_address),
-            ('agent_version', self.agent_version),
-            ('agent_url', self.agent_url),
-            ('agent_mode', self.agent_mode),
+            ('version', self.version),
+            ('url', self.url),
+            ('mode', self.mode),
         ])
 
     @classmethod
@@ -329,9 +329,9 @@ class Agent(Base):
         """Turn a dict into an Agent."""
         agent = cls(
             primary_mac_address=params.get('primary_mac_address'),
-            agent_version=params.get('agent_version'),
-            agent_url=params.get('agent_url'),
-            agent_mode=params.get('agent_mode'),
+            version=params.get('version'),
+            url=params.get('url'),
+            mode=params.get('mode'),
         )
         agent.validate()
         return agent
