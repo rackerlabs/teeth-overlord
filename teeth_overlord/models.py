@@ -314,7 +314,6 @@ class Agent(Base):
     mode = columns.Ascii(required=True,
                          default=AgentState.STANDBY,
                          index=True)
-    chassis_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn an AgentConnection into a dict."""

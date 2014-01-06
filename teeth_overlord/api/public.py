@@ -686,15 +686,6 @@ class TeethPublicAPI(component.APIComponent):
         except models.Agent.DoesNotExist:
             agent = models.Agent(primary_mac_address=mac_address)
 
-            # chassis ID shouldn't ever change, only set if new
-            try:
-                chassis = models.Chassis.objects.get(
-                    primary_mac_address=mac_address)
-            except models.Chassis.DoesNotExist:
-                return errors.RequestedObjectNotFoundError(models.Chassis,
-                                                           mac_address)
-            agent.chassis_id = chassis.id
-
         agent.version = request.form.get('version')
         agent.url = request.form.get('url')
         agent.mode = request.form.get('mode')
