@@ -14,12 +14,54 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import os
+import etcd
 import json
 import threading
 
 
 class ConfigException(Exception):
     pass
+
+
+class ConfigSource(object):
+    """Base configuration source class.
+
+    Used for fetching configuration keys from external sources.
+    """
+    def __init__(self, conf, *args):
+        self._conf = conf
+
+    def get(self, key):
+        """Return a value for a given key"""
+        raise NotImplementedError
+
+
+class EnvSource(ConfigSource):
+    """Replaces settings with values from os.environ."""
+
+    def get(self, key):
+        return os.environ.get(key, None)
+
+
+class EtcdSource(ConfigSource):
+    """Replaces settings with values from etcd."""
+
+    def __init__(self, conf, host_key, port_key, dir_key):
+        super(EtcdSource, self).__init__(conf)
+        self._host = self._conf[host_key]
+        self._port = self._conf[port_key]
+        self._dir = self._conf[dir_key]
+        self._client = etcd.Client(host=self._host, port=self._port)
+
+    def _mkpath(self, key):
+        return "{}/{}".format(self._dir, key)
+
+    def get(self, key):
+        try:
+            return self._client.get(self._mkpath(key)).value
+        except KeyError:
+            pass
 
 
 class ConfigValue(object):
@@ -185,7 +227,7 @@ class LazyConfig(object):
             # throw
             return self[name]
 
-    def _setup(self, user_config=None):
+    def _setup(self):
         self._setup_lock.acquire()
         try:
             if not self._config:
@@ -234,7 +276,7 @@ class LazyConfig(object):
     def setup(self):
         """Force configuration evaluation."""
         if self._config:
-            raise ConfigException("Already called setup().")
+            raise ConfigException("Configuration already set up.")
         self._setup()
 
     def set_config(self, user_config):
@@ -246,9 +288,17 @@ class LazyConfig(object):
         self._config_file = f
 
     def add_source(self, s):
+        """Add a configuration source."""
         self._sources.append(s)
 
     def add_callback(self, cb):
-        """Call the given object after config setup, guaranteed to only call once."""
+        """Call the given object after config setup."""
         self._callbacks.append(cb)
 
+
+def get_config():
+    """Try to load a configuration file."""
+    conf = LazyConfig()
+    conf.set_file(os.environ.get('TEETH_SETTINGS_FILE') or os.path.join(os.path.dirname(__file__), 'settings.json'))
+    conf.setup()  # force config to eval
+    return conf

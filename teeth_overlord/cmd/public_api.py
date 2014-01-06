@@ -17,12 +17,12 @@ limitations under the License.
 from cherrypy import wsgiserver
 
 from teeth_overlord.api import public
+from teeth_overlord import config as teeth_config
 from teeth_overlord import service
-from teeth_overlord import settings
 
 
 def run():
-    config = settings.get_config()
+    config = teeth_config.get_config()
     service.global_setup(config)
     api = public.TeethPublicAPIServer(config)
     listen_address = (config.API_HOST, config.API_PORT)

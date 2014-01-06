@@ -16,12 +16,12 @@ limitations under the License.
 
 from cqlengine import management
 
+from teeth_overlord import config as teeth_config
 from teeth_overlord import models
 from teeth_overlord import service
-from teeth_overlord import settings
 
 
 def run():
-    service.global_setup(settings.get_config())
+    service.global_setup(teeth_config.get_config())
     for model in models.all_models:
         management.sync_table(model)

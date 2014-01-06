@@ -21,7 +21,7 @@ import traceback
 from cqlengine import connection
 import structlog
 
-from teeth_overlord import settings
+from teeth_overlord import config as teeth_config
 
 # Sometimes global setup is necessary. Make sure that if we try to do it twice:
 #   a. We don't actually do it twice
@@ -46,7 +46,8 @@ def global_setup(config):
     global _global_config
     if _global_config is None:
         _global_config = config
-        connection.setup(config.CASSANDRA_CLUSTER,
+        # this breaks with unicode :(
+        connection.setup([str(v) for v in config.CASSANDRA_CLUSTER],
                          consistency=config.CASSANDRA_CONSISTENCY)
 
         processors = [
@@ -71,7 +72,7 @@ class TeethServiceRunner(object):
     """Instantiate and run a SynchronousTeethService."""
 
     def __init__(self, service_class):
-        self.service = service_class(settings.get_config())
+        self.service = service_class(teeth_config.get_config())
         self.signal_map = {
             signal.SIGTERM: self._terminate,
             signal.SIGINT: self._terminate,

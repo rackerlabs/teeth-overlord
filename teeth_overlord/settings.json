@@ -31,7 +31,7 @@
 "ETC_CONFIG_DIR": "teeth_config",
 
 "CONFIG_SOURCES": [
-    ["teeth_overlord.config.sources.EnvSource"],
-    ["teeth_overlord.config.sources.EtcdSource", "ETCD_HOST", "ETCD_PORT", "ETC_CONFIG_DIR"]
+    ["teeth_overlord.config.EnvSource"],
+    ["teeth_overlord.config.EtcdSource", "ETCD_HOST", "ETCD_PORT", "ETC_CONFIG_DIR"]
 ]
 }
