@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
+
 from teeth_rest import component
 from teeth_rest import responses
 
@@ -46,9 +48,10 @@ class TeethAgentAPI(component.APIComponent):
         except models.Agent.DoesNotExist:
             agent = models.Agent(primary_mac_address=mac_address)
 
-        agent.version = request.form.get('version')
-        agent.url = request.form.get('url')
-        agent.mode = request.form.get('mode')
+        data = json.loads(request.data)
+        agent.version = data.get('version')
+        agent.url = data.get('url')
+        agent.mode = data.get('mode')
         agent.ttl(models.Agent.TTL)
         agent.save()
 
