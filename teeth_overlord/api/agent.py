@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import time
+
 from teeth_rest import component
 from teeth_rest import responses
 
@@ -51,7 +53,9 @@ class TeethAgentAPI(component.APIComponent):
         agent.ttl(models.Agent.TTL)
         agent.save()
 
-        return responses.UpdatedResponse()
+        expiry = time.time() + models.Agent.TTL
+        headers = {'Heartbeat-Before': expiry}
+        return responses.UpdatedResponse(headers=headers)
 
 
 class TeethAgentAPIServer(component.APIServer):

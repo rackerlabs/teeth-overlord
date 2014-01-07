@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import mock
+
 from teeth_overlord.api import agent as agent_api
 from teeth_overlord import models
 from teeth_overlord import tests
@@ -28,7 +30,8 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.url = '/v1.0/agents/00:00:00:00:00:00'
         self.agent_model_mock = self.add_mock(models.Agent)
 
-    def test_create_agent(self):
+    @mock.patch('time.time', mock.MagicMock(return_value=0))
+    def test_update_agent(self):
         data = {
             'primary_mac_address': '00:00:00:00:00:00',
             'version': '0.1',
@@ -37,11 +40,7 @@ class TestAgentAPI(tests.TeethAPITestCase):
         }
         return_value = [models.Agent(**data)]
         self.agent_model_mock.return_value = return_value
-        self.agent_model_mock.side_effect = models.Agent.DoesNotExist
 
-        self._update_request(data)
-
-    def _update_request(self, data):
         response = self.make_request('PUT', self.url, data=data)
 
         save_mock = self.get_mock(models.Agent, 'save')
@@ -54,14 +53,5 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(agent.mode, models.AgentState.STANDBY)
 
         self.assertEqual(response.status_code, 204)
-
-    def test_update_agent(self):
-        data = {
-            'primary_mac_address': '00:00:00:00:00:00',
-            'version': '0.1',
-            'url': 'http://10.0.1.1:51200',
-            'mode': models.AgentState.STANDBY,
-        }
-        return_value = [models.Agent(**data)]
-        self.agent_model_mock.return_value = return_value
-        self._update_request(data)
+        heartbeat_before = response.headers['Heartbeat-Before']
+        self.assertEqual(heartbeat_before, str(models.Agent.TTL))
