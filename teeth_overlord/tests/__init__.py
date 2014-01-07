@@ -244,8 +244,8 @@ class TeethMockTestUtilities(unittest.TestCase):
 
         self.job_client_mock = mock.Mock(spec=jobs_base.JobClient)
         self.config = teeth_config.Config()
-        self.public_api = public.TeethPublicAPIServer(self.config,
-                                                      self.job_client_mock)
+        self.api = public.TeethPublicAPIServer(self.config,
+                                               self.job_client_mock)
 
     def _get_env_builder(self, method, path, data=None, query=None):
         if data:
@@ -262,7 +262,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         return env_builder.get_request(wrappers.BaseRequest)
 
     def make_request(self, method, path, data=None, query=None):
-        client = test.Client(self.public_api, wrappers.BaseResponse)
+        client = test.Client(self.api, wrappers.BaseResponse)
         return client.open(self._get_env_builder(method, path, data, query))
 
     def _mock_model(self, cls, return_value=None, side_effect=None):

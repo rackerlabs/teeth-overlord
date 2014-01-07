@@ -130,7 +130,7 @@ class TestAPI(tests.TeethAPITestCase):
         self.assertEqual(data['message'], 'Invalid query parameters')
 
     def test_routes(self):
-        public_api_component = self.public_api.components.get('/v1.0')
+        public_api_component = self.api.components.get('/v1.0')
         self.assertIsInstance(public_api_component, public.TeethPublicAPI)
 
         expected_mappings = {
@@ -223,7 +223,7 @@ class TestAPI(tests.TeethAPITestCase):
             expected_endpoint, expected_values = value
 
             request = self.build_request(method, path)
-            matched_endpoint, matched_values = self.public_api.match_request(
+            matched_endpoint, matched_values = self.api.match_request(
                 request)
             self.assertEqual(matched_endpoint, expected_endpoint)
             self.assertEqual(matched_values, expected_values)
