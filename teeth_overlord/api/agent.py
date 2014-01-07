@@ -41,12 +41,10 @@ class TeethAgentAPI(component.APIComponent):
 
     @stats.incr_stat('agents.update')
     def update_agent(self, request, mac_address):
-        try:
-            agent = models.Agent.objects.get(primary_mac_address=mac_address)
-        except models.Agent.DoesNotExist:
-            agent = models.Agent(primary_mac_address=mac_address)
-
+        """Creates or updates an agent with provided data."""
         data = self.parse_content(request)
+
+        agent = models.Agent(primary_mac_address=mac_address)
         agent.version = data.get('version')
         agent.url = data.get('url')
         agent.mode = data.get('mode')
