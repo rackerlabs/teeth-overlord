@@ -311,9 +311,7 @@ class Agent(Base):
     primary_mac_address = columns.Ascii(primary_key=True)
     version = columns.Ascii(required=True)
     url = columns.Ascii(required=True)
-    mode = columns.Ascii(required=True,
-                         default=AgentState.STANDBY,
-                         index=True)
+    mode = columns.Ascii(required=True, index=True)
 
     def serialize(self, view):
         """Turn an AgentConnection into a dict."""
