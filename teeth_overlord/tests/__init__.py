@@ -28,6 +28,41 @@ from teeth_overlord.api import public
 from teeth_overlord import config as teeth_config
 from teeth_overlord.jobs import base as jobs_base
 
+TEST_CONFIG = {
+    "CASSANDRA_CLUSTER": ["localhost:9160"],
+    "CASSANDRA_CONSISTENCY": "ONE",
+
+    "API_HOST": "0.0.0.0",
+    "API_PORT": 8080,
+
+    "AGENT_ENDPOINT_AGENT_HOST": "0.0.0.0",
+    "AGENT_ENDPOINT_AGENT_PORT": 8081,
+    "AGENT_ENDPOINT_RPC_HOST": "0.0.0.0",
+    "AGENT_ENDPOINT_RPC_PORT": 8082,
+
+    "JOBSERVER_HOST": "0.0.0.0",
+    "JOBSERVER_PORT": 8083,
+    "JOB_EXECUTION_THREADS": 16,
+
+    "MARCONI_URL": "http://localhost:8888",
+
+    "IMAGE_PROVIDER": "fake",
+    "OOB_PROVIDER": "fake",
+    "AGENT_CLIENT": "fake",
+    "PRETTY_LOGGING": True,
+
+    "STATSD_HOST": "localhost",
+    "STATSD_PORT": 8125,
+    "STATSD_PREFIX": "teeth",
+    "STATSD_ENABLED": True,
+
+    "ETCD_HOST": "localhost",
+    "ETCD_PORT": 4001,
+    "ETC_CONFIG_DIR": "teeth_config",
+
+    "CONFIG_SOURCES": []
+}
+
 
 class FakeQuerySet(object):
     """Rough queryset mock suitable for monkeypatching in a cqlengine model's
@@ -243,7 +278,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         self._patches = collections.defaultdict(dict)
 
         self.job_client_mock = mock.Mock(spec=jobs_base.JobClient)
-        self.config = teeth_config.Config()
+        self.config = teeth_config.LazyConfig(config=TEST_CONFIG)
         self.public_api = public.TeethPublicAPIServer(self.config,
                                                       self.job_client_mock)
 

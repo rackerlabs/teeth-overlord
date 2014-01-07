@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
+import collections
 import etcd
 import json
+import os
 import threading
 
 
@@ -33,7 +34,7 @@ class ConfigSource(object):
         self._conf = conf
 
     def get(self, key):
-        """Return a value for a given key"""
+        """Return a value for a given key."""
         raise NotImplementedError
 
 
@@ -91,12 +92,13 @@ class ListConfigValue(ConfigValue):
     @classmethod
     def parse(cls, value):
         if isinstance(value, basestring):
-            return value.split(',')
+            value = value.split(',')
 
         if isinstance(value, (tuple, list)):
             return value
 
-        raise TypeError("'{}' must be a comma-separated string, list, or tuple.".format(value))
+        raise ValueError(("'{}' must be a comma-separated string, ") +
+                         ("list, or tuple.").format(value))
 
 
 class StrConfigValue(ConfigValue):
@@ -106,7 +108,8 @@ class StrConfigValue(ConfigValue):
     def parse(cls, value):
         if isinstance(value, basestring):
             return value
-        raise ValueError("'{}' must be an instance of basestring.".format(value))
+        raise ValueError("'{}' must be an instance of basestring."
+                         .format(value))
 
 
 class IntConfigValue(ConfigValue):
@@ -130,6 +133,7 @@ class BoolConfigValue(ConfigValue):
 
     _bool_map = {
         '1': True, '0': False,
+        1: True, 0: False,
         'true': True, 'false': False,
         'True': True, 'False': False,
         True: True, False: False
@@ -139,41 +143,71 @@ class BoolConfigValue(ConfigValue):
     def parse(cls, value):
         if value in cls._bool_map:
             return cls._bool_map[value]
-        raise TypeError("'{}' must be one of {}.".format(value, ', '.join(cls._bool_map.keys())))
+        keys = ', '.join([str(v) for v in cls._bool_map.keys()])
+        raise ValueError("'{}' must be one of {}.".format(value, keys))
 
 
 class Config(object):
-    """This class exists to give some type safety to a configuration instance and allow some magic
-    coersion of values that come from un-typed sources (environment variables, etc).
+    """This class exists to give some type safety to a configuration
+    instance and allow some magic coersion of values that come from
+    un-typed sources (environment variables, etc).
 
-    Instantiate this with a dict and any attempts to overwrite a key with an incompatable type will
-    throw.
+    Instantiate this with a dict and any attempts to overwrite a key
+    with an incompatable type will throw.
 
     See each *Value implementation for details, coersion, etc.
     """
 
-    _type_map = {
-        list: ListConfigValue,
-        int: IntConfigValue,
-        float: FloatConfigValue,
-        str: StrConfigValue,
-        unicode: StrConfigValue,
-        bool: BoolConfigValue
-    }
+    # order matters, because isinstance(True, int) == True
+    _type_map = collections.OrderedDict([
+        (bool, BoolConfigValue),
+        (list, ListConfigValue),
+        (int, IntConfigValue),
+        (float, FloatConfigValue),
+        (str, StrConfigValue),
+        (unicode, StrConfigValue)
+    ])
 
     def __init__(self, **kwargs):
 
         self._config = {}
 
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             self.set(k, v)
+
+    def __getattr__(self, name):
+        if name.isupper():
+            return self.get(name)
+        else:
+            return object.__getattribute__(self, name)
+
+    def __getitem__(self, name):
+        if name.isupper():
+            return self.get(name)
+        else:
+            # throw
+            return self[name]
+
+    def __setitem__(self, name, value):
+        if name.isupper():
+            return self.set(name, value)
+        else:
+            # throw
+            self[name] = value
+
+    def __setattr__(self, name, value):
+        if name.isupper():
+            self.set(name, value)
+        else:
+            return object.__setattr__(self, name, value)
 
     def get(self, name, required=True):
         if name in self._config:
             return self._config.get(name).get()
 
         if required:
-            raise ValueError('Config does not contain key {}'.format(name))
+            raise ValueError('Config does not contain key {}'
+                             .format(name))
 
         return None
 
@@ -184,26 +218,28 @@ class Config(object):
             self._config[name].set(value)
             return self.get(name)
 
-        for k,v in self._type_map.iteritems():
+        for k, v in self._type_map.iteritems():
             if isinstance(value, k):
                 # we rely on ConfigValue to validate this
                 self._config[name.upper()] = v(value)
                 return self.get(name)
 
-        raise ValueError("Cannot set key '{}' to value '{}', unknown type '{}'".format(name, value, type(value)))
+        raise ValueError(("Cannot set key '{}' to value '{}', ") +
+                         ("unknown type '{}'")
+                         .format(name, value, type(value)))
 
     def items(self):
-        for k,v in self._config.items():
+        for k, v in self._config.items():
             yield k, v.get()
 
 
 class LazyConfig(object):
 
-    def __init__(self):
+    def __init__(self, config_file=None, config=None):
 
         self._config = None
-        self._user_config = None
-        self._config_file = None
+        self._user_config = config
+        self._config_file = config_file
 
         self._setup_lock = threading.Lock()
 
@@ -231,19 +267,26 @@ class LazyConfig(object):
         self._setup_lock.acquire()
         try:
             if not self._config:
-                # If we are given a config directly with set_config(), use that.
+                # If we are given a config directly with
+                # set_config(), use that.
                 if self._user_config:
                     config = self._user_config
                 # Otherwise, try to load a config file.
                 elif self._config_file:
                     try:
-                        config = json.loads(open(self._config_file, 'r').read())
+                        config = json.loads(
+                            open(self._config_file, 'r').read())
                     except IOError as e:
-                        raise ConfigException("Cannot read settings file: {}".format(str(e)))
+                        raise ConfigException(
+                            "Cannot read settings file: {}"
+                            .format(str(e)))
                     except ValueError as e:
-                        raise ConfigException("Cannot parse settings file: {}".format(str(e)))
+                        raise ConfigException(
+                            "Cannot parse settings file: {}"
+                            .format(str(e)))
                 else:
-                    raise ConfigException("Must call set_config() or set_file().")
+                    raise ConfigException(
+                        "Must call set_config() or set_file().")
 
                 self._config = Config(**config)
 
@@ -263,12 +306,13 @@ class LazyConfig(object):
 
     def _run_sources(self):
         # run any sources specified in the config file
-        sources = (self._config.get('CONFIG_SOURCES', False) or []) + self._sources
+        sources = (self._config.get('CONFIG_SOURCES', False) or [])
+        sources = sources + self._sources
         for source in sources:
             module = source[0]
             args = source[1:]
             instance = self._load_module(module)(self, *args)
-            for k,v in self._config.items():
+            for k, v in self._config.items():
                 val = instance.get(k)
                 if val is not None:
                     self._config.set(k, val)
@@ -278,14 +322,6 @@ class LazyConfig(object):
         if self._config:
             raise ConfigException("Configuration already set up.")
         self._setup()
-
-    def set_config(self, user_config):
-        """Set the configuration to a given dict, do not load a settings file."""
-        self._user_config = user_config
-
-    def set_file(self, f):
-        """Load settings from a JSON file at the given path."""
-        self._config_file = f
 
     def add_source(self, s):
         """Add a configuration source."""
@@ -298,7 +334,8 @@ class LazyConfig(object):
 
 def get_config():
     """Try to load a configuration file."""
-    conf = LazyConfig()
-    conf.set_file(os.environ.get('TEETH_SETTINGS_FILE') or os.path.join(os.path.dirname(__file__), 'settings.json'))
+    f = os.environ.get('TEETH_SETTINGS_FILE')
+    f = f or os.path.join(os.path.dirname(__file__), 'settings.json')
+    conf = LazyConfig(config_file=f)
     conf.setup()  # force config to eval
     return conf

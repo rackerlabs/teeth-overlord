@@ -19,8 +19,9 @@ import unittest
 
 import statsd
 
-from teeth_overlord import config as teeth_config
+from teeth_overlord import config
 from teeth_overlord import stats
+from teeth_overlord import tests
 
 
 class SpecificException(Exception):
@@ -43,8 +44,7 @@ class SomeClass(object):
 class StatsClientTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.config = teeth_config.Config()
-        self.config.STATSD_PREFIX = 'teeth'
+        self.config = config.LazyConfig(config=tests.TEST_CONFIG)
         self.mock_stats_client = mock.Mock(spec=statsd.StatsClient)
         self.some_object = SomeClass(self.config, self.mock_stats_client)
 
