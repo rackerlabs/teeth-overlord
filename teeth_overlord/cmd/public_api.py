@@ -22,7 +22,7 @@ from teeth_overlord import service
 
 
 def run():
-    config = teeth_config.Config()
+    config = teeth_config.get_config()
     service.global_setup(config)
     api = public.TeethPublicAPIServer(config)
     listen_address = (config.API_HOST, config.API_PORT)
