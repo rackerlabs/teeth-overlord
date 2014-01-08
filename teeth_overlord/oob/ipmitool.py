@@ -92,7 +92,18 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
         username = chassis.ipmi_username
         password = chassis.ipmi_password
 
-        args = [
+        log_dict = {'chassis_id': chassis.id,
+                    'host': host,
+                    'port': port,
+                    'ipmitool_cmd': command}
+
+
+        if not (host and port and username and password):
+            msg = 'cannot execute ipmi command, missing host/port/user/pass'
+            self.log.error(msg, **log_dict)
+            raise IPMIToolException(msg)
+
+        cmd = [
             'ipmitool',
             '-I', 'lanplus',
             '-H', host,
@@ -100,15 +111,11 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
             '-U', username,
             '-P', password
         ]
-        args = args + command.split(' ')
-
-        log_dict = {'chassis_id': chassis.id,
-                    'host': host,
-                    'ipmitool_cmd': ' '.join(args)}
+        cmd = cmd + command.split(' ')
 
         try:
             self.log.info('executing ipmi command', **log_dict)
-            result = subprocess.check_output(args)
+            result = subprocess.check_output(cmd)
             self.log.info('finished ipmi command', result=result, **log_dict)
             return result
         except subprocess.CalledProcessError as e:
@@ -134,6 +141,8 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
     def power_chassis_off(self, chassis):
         """Power a chassis off."""
 
+        print "FDSAFDSA"
+
         state = self._exec_ipmitool(chassis, 'power off')
         if state == POWER_OFF:
             return self._wait_for_power_state(chassis, 'off')
@@ -144,6 +153,9 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
 
     def power_chassis_on(self, chassis):
         """Power a chassis on."""
+
+        print "FDSAFDSA"
+
 
         state = self._exec_ipmitool(chassis, 'power on')
         if state == POWER_ON:
