@@ -16,7 +16,7 @@ limitations under the License.
 
 from cherrypy import wsgiserver
 
-from teeth_overlord.api import public
+from teeth_overlord.api import agent
 from teeth_overlord import config as teeth_config
 from teeth_overlord import service
 
@@ -24,8 +24,8 @@ from teeth_overlord import service
 def run():
     config = teeth_config.get_config()
     service.global_setup(config)
-    api = public.TeethPublicAPIServer(config)
-    listen_address = (config.PUBLIC_API_HOST, config.PUBLIC_API_PORT)
+    api = agent.TeethAgentAPIServer(config)
+    listen_address = (config.AGENT_API_HOST, config.AGENT_API_PORT)
     server = wsgiserver.CherryPyWSGIServer(listen_address, api)
     try:  # ^C doesn't work without this try/except
         server.start()

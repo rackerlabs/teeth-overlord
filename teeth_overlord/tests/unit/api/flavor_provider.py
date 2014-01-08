@@ -25,7 +25,7 @@ class TestFlavorProviderAPI(tests.TeethAPITestCase):
     def setUp(self):
         super(TestFlavorProviderAPI, self).setUp()
 
-        self.url = '/v1.0/flavor_providers'
+        self.url = '/v1/flavor_providers'
 
         self.flavor_provider_objects_mock = self.add_mock(
             models.FlavorProvider)

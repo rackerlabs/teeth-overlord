@@ -117,7 +117,7 @@ class IntConfigValue(ConfigValue):
 
     @classmethod
     def parse(cls, value):
-        return long(value)
+        return int(value)
 
 
 class FloatConfigValue(ConfigValue):

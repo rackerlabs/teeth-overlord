@@ -298,26 +298,30 @@ class Instance(MetadataBase):
         return instance
 
 
-class AgentConnection(Base):
-    """Model for an AgentConnection.
+class AgentState(object):
+    """Possible states that an Agent can be in."""
+    STANDBY = 'STANDBY'
+    DECOM = 'DECOM'
 
-    Notably, the `id` field isn't the primary key. We want to be able to
-    overwrite these using nothing but the MAC address, so we use that as
-    the primary key, but set an indexed `id` field for consistency.
+
+class Agent(Base):
+    """Model for an Agent.
+
+    `primary_mac_address` is the primary key here.
     """
-    id = columns.Text(index=True, default=uuid_str, max_length=MAX_ID_LENGTH)
+    TTL = 180
     primary_mac_address = columns.Ascii(primary_key=True)
-    agent_version = columns.Ascii(required=True)
-    endpoint_rpc_host = columns.Ascii(required=True)
-    endpoint_rpc_port = columns.Integer(required=True)
+    version = columns.Ascii(required=True)
+    url = columns.Ascii(required=True)
+    mode = columns.Ascii(required=True, index=True)
 
     def serialize(self, view):
         """Turn an AgentConnection into a dict."""
         return collections.OrderedDict([
-            ('id', self.id),
             ('primary_mac_address', self.primary_mac_address),
-            ('endpoint_rpc_host', self.endpoint_rpc_host),
-            ('endpoint_rpc_port', self.endpoint_rpc_port),
+            ('version', self.version),
+            ('url', self.url),
+            ('mode', self.mode),
         ])
 
 
@@ -393,7 +397,7 @@ class JobRequest(Base):
 all_models = [
     Chassis,
     Instance,
-    AgentConnection,
+    Agent,
     JobRequest,
     Flavor,
     FlavorProvider,

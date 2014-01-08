@@ -32,16 +32,12 @@ TEST_CONFIG = {
     "CASSANDRA_CLUSTER": ["localhost:9160"],
     "CASSANDRA_CONSISTENCY": "ONE",
 
-    "API_HOST": "0.0.0.0",
-    "API_PORT": 8080,
+    "PUBLIC_API_HOST": "0.0.0.0",
+    "PUBLIC_API_PORT": 8080,
 
-    "AGENT_ENDPOINT_AGENT_HOST": "0.0.0.0",
-    "AGENT_ENDPOINT_AGENT_PORT": 8081,
-    "AGENT_ENDPOINT_RPC_HOST": "0.0.0.0",
-    "AGENT_ENDPOINT_RPC_PORT": 8082,
+    "AGENT_API_HOST": "0.0.0.0",
+    "AGENT_API_PORT": 8081,
 
-    "JOBSERVER_HOST": "0.0.0.0",
-    "JOBSERVER_PORT": 8083,
     "JOB_EXECUTION_THREADS": 16,
 
     "MARCONI_URL": "http://localhost:8888",
@@ -279,8 +275,8 @@ class TeethMockTestUtilities(unittest.TestCase):
 
         self.job_client_mock = mock.Mock(spec=jobs_base.JobClient)
         self.config = teeth_config.LazyConfig(config=TEST_CONFIG)
-        self.public_api = public.TeethPublicAPIServer(self.config,
-                                                      self.job_client_mock)
+        self.api = public.TeethPublicAPIServer(self.config,
+                                               self.job_client_mock)
 
     def _get_env_builder(self, method, path, data=None, query=None):
         if data:
@@ -297,7 +293,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         return env_builder.get_request(wrappers.BaseRequest)
 
     def make_request(self, method, path, data=None, query=None):
-        client = test.Client(self.public_api, wrappers.BaseResponse)
+        client = test.Client(self.api, wrappers.BaseResponse)
         return client.open(self._get_env_builder(method, path, data, query))
 
     def _mock_model(self, cls, return_value=None, side_effect=None):

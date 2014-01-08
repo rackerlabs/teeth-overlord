@@ -25,7 +25,7 @@ class TestChassisAPI(tests.TeethAPITestCase):
     def setUp(self):
         super(TestChassisAPI, self).setUp()
 
-        self.url = '/v1.0/chassis'
+        self.url = '/v1/chassis'
 
         self.chassis_objects_mock = self.add_mock(models.Chassis)
         self.chassis1 = models.Chassis(id='chassis1',
