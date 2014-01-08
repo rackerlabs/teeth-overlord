@@ -97,7 +97,6 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
                     'port': port,
                     'ipmitool_cmd': command}
 
-
         if not (host and port and username and password):
             msg = 'cannot execute ipmi command, missing host/port/user/pass'
             self.log.error(msg, **log_dict)
@@ -141,8 +140,6 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
     def power_chassis_off(self, chassis):
         """Power a chassis off."""
 
-        print "FDSAFDSA"
-
         state = self._exec_ipmitool(chassis, 'power off')
         if state == POWER_OFF:
             return self._wait_for_power_state(chassis, 'off')
@@ -153,9 +150,6 @@ class IPMIToolProvider(base.BaseOutOfBandProvider):
 
     def power_chassis_on(self, chassis):
         """Power a chassis on."""
-
-        print "FDSAFDSA"
-
 
         state = self._exec_ipmitool(chassis, 'power on')
         if state == POWER_ON:
