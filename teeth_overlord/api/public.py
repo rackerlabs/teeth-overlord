@@ -202,7 +202,7 @@ class TeethPublicAPI(component.APIComponent):
                 ],
                 "links": [
                     {
-                        "href": "http://localhost:8080/v1.0/chassis_models?
+                        "href": "http://localhost:8080/v1/chassis_models?
                                     marker=e0d4774b-daa6-4361-b4d9-ab367e40d885
                                     &limit=1",
                         "rel": "next"
@@ -298,7 +298,7 @@ class TeethPublicAPI(component.APIComponent):
                 ],
                 "links": [
                     {
-                        "href": "http://localhost:8080/v1.0/flavors?
+                        "href": "http://localhost:8080/v1/flavors?
                                     marker=d5942a92-ac78-49f6-95c8-d837cfd1f8d2
                                     &limit=1",
                         "rel": "next"
@@ -407,7 +407,7 @@ class TeethPublicAPI(component.APIComponent):
                 ],
                 "links": [
                     {
-                        "href": "http://localhost:8080/v1.0/flavor_providers?
+                        "href": "http://localhost:8080/v1/flavor_providers?
                                     marker=e0d4774b-daa6-4361-b4d9-ab367e40d885
                                     &limit=1",
                         "rel": "next"
@@ -523,7 +523,7 @@ class TeethPublicAPI(component.APIComponent):
                 ],
                 "links": [
                     {
-                        "href": "http://localhost:8080/v1.0/chassis?
+                        "href": "http://localhost:8080/v1/chassis?
                                     marker=e2c328c7-fcb5-4989-8bbd-bdd5877dc219
                                     &limit=3",
                         "rel": "next"
@@ -684,5 +684,5 @@ class TeethPublicAPIServer(component.APIServer):
     def __init__(self, config, job_client=None):
         super(TeethPublicAPIServer, self).__init__()
         self.config = config
-        self.add_component('/v1.0',
+        self.add_component('/v1',
                            TeethPublicAPI(self.config, job_client=job_client))

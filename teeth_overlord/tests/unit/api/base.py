@@ -27,7 +27,7 @@ class TestAPI(tests.TeethAPITestCase):
     def setUp(self):
         super(TestAPI, self).setUp()
 
-        self.url = 'v1.0/instances'
+        self.url = 'v1/instances'
         self.test_host = 'http://localhost/'
 
         self.instance1 = models.Instance(id='instance1',
@@ -51,7 +51,7 @@ class TestAPI(tests.TeethAPITestCase):
 
         query = {'limit': 1}
         response = self.make_request('GET',
-                                     '/v1.0/instances',
+                                     '/v1/instances',
                                      query=query)
 
         self.assertEqual(response.status_code, 200)
@@ -78,7 +78,7 @@ class TestAPI(tests.TeethAPITestCase):
 
         query = {'marker': self.instance1.id}
         response = self.make_request('GET',
-                                     '/v1.0/instances',
+                                     '/v1/instances',
                                      query=query)
 
         self.assertEqual(response.status_code, 200)
@@ -102,7 +102,7 @@ class TestAPI(tests.TeethAPITestCase):
         self.add_mock(models.Instance)
 
         response = self.make_request('GET',
-                                     '/v1.0/instances?limit=1&limit=1')
+                                     '/v1/instances?limit=1&limit=1')
 
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.data)
@@ -113,7 +113,7 @@ class TestAPI(tests.TeethAPITestCase):
 
         query = {'limit': 0}
         response = self.make_request('GET',
-                                     '/v1.0/instances',
+                                     '/v1/instances',
                                      query=query)
 
         self.assertEqual(response.status_code, 400)
@@ -122,7 +122,7 @@ class TestAPI(tests.TeethAPITestCase):
 
         query = {'limit': 'foobar'}
         response = self.make_request('GET',
-                                     '/v1.0/instances',
+                                     '/v1/instances',
                                      query=query)
 
         self.assertEqual(response.status_code, 400)
@@ -130,87 +130,87 @@ class TestAPI(tests.TeethAPITestCase):
         self.assertEqual(data['message'], 'Invalid query parameters')
 
     def test_routes(self):
-        public_api_component = self.public_api.components.get('/v1.0')
+        public_api_component = self.public_api.components.get('/v1')
         self.assertIsInstance(public_api_component, public.TeethPublicAPI)
 
         expected_mappings = {
             # Chassis Models
-            ('GET', '/v1.0/chassis_models'): (
+            ('GET', '/v1/chassis_models'): (
                 public_api_component.list_chassis_models,
                 {},
             ),
-            ('GET', '/v1.0/chassis_models/foo-chassis-model'): (
+            ('GET', '/v1/chassis_models/foo-chassis-model'): (
                 public_api_component.fetch_chassis_model,
                 {
                     'chassis_model_id': 'foo-chassis-model',
                 },
             ),
-            ('POST', '/v1.0/chassis_models'): (
+            ('POST', '/v1/chassis_models'): (
                 public_api_component.create_chassis_model,
                 {},
             ),
 
             # Flavors
-            ('GET', '/v1.0/flavors'): (public_api_component.list_flavors, {}),
-            ('GET', '/v1.0/flavors/foo-flavor'): (
+            ('GET', '/v1/flavors'): (public_api_component.list_flavors, {}),
+            ('GET', '/v1/flavors/foo-flavor'): (
                 public_api_component.fetch_flavor,
                 {
                     'flavor_id': 'foo-flavor',
                 },
             ),
-            ('POST', '/v1.0/flavors'): (
+            ('POST', '/v1/flavors'): (
                 public_api_component.create_flavor,
                 {},
             ),
 
             # Flavor Providers
-            ('GET', '/v1.0/flavor_providers'): (
+            ('GET', '/v1/flavor_providers'): (
                 public_api_component.list_flavor_providers,
                 {},
             ),
-            ('GET', '/v1.0/flavor_providers/foo-flavor-provider'): (
+            ('GET', '/v1/flavor_providers/foo-flavor-provider'): (
                 public_api_component.fetch_flavor_provider,
                 {
                     'flavor_provider_id': 'foo-flavor-provider',
                 },
             ),
-            ('POST', '/v1.0/flavor_providers'): (
+            ('POST', '/v1/flavor_providers'): (
                 public_api_component.create_flavor_provider,
                 {},
             ),
 
             # Chassis
-            ('GET', '/v1.0/chassis'): (
+            ('GET', '/v1/chassis'): (
                 public_api_component.list_chassis,
                 {},
             ),
-            ('GET', '/v1.0/chassis/foo-chassis'): (
+            ('GET', '/v1/chassis/foo-chassis'): (
                 public_api_component.fetch_chassis,
                 {
                     'chassis_id': 'foo-chassis',
                 },
             ),
-            ('POST', '/v1.0/chassis'): (
+            ('POST', '/v1/chassis'): (
                 public_api_component.create_chassis,
                 {},
             ),
 
             # Instance
-            ('GET', '/v1.0/instances'): (
+            ('GET', '/v1/instances'): (
                 public_api_component.list_instances,
                 {},
             ),
-            ('GET', '/v1.0/instances/foo-instance'): (
+            ('GET', '/v1/instances/foo-instance'): (
                 public_api_component.fetch_instance,
                 {
                     'instance_id': 'foo-instance',
                 },
             ),
-            ('POST', '/v1.0/instances'): (
+            ('POST', '/v1/instances'): (
                 public_api_component.create_instance,
                 {},
             ),
-            ('DELETE', '/v1.0/instances/foo-instance'): (
+            ('DELETE', '/v1/instances/foo-instance'): (
                 public_api_component.delete_instance,
                 {
                     'instance_id': 'foo-instance',
