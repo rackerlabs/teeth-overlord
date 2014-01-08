@@ -27,7 +27,7 @@ class TestAgentAPI(tests.TeethAPITestCase):
         super(TestAgentAPI, self).setUp()
         self.api = agent_api.TeethAgentAPIServer(self.config)
 
-        self.url = '/v1.0/agents/00:00:00:00:00:00'
+        self.url = '/v1/agents/00:00:00:00:00:00'
         self.agent_model_mock = self.add_mock(models.Agent)
 
     @mock.patch('time.time', mock.MagicMock(return_value=0))

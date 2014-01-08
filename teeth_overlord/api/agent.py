@@ -65,4 +65,4 @@ class TeethAgentAPIServer(component.APIServer):
     def __init__(self, config):
         super(TeethAgentAPIServer, self).__init__()
         self.config = config
-        self.add_component('/v1.0', TeethAgentAPI(self.config))
+        self.add_component('/v1', TeethAgentAPI(self.config))
