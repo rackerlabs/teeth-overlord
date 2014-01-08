@@ -314,7 +314,7 @@ class Agent(Base):
     mode = columns.Ascii(required=True, index=True)
 
     def serialize(self, view):
-        """Turn an AgentConnection into a dict."""
+        """Turn an Agent into a dict."""
         return collections.OrderedDict([
             ('primary_mac_address', self.primary_mac_address),
             ('version', self.version),

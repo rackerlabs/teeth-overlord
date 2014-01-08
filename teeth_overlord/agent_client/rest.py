@@ -29,13 +29,11 @@ class RESTAgentClient(base.BaseAgentClient):
     def __init__(self, config):
         super(RESTAgentClient, self).__init__(config)
         view = encoding.SerializationViews.PUBLIC
-        self.encoder = encoding.TeethJSONEncoder(view)
+        self.encoder = encoding.RESTJSONEncoder(view)
         self.session = requests.Session()
 
     def _get_command_url(self, connection):
-        return 'http://{host}:{port}/v1/command'.format(
-            host=connection.endpoint_rpc_host,
-            port=connection.endpoint_rpc_port)
+        return '{}/v1/command'.format(connection.url)
 
     def _get_command_body(self, method, params):
         return self.encoder.encode({
@@ -56,12 +54,12 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def get_agent_connection(self, chassis):
         """Retrieve an agent connection for the specified Chassis."""
-        query = models.AgentConnection.objects
+        query = models.Agent.objects
         query = query.filter(primary_mac_address=chassis.primary_mac_address)
 
         try:
             return query.get()
-        except models.AgentConnection.DoesNotExist:
+        except models.Agent.DoesNotExist:
             raise errors.AgentNotConnectedError(chassis.id,
                                                 chassis.primary_mac_address)
 
