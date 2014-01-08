@@ -28,21 +28,21 @@ def post(path, item):
 
 def run():
     requests.put('http://localhost:8888/v1/queues/teeth_jobs')
-    chassis_model_id = post('/v1.0/chassis_models', {
+    chassis_model_id = post('/v1/chassis_models', {
         'name': 'Supermicro  1027R-WRFT+',
         'default_ipmi_username': 'ADMIN',
         'default_ipmi_password': 'ADMIN',
     })
-    flavor_id = post('/v1.0/flavors', {
+    flavor_id = post('/v1/flavors', {
         'name': 'Fast Server A',
     })
-    post('/v1.0/flavor_providers', {
+    post('/v1/flavor_providers', {
         'chassis_model_id': chassis_model_id,
         'flavor_id': flavor_id,
         'schedule_priority': 100,
     })
     for i in xrange(0, 15):
-        post('/v1.0/chassis', {
+        post('/v1/chassis', {
             'chassis_model_id': chassis_model_id,
             'primary_mac_address': 'a:b:c:d',
         })

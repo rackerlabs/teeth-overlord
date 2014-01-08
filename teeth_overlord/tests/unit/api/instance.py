@@ -25,7 +25,7 @@ class TestInstanceAPI(tests.TeethAPITestCase):
     def setUp(self):
         super(TestInstanceAPI, self).setUp()
 
-        self.url = '/v1.0/instances'
+        self.url = '/v1/instances'
 
         self.instance_objects_mock = self.add_mock(models.Instance)
         self.instance1 = models.Instance(id='instance1',
