@@ -66,7 +66,7 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
 
         self.client.cache_images(self.agent, image_ids)
         _command.assert_called_once_with(self.agent,
-                                         'standby.cache_images',
+                                         'cache_images',
                                          params)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
@@ -77,7 +77,7 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
 
         self.client.prepare_image(self.agent, image_id)
         _command.assert_called_once_with(self.agent,
-                                         'standby.prepare_image',
+                                         'prepare_image',
                                          params)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
@@ -88,13 +88,13 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
 
         self.client.run_image(self.agent, image_id)
         _command.assert_called_once_with(self.agent,
-                                         'standby.run_image',
+                                         'run_image',
                                          params)
 
     def test_command(self):
         response_data = {'status': 'ok'}
         self.client.session.post.return_value = MockResponse(response_data)
-        method = 'standby.run_image'
+        method = 'run_image'
         params = {'task_id': 'uuid', 'image_id': 'test_image'}
 
         url = self.client._get_command_url(self.agent)
