@@ -48,14 +48,14 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
         url = self.client._get_command_url(self.agent)
         self.assertEqual(url, 'http://10.0.1.1:51200/v1/command')
 
-    def test_get_agent_connection(self):
-        agent = self.client.get_agent_connection(self.chassis)
+    def test_get_agent(self):
+        agent = self.client.get_agent(self.chassis)
         self.assertEqual(agent, self.agent)
 
     def test_agent_not_found_raises_error(self):
         self.agent_mock.side_effect = models.Agent.DoesNotExist
         self.assertRaises(errors.AgentNotConnectedError,
-                          self.client.get_agent_connection,
+                          self.client.get_agent,
                           self.chassis)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))

@@ -20,20 +20,20 @@ from teeth_overlord.agent_client import base
 class FakeAgentClient(base.BaseAgentClient):
     """A client that fakes interaction with agents."""
 
-    def get_agent_connection(self, chassis):
-        """Retrieve an agent connection for the specified Chassis."""
+    def get_agent(self, chassis):
+        """Retrieve an agent for the specified Chassis."""
         return None
 
-    def cache_images(self, connection, image_ids):
+    def cache_images(self, agent, image_ids):
         """Attempt to cache the specified images. Images are specified in
         priority order, and may not all be cached.
         """
         return
 
-    def prepare_image(self, connection, image_id):
+    def prepare_image(self, agent, image_id):
         """Call the `prepare_image` method on the agent."""
         return
 
-    def run_image(self, connection, image_id):
+    def run_image(self, agent, image_id):
         """Run the specified image."""
         return

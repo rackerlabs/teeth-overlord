@@ -32,8 +32,8 @@ class RESTAgentClient(base.BaseAgentClient):
         self.encoder = encoding.RESTJSONEncoder(view)
         self.session = requests.Session()
 
-    def _get_command_url(self, connection):
-        return '{}/v1/command'.format(connection.url)
+    def _get_command_url(self, agent):
+        return '{}/v1/command'.format(agent.url)
 
     def _get_command_body(self, method, params):
         return self.encoder.encode({
@@ -41,8 +41,8 @@ class RESTAgentClient(base.BaseAgentClient):
             'params': params,
         })
 
-    def _command(self, connection, method, params):
-        url = self._get_command_url(connection)
+    def _command(self, agent, method, params):
+        url = self._get_command_url(agent)
         body = self._get_command_body(method, params)
         headers = {
             'Content-Type': 'application/json'
@@ -52,8 +52,8 @@ class RESTAgentClient(base.BaseAgentClient):
         # TODO(russellhaering): real error handling
         return json.loads(response.text)
 
-    def get_agent_connection(self, chassis):
-        """Retrieve an agent connection for the specified Chassis."""
+    def get_agent(self, chassis):
+        """Retrieve an agent for the specified Chassis."""
         query = models.Agent.objects
         query = query.filter(primary_mac_address=chassis.primary_mac_address)
 
@@ -63,25 +63,25 @@ class RESTAgentClient(base.BaseAgentClient):
             raise errors.AgentNotConnectedError(chassis.id,
                                                 chassis.primary_mac_address)
 
-    def cache_images(self, connection, image_ids):
+    def cache_images(self, agent, image_ids):
         """Attempt to cache the specified images. Images are specified in
         priority order, and may not all be cached.
         """
-        return self._command(connection, 'cache_images', {
+        return self._command(agent, 'cache_images', {
             'task_id': self.new_task_id(),
             'image_ids': image_ids,
         })
 
-    def prepare_image(self, connection, image_id):
+    def prepare_image(self, agent, image_id):
         """Call the `prepare_image` method on the agent."""
-        return self._command(connection, 'prepare_image', {
+        return self._command(agent, 'prepare_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
         })
 
-    def run_image(self, connection, image_id):
+    def run_image(self, agent, image_id):
         """Run the specified image."""
-        return self._command(connection, 'run_image', {
+        return self._command(agent, 'run_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
         })
