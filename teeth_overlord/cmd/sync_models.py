@@ -22,6 +22,6 @@ from teeth_overlord import service
 
 
 def run():
-    service.global_setup(teeth_config.Config())
+    service.global_setup(teeth_config.get_config())
     for model in models.all_models:
         management.sync_table(model)
