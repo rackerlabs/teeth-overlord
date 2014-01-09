@@ -235,7 +235,7 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
 
         self.assertEqual(self.subprocess_mock.call_count, 0)
 
-    def test_set_boot_device_unkown_state(self):
+    def test_set_boot_device_unknown_state(self):
         self.subprocess_mock.return_value = 'Unknown State\n'
 
         self.assertRaises(ipmitool.IPMIToolException,
