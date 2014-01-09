@@ -34,9 +34,9 @@ class CreateInstance(base.Job):
     def prepare_and_run_image(self, instance, chassis, image_info):
         """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
-        connection = client.get_agent_connection(chassis)
-        client.prepare_image(connection, image_info)
-        client.run_image(connection, image_info)
+        agent = client.get_agent(chassis)
+        client.prepare_image(agent, image_info)
+        client.run_image(agent, image_info)
 
     def mark_active(self, instance, chassis):
         """Mark the chassis and instance as active."""
