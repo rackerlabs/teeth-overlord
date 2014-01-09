@@ -392,8 +392,6 @@ class JobRequest(Base):
         self.state = JobRequestState.COMPLETED
         self.touch()
 
-assert False
-
 all_models = [
     Chassis,
     Instance,
