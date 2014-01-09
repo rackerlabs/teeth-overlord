@@ -164,12 +164,7 @@ class JobClient(object):
         """
         job_request = models.JobRequest(job_type=job_type, params=params)
         job_request.save()
-
-        if job_type.startswith('instances'):
-            instance_id = params.get('instance_id')
-            instance = models.Instance.objects.get(id=instance_id)
-            instance.job_id = job_request.id
-            instance.save()
+        job_request.mark_assets()
 
         body = {'job_request_id': str(job_request.id)}
         return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)

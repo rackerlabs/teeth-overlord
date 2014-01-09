@@ -407,6 +407,15 @@ class JobRequest(Base):
         self.state = JobRequestState.COMPLETED
         self.touch()
 
+    def mark_assets(self):
+        # TODO(jimrollenhagen) lock the instance
+        if self.job_type.startswith('instances'):
+            instance_id = self.params.get('instance_id')
+            instance = Instance.objects.get(id=instance_id)
+            instance.job_id = self.id
+            instance.save()
+
+
 all_models = [
     Chassis,
     Instance,
