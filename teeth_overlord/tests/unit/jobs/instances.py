@@ -55,18 +55,18 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                                 self.message)
 
         client = self.executor.agent_client
-        client.get_agent_connection.return_value = None
+        client.get_agent.return_value = None
         scheduler = self.executor.scheduler
         scheduler.reserve_chassis.return_value = self.chassis
 
     def _did_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
         client = self.executor.agent_client
-        connection = None
+        agent = None
 
-        client.get_agent_connection.assert_called_once_with(self.chassis)
-        client.prepare_image.assert_called_once_with(connection, image_info)
-        client.run_image.assert_called_once_with(connection, image_info)
+        client.get_agent.assert_called_once_with(self.chassis)
+        client.prepare_image.assert_called_once_with(agent, image_info)
+        client.run_image.assert_called_once_with(agent, image_info)
 
     def test_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
