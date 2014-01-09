@@ -21,10 +21,9 @@ import uuid
 class BaseAgentClient(object):
     """Client for interacting with agents.
 
-    Users of this client call :meth:`get_agent_connection` to locate a
-    connection made by the agent to an endpoint, then call other methods
-    on this class, passing in the agent connection as well as any
-    method-specific parameters.
+    Users of this client call :meth:`get_agent` to get an agent object,
+    then call other methods on this class, passing in the agent as well
+    as any method-specific parameters.
     """
 
     __metaclass__ = abc.ABCMeta
@@ -37,23 +36,23 @@ class BaseAgentClient(object):
         return str(uuid.uuid4())
 
     @abc.abstractmethod
-    def get_agent_connection(self, chassis):
-        """Retrieve an agent connection for the specified Chassis."""
+    def get_agent(self, chassis):
+        """Retrieve an agent for the specified Chassis."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def cache_images(self, connection, image_ids):
+    def cache_images(self, agent, image_ids):
         """Attempt to cache the specified images. Images are specified in
         priority order, and may not all be cached.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def prepare_image(self, connection, image_id):
+    def prepare_image(self, agent, image_id):
         """Call the `prepare_image` method on the agent."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_image(self, connection, image_id):
+    def run_image(self, agent, image_id):
         """Run the specified image."""
         raise NotImplementedError
