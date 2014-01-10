@@ -42,6 +42,11 @@ class BaseOutOfBandProvider(object):
         """Power a chassis on."""
         pass
 
+    @abc.abstractmethod
+    def set_boot_device(self, chassis, device, persistent=False):
+        """Set boot device for next reboot."""
+        pass
+
 
 def get_oob_provider(config):
     mgr = driver.DriverManager(
