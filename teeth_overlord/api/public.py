@@ -621,8 +621,11 @@ class TeethPublicAPI(component.APIComponent):
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
-        # Validate the image ID
-        self.image_provider.get_image_info(instance.image_id)
+        try:
+            self.image_provider.get_image_info(instance.image_id)
+        except self.image_provider.ImageDoesNotExist:
+            msg = 'Invalid image_id, no such Image.'
+            raise rest_errors.InvalidContentError(msg)
 
         self._validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
