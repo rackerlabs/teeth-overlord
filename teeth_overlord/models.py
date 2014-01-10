@@ -307,8 +307,11 @@ class Instance(MetadataBase):
         return instance
 
     def get_job_state(self):
-        # look up job state by self.job_id
-        pass
+        try:
+            job = JobRequest.objects.get(id=self.job_id)
+            return job.state
+        except JobRequest.DoesNotExist:
+            return None
 
 
 class AgentState(object):
