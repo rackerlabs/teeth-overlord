@@ -12,7 +12,7 @@
 
 "MARCONI_URL": "http://localhost:8888",
 
-"IMAGE_PROVIDER": "fake",
+"IMAGE_PROVIDER": "glance",
 "OOB_PROVIDER": "fake",
 "AGENT_CLIENT": "fake",
 "PRETTY_LOGGING": true,
@@ -25,6 +25,14 @@
 "ETCD_HOST": "localhost",
 "ETCD_PORT": 4001,
 "ETC_CONFIG_DIR": "teeth_config",
+
+"KEYSTONE_USER": "demo",
+"KEYSTONE_PASS": "secrete",
+"KEYSTONE_TENANT_ID": "8b03db41f7d940b5bc9281735bcdecdf",
+"KEYSTONE_AUTH_URL": "http://192.168.33.2:5000/v2.0/",
+
+"GLANCE_VERSION": "2",
+"GLANCE_URL": "http://192.168.33.2:9292/",
 
 "CONFIG_SOURCES": [
     ["teeth_overlord.config.EnvSource"],
