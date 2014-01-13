@@ -17,11 +17,11 @@ limitations under the License.
 import json
 
 import requests
-from teeth_rest import encoding
+from carbide_rest import encoding
 
-from teeth_overlord.agent_client import base
-from teeth_overlord import errors
-from teeth_overlord import models
+from carbide_overlord.agent_client import base
+from carbide_overlord import errors
+from carbide_overlord import models
 
 
 class RESTAgentClient(base.BaseAgentClient):

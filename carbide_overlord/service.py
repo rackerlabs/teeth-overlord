@@ -21,7 +21,7 @@ import traceback
 from cqlengine import connection
 import structlog
 
-from teeth_overlord import config as teeth_config
+from carbide_overlord import config as carbide_config
 
 # Sometimes global setup is necessary. Make sure that if we try to do it twice:
 #   a. We don't actually do it twice
@@ -68,11 +68,11 @@ def global_setup(config):
                         'configurations')
 
 
-class TeethServiceRunner(object):
-    """Instantiate and run a SynchronousTeethService."""
+class CarbideServiceRunner(object):
+    """Instantiate and run a SynchronousCarbideService."""
 
     def __init__(self, service_class):
-        self.service = service_class(teeth_config.get_config())
+        self.service = service_class(carbide_config.get_config())
         self.signal_map = {
             signal.SIGTERM: self._terminate,
             signal.SIGINT: self._terminate,
@@ -89,8 +89,8 @@ class TeethServiceRunner(object):
         self.service.stop()
 
 
-class SynchronousTeethService(object):
-    """Base class for all Teeth services."""
+class SynchronousCarbideService(object):
+    """Base class for all Carbide services."""
     def __init__(self, config):
         self.config = config
         self.stopping = threading.Event()

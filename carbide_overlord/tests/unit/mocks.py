@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord import tests
+from carbide_overlord import tests
 
-from teeth_overlord.jobs import base as jobs_base
-from teeth_overlord import models
+from carbide_overlord.jobs import base as jobs_base
+from carbide_overlord import models
 
 
-class TestModelMock(tests.TeethMockTestUtilities):
-    """Tests for the mock utilities in the TeethUnitTest base class."""
+class TestModelMock(tests.CarbideMockTestUtilities):
+    """Tests for the mock utilities in the CarbideUnitTest base class."""
 
     def test_mock_class(self):
 
@@ -30,7 +30,7 @@ class TestModelMock(tests.TeethMockTestUtilities):
 
         # re-import JobClient so the patch is picked up. You probably shouldn't
         # do this if you can help it.
-        from teeth_overlord.jobs import base as test_jobs_base
+        from carbide_overlord.jobs import base as test_jobs_base
         client = test_jobs_base.JobClient("stuff")
         ret = client.submit_job("jobstuff")
 

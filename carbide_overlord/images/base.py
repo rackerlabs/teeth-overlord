@@ -19,7 +19,7 @@ import collections
 
 from stevedore import driver
 
-from teeth_rest import encoding
+from carbide_rest import encoding
 
 
 class ImageInfo(encoding.Serializable):
@@ -57,7 +57,7 @@ class BaseImageProvider(object):
 
 def get_image_provider(config):
     mgr = driver.DriverManager(
-        namespace='teeth_overlord.image.providers',
+        namespace='carbide_overlord.image.providers',
         name=config.IMAGE_PROVIDER,
         invoke_on_load=True,
         invoke_args=[config],

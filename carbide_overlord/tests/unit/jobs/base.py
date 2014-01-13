@@ -18,13 +18,13 @@ import mock
 import statsd
 import structlog
 
-from teeth_overlord.agent_client import fake as agent_fake
-from teeth_overlord import config
-from teeth_overlord.images import fake as image_fake
-from teeth_overlord.jobs import base as jobs_base
-from teeth_overlord import marconi
-from teeth_overlord.oob import fake as oob_fake
-from teeth_overlord import scheduler
+from carbide_overlord.agent_client import fake as agent_fake
+from carbide_overlord import config
+from carbide_overlord.images import fake as image_fake
+from carbide_overlord.jobs import base as jobs_base
+from carbide_overlord import marconi
+from carbide_overlord.oob import fake as oob_fake
+from carbide_overlord import scheduler
 
 
 class MockJobExecutor(jobs_base.JobExecutor):
@@ -36,7 +36,7 @@ class MockJobExecutor(jobs_base.JobExecutor):
         self.job_client = mock.Mock(spec=jobs_base.JobClient)
         self.image_provider = mock.Mock(spec=image_fake.FakeImageProvider)
         self.oob_provider = mock.Mock(spec=oob_fake.FakeOutOfBandProvider)
-        self.scheduler = mock.Mock(spec=scheduler.TeethInstanceScheduler)
+        self.scheduler = mock.Mock(spec=scheduler.CarbideInstanceScheduler)
         self.queue = mock.Mock(spec=marconi.MarconiClient)
         self.stats_client = mock.Mock(spec=statsd.StatsClient)
         self._job_type_cache = {}

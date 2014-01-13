@@ -16,19 +16,19 @@ limitations under the License.
 
 import time
 
-from teeth_rest import component
-from teeth_rest import responses
+from carbide_rest import component
+from carbide_rest import responses
 
-from teeth_overlord import models
-from teeth_overlord import stats
+from carbide_overlord import models
+from carbide_overlord import stats
 
 
-class TeethAgentAPI(component.APIComponent):
+class CarbideAgentAPI(component.APIComponent):
 
-    """API for teeth agent process."""
+    """API for carbide agent process."""
 
     def __init__(self, config, stats_client=None):
-        super(TeethAgentAPI, self).__init__()
+        super(CarbideAgentAPI, self).__init__()
         self.config = config
         self.stats_client = stats_client or stats.get_stats_client(
             config,
@@ -58,11 +58,11 @@ class TeethAgentAPI(component.APIComponent):
         return responses.UpdatedResponse(headers=headers)
 
 
-class TeethAgentAPIServer(component.APIServer):
+class CarbideAgentAPIServer(component.APIServer):
 
-    """Server for the teeth overlord API."""
+    """Server for the carbide overlord API."""
 
     def __init__(self, config):
-        super(TeethAgentAPIServer, self).__init__()
+        super(CarbideAgentAPIServer, self).__init__()
         self.config = config
-        self.add_component('/v1', TeethAgentAPI(self.config))
+        self.add_component('/v1', CarbideAgentAPI(self.config))

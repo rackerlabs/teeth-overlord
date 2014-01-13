@@ -16,15 +16,15 @@ limitations under the License.
 
 import cqlengine
 
-from teeth_rest import component
-from teeth_rest import errors as rest_errors
-from teeth_rest import responses
+from carbide_rest import component
+from carbide_rest import errors as rest_errors
+from carbide_rest import responses
 
-from teeth_overlord import errors
-from teeth_overlord.images import base as images_base
-from teeth_overlord.jobs import base as jobs_base
-from teeth_overlord import models
-from teeth_overlord import stats
+from carbide_overlord import errors
+from carbide_overlord.images import base as images_base
+from carbide_overlord.jobs import base as jobs_base
+from carbide_overlord import models
+from carbide_overlord import stats
 
 
 DEFAULT_LIMIT = 100
@@ -64,12 +64,12 @@ def _get_limit(request):
         raise errors.InvalidParametersError(msg)
 
 
-class TeethPublicAPI(component.APIComponent):
+class CarbidePublicAPI(component.APIComponent):
 
-    """The primary Teeth Overlord API."""
+    """The primary Carbide Overlord API."""
 
     def __init__(self, config, job_client=None, stats_client=None):
-        super(TeethPublicAPI, self).__init__()
+        super(CarbidePublicAPI, self).__init__()
         self.config = config
         self.job_client = job_client or jobs_base.JobClient(config)
         self.stats_client = stats_client or stats.get_stats_client(
@@ -677,12 +677,12 @@ class TeethPublicAPI(component.APIComponent):
         return responses.DeletedResponse()
 
 
-class TeethPublicAPIServer(component.APIServer):
+class CarbidePublicAPIServer(component.APIServer):
 
-    """Server for the teeth overlord API."""
+    """Server for the carbide overlord API."""
 
     def __init__(self, config, job_client=None):
-        super(TeethPublicAPIServer, self).__init__()
+        super(CarbidePublicAPIServer, self).__init__()
         self.config = config
         self.add_component('/v1',
-                           TeethPublicAPI(self.config, job_client=job_client))
+                           CarbidePublicAPI(self.config, job_client=job_client))

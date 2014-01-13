@@ -16,11 +16,11 @@ limitations under the License.
 
 import json
 
-from teeth_overlord import models
-from teeth_overlord import tests
+from carbide_overlord import models
+from carbide_overlord import tests
 
 
-class TestInstanceAPI(tests.TeethAPITestCase):
+class TestInstanceAPI(tests.CarbideAPITestCase):
 
     def setUp(self):
         super(TestInstanceAPI, self).setUp()

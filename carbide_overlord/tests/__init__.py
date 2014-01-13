@@ -24,9 +24,9 @@ from cqlengine import models
 from werkzeug import test
 from werkzeug import wrappers
 
-from teeth_overlord.api import public
-from teeth_overlord import config as teeth_config
-from teeth_overlord.jobs import base as jobs_base
+from carbide_overlord.api import public
+from carbide_overlord import config as carbide_config
+from carbide_overlord.jobs import base as jobs_base
 
 TEST_CONFIG = {
     "CASSANDRA_CLUSTER": ["localhost:9160"],
@@ -49,12 +49,12 @@ TEST_CONFIG = {
 
     "STATSD_HOST": "localhost",
     "STATSD_PORT": 8125,
-    "STATSD_PREFIX": "teeth",
+    "STATSD_PREFIX": "carbide",
     "STATSD_ENABLED": True,
 
     "ETCD_HOST": "localhost",
     "ETCD_PORT": 4001,
-    "ETC_CONFIG_DIR": "teeth_config",
+    "ETC_CONFIG_DIR": "carbide_config",
 
     "CONFIG_SOURCES": []
 }
@@ -268,14 +268,14 @@ class BaseAPITests(object):
         self.assertEqual(self.get_mock(model, 'save').call_count, 0)
 
 
-class TeethMockTestUtilities(unittest.TestCase):
+class CarbideMockTestUtilities(unittest.TestCase):
 
     def setUp(self):
         self._patches = collections.defaultdict(dict)
 
         self.job_client_mock = mock.Mock(spec=jobs_base.JobClient)
-        self.config = teeth_config.LazyConfig(config=TEST_CONFIG)
-        self.api = public.TeethPublicAPIServer(self.config,
+        self.config = carbide_config.LazyConfig(config=TEST_CONFIG)
+        self.api = public.CarbidePublicAPIServer(self.config,
                                                self.job_client_mock)
 
     def _get_env_builder(self, method, path, data=None, query=None):
@@ -409,5 +409,5 @@ class TeethMockTestUtilities(unittest.TestCase):
             return self._patches[cls]
 
 
-class TeethAPITestCase(TeethMockTestUtilities, BaseAPITests):
+class CarbideAPITestCase(CarbideMockTestUtilities, BaseAPITests):
     pass

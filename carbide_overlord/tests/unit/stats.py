@@ -19,9 +19,9 @@ import unittest
 
 import statsd
 
-from teeth_overlord import config
-from teeth_overlord import stats
-from teeth_overlord import tests
+from carbide_overlord import config
+from carbide_overlord import stats
+from carbide_overlord import tests
 
 
 class SpecificException(Exception):
@@ -50,11 +50,11 @@ class StatsClientTestCase(unittest.TestCase):
 
     def test_get_stats_client_with_no_prefix(self):
         client = stats.get_stats_client(self.config)
-        self.assertEqual(client._prefix, 'teeth')
+        self.assertEqual(client._prefix, 'carbide')
 
     def test_get_stats_client_with_prefix(self):
         client = stats.get_stats_client(self.config, prefix='api')
-        self.assertEqual(client._prefix, 'teeth.api')
+        self.assertEqual(client._prefix, 'carbide.api')
 
     def test_success_incrs_success_stat(self):
         self.some_object.success_func()

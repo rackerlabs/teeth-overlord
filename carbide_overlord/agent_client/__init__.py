@@ -19,7 +19,7 @@ from stevedore import driver
 
 def get_agent_client(config):
     mgr = driver.DriverManager(
-        namespace='teeth_overlord.agent.clients',
+        namespace='carbide_overlord.agent.clients',
         name=config.AGENT_CLIENT,
         invoke_on_load=True,
         invoke_args=[config],

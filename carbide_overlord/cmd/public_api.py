@@ -16,15 +16,15 @@ limitations under the License.
 
 from cherrypy import wsgiserver
 
-from teeth_overlord.api import public
-from teeth_overlord import config as teeth_config
-from teeth_overlord import service
+from carbide_overlord.api import public
+from carbide_overlord import config as carbide_config
+from carbide_overlord import service
 
 
 def run():
-    config = teeth_config.get_config()
+    config = carbide_config.get_config()
     service.global_setup(config)
-    api = public.TeethPublicAPIServer(config)
+    api = public.CarbidePublicAPIServer(config)
     listen_address = (config.PUBLIC_API_HOST, config.PUBLIC_API_PORT)
     server = wsgiserver.CherryPyWSGIServer(listen_address, api)
     try:  # ^C doesn't work without this try/except

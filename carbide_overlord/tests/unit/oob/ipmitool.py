@@ -17,13 +17,13 @@ limitations under the License.
 import mock
 import subprocess
 
-from teeth_overlord import models
-from teeth_overlord import tests
+from carbide_overlord import models
+from carbide_overlord import tests
 
-from teeth_overlord.oob import ipmitool
+from carbide_overlord.oob import ipmitool
 
 
-class TestIPMIToolDriver(tests.TeethMockTestUtilities):
+class TestIPMIToolDriver(tests.CarbideMockTestUtilities):
 
     def setUp(self):
         super(TestIPMIToolDriver, self).setUp()

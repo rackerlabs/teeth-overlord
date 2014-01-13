@@ -4,7 +4,7 @@ lib/*
 include/*
 local/*
 src/*
-!src/teeth-agent
+!src/carbide-agent
 man/*
 dropin.cache
 .ve

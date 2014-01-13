@@ -20,8 +20,8 @@ import unittest
 import etcd
 import mock
 
-from teeth_overlord import config
-from teeth_overlord import locks
+from carbide_overlord import config
+from carbide_overlord import locks
 
 
 class MockLock(object):

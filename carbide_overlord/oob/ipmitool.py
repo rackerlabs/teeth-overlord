@@ -18,7 +18,7 @@ import structlog
 import subprocess
 import time
 
-from teeth_overlord.oob import base
+from carbide_overlord.oob import base
 
 
 POWER_ON = 'Chassis Power Control: Up/On\n'

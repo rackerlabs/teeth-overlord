@@ -22,19 +22,19 @@ import uuid
 from stevedore import driver
 import structlog
 
-from teeth_overlord import agent_client
-from teeth_overlord.images import base as images_base
-from teeth_overlord import marconi
-from teeth_overlord import models
-from teeth_overlord.oob import base as oob_base
-from teeth_overlord import scheduler
-from teeth_overlord import service
-from teeth_overlord import stats
+from carbide_overlord import agent_client
+from carbide_overlord.images import base as images_base
+from carbide_overlord import marconi
+from carbide_overlord import models
+from carbide_overlord.oob import base as oob_base
+from carbide_overlord import scheduler
+from carbide_overlord import service
+from carbide_overlord import stats
 
 
-JOB_QUEUE_NAME = 'teeth_jobs'
+JOB_QUEUE_NAME = 'carbide_jobs'
 
-JOB_DRIVER_NAMESPACE = 'teeth_overlord.jobs'
+JOB_DRIVER_NAMESPACE = 'carbide_overlord.jobs'
 
 # Use a very high TTL on Marconi messages - we never really want them to
 # expire. If we give up on a message, we'll expire it ourselves.
@@ -61,7 +61,7 @@ CLAIM_GRACE = 60 * 60 * 12
 POLLING_INTERVAL = 0.1
 
 
-class JobExecutor(service.SynchronousTeethService):
+class JobExecutor(service.SynchronousCarbideService):
 
     """A service which executes job requests from a queue."""
 
@@ -72,7 +72,7 @@ class JobExecutor(service.SynchronousTeethService):
         self.job_client = JobClient(config)
         self.image_provider = images_base.get_image_provider(config)
         self.oob_provider = oob_base.get_oob_provider(config)
-        self.scheduler = scheduler.TeethInstanceScheduler()
+        self.scheduler = scheduler.CarbideInstanceScheduler()
         self.claim_lock = threading.Lock()
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
         self.stats_client = stats.get_stats_client(config, 'jobs')
@@ -172,7 +172,7 @@ class Job(object):
 
     """Abstract base class for defining jobs. Implementations must
     override `_execute` and be registered as a stevedore plugin
-    under the `teeth_overlord.jobs` namespace.
+    under the `carbide_overlord.jobs` namespace.
     """
     __metaclass__ = abc.ABCMeta
 

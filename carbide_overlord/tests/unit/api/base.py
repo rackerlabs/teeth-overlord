@@ -16,13 +16,13 @@ limitations under the License.
 
 import json
 
-from teeth_overlord.api import public
+from carbide_overlord.api import public
 
-from teeth_overlord import models
-from teeth_overlord import tests
+from carbide_overlord import models
+from carbide_overlord import tests
 
 
-class TestAPI(tests.TeethAPITestCase):
+class TestAPI(tests.CarbideAPITestCase):
 
     def setUp(self):
         super(TestAPI, self).setUp()
@@ -131,7 +131,7 @@ class TestAPI(tests.TeethAPITestCase):
 
     def test_routes(self):
         public_api_component = self.api.components.get('/v1')
-        self.assertIsInstance(public_api_component, public.TeethPublicAPI)
+        self.assertIsInstance(public_api_component, public.CarbidePublicAPI)
 
         expected_mappings = {
             # Chassis Models

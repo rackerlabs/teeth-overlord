@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.agent_client import base
+from carbide_overlord.agent_client import base
 
 
 class FakeAgentClient(base.BaseAgentClient):

@@ -73,8 +73,8 @@ class ConcurrencyGauge(object):
 
 def get_stats_client(config, prefix=None):
     """Gets statsd client with additional prefix.
-    For example, if the config prefix is 'teeth' and 'api' is passed in,
-    the prefix would be teeth.api.
+    For example, if the config prefix is 'carbide' and 'api' is passed in,
+    the prefix would be carbide.api.
     """
     if prefix is not None:
         prefix = '{0}.{1}'.format(config.STATSD_PREFIX, prefix)

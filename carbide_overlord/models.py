@@ -23,9 +23,9 @@ import cqlengine
 from cqlengine import columns
 from cqlengine import models
 
-from teeth_rest import encoding
+from carbide_rest import encoding
 
-KEYSPACE_NAME = 'teeth'
+KEYSPACE_NAME = 'carbide'
 
 MAX_ID_LENGTH = 64
 
@@ -54,7 +54,7 @@ class C2DateTime(columns.DateTime):
 
 
 class Base(models.Model, encoding.Serializable):
-    """Base class for all Teeth models."""
+    """Base class for all Carbide models."""
     __abstract__ = True
     __keyspace__ = KEYSPACE_NAME
 

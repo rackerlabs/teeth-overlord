@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.jobs import instances as instance_jobs
-from teeth_overlord import models
-from teeth_overlord import tests
-from teeth_overlord.tests.unit.jobs import base as jobs_tests_base
+from carbide_overlord.jobs import instances as instance_jobs
+from carbide_overlord import models
+from carbide_overlord import tests
+from carbide_overlord.tests.unit.jobs import base as jobs_tests_base
 
 
-class CreateInstanceTestCase(tests.TeethAPITestCase):
+class CreateInstanceTestCase(tests.CarbideAPITestCase):
     def setUp(self):
         super(CreateInstanceTestCase, self).setUp()
 
@@ -97,7 +97,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         self._instance_is_marked_active()
 
 
-class DeleteInstanceTestCase(tests.TeethAPITestCase):
+class DeleteInstanceTestCase(tests.CarbideAPITestCase):
     def setUp(self):
         super(DeleteInstanceTestCase, self).setUp()
 

@@ -19,11 +19,11 @@ import random
 import cqlengine
 import structlog
 
-from teeth_overlord import errors
-from teeth_overlord import models
+from carbide_overlord import errors
+from carbide_overlord import models
 
 
-class TeethInstanceScheduler(object):
+class CarbideInstanceScheduler(object):
     """Schedule instances onto chassis."""
     def __init__(self):
         self.log = structlog.get_logger()

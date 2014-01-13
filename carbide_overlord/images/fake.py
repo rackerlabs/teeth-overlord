@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.images import base
+from carbide_overlord.images import base
 
 FAKE_IMAGE_INFO = {
     'name': 'Default Example Image',

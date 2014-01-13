@@ -334,7 +334,7 @@ class LazyConfig(object):
 
 def get_config():
     """Try to load a configuration file."""
-    f = os.environ.get('TEETH_SETTINGS_FILE')
+    f = os.environ.get('CARBIDE_SETTINGS_FILE')
     f = f or os.path.join(os.path.dirname(__file__), 'settings.json')
     conf = LazyConfig(config_file=f)
     conf.setup()  # force config to eval

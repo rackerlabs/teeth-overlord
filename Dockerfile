@@ -1,7 +1,7 @@
-from teeth/overlord_base:latest
+from carbide/overlord_base:latest
 
-ADD ./teeth_overlord /opt/teeth-overlord/teeth_overlord
-ADD ./twisted /opt/teeth-overlord/twisted
-ENV PYTHONPATH /opt/teeth-overlord
+ADD ./carbide_overlord /opt/carbide-overlord/carbide_overlord
+ADD ./twisted /opt/carbide-overlord/twisted
+ENV PYTHONPATH /opt/carbide-overlord
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/twistd", "--nodaemon"]

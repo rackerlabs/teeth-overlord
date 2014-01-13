@@ -19,15 +19,15 @@
 
 "STATSD_HOST": "localhost",
 "STATSD_PORT": 8125,
-"STATSD_PREFIX": "teeth",
+"STATSD_PREFIX": "carbide",
 "STATSD_ENABLED": true,
 
 "ETCD_HOST": "localhost",
 "ETCD_PORT": 4001,
-"ETC_CONFIG_DIR": "teeth_config",
+"ETC_CONFIG_DIR": "carbide_config",
 
 "CONFIG_SOURCES": [
-    ["teeth_overlord.config.EnvSource"],
-    ["teeth_overlord.config.EtcdSource", "ETCD_HOST", "ETCD_PORT", "ETC_CONFIG_DIR"]
+    ["carbide_overlord.config.EnvSource"],
+    ["carbide_overlord.config.EtcdSource", "ETCD_HOST", "ETCD_PORT", "ETC_CONFIG_DIR"]
 ]
 }

@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord import config
-from teeth_overlord import tests
+from carbide_overlord import config
+from carbide_overlord import tests
 
 import json
 import mock
@@ -35,7 +35,7 @@ class MockSource(config.ConfigSource):
         return None
 
 
-class TestConfig(tests.TeethMockTestUtilities):
+class TestConfig(tests.CarbideMockTestUtilities):
     """Tests for the config object."""
 
     def test_lazy_config_load_dict(self):
@@ -64,7 +64,7 @@ class TestConfig(tests.TeethMockTestUtilities):
     def test_lazy_config_source(self):
         conf = {"FOO": "DEFAULT1", "BAZ": 123,
                 "CONFIG_SOURCES": [
-                    ["teeth_overlord.tests.unit.config.MockSource", "arg1"]
+                    ["carbide_overlord.tests.unit.config.MockSource", "arg1"]
                 ]}
         c = config.LazyConfig(config=conf)
 

@@ -50,7 +50,7 @@ class BaseOutOfBandProvider(object):
 
 def get_oob_provider(config):
     mgr = driver.DriverManager(
-        namespace='teeth_overlord.out_of_band.providers',
+        namespace='carbide_overlord.out_of_band.providers',
         name=config.OOB_PROVIDER,
         invoke_on_load=True,
         invoke_args=[config],

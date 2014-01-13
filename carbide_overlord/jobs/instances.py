@@ -16,9 +16,9 @@ limitations under the License.
 
 import cqlengine
 
-from teeth_overlord.jobs import base
-from teeth_overlord import models
-from teeth_overlord import stats
+from carbide_overlord.jobs import base
+from carbide_overlord import models
+from carbide_overlord import stats
 
 
 class CreateInstance(base.Job):

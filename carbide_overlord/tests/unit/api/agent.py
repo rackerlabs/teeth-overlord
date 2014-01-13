@@ -16,16 +16,16 @@ limitations under the License.
 
 import mock
 
-from teeth_overlord.api import agent as agent_api
-from teeth_overlord import models
-from teeth_overlord import tests
+from carbide_overlord.api import agent as agent_api
+from carbide_overlord import models
+from carbide_overlord import tests
 
 
-class TestAgentAPI(tests.TeethAPITestCase):
+class TestAgentAPI(tests.CarbideAPITestCase):
 
     def setUp(self):
         super(TestAgentAPI, self).setUp()
-        self.api = agent_api.TeethAgentAPIServer(self.config)
+        self.api = agent_api.CarbideAgentAPIServer(self.config)
 
         self.url = '/v1/agents/00:00:00:00:00:00'
         self.agent_model_mock = self.add_mock(models.Agent)

@@ -18,10 +18,10 @@ import json
 import mock
 import requests
 
-from teeth_overlord.agent_client import rest as agent_client
-from teeth_overlord import errors
-from teeth_overlord import models
-from teeth_overlord import tests
+from carbide_overlord.agent_client import rest as agent_client
+from carbide_overlord import errors
+from carbide_overlord import models
+from carbide_overlord import tests
 
 
 class MockResponse(object):
@@ -29,7 +29,7 @@ class MockResponse(object):
         self.text = json.dumps(data)
 
 
-class TestRESTAgentClient(tests.TeethMockTestUtilities):
+class TestRESTAgentClient(tests.CarbideMockTestUtilities):
     def setUp(self):
         super(TestRESTAgentClient, self).setUp()
         self.client = agent_client.RESTAgentClient(tests.TEST_CONFIG)

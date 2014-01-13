@@ -16,7 +16,7 @@ limitations under the License.
 
 import structlog
 
-from teeth_overlord.oob import base
+from carbide_overlord.oob import base
 
 
 class FakeOutOfBandProvider(base.BaseOutOfBandProvider):

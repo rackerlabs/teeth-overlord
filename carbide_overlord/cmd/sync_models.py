@@ -16,12 +16,12 @@ limitations under the License.
 
 from cqlengine import management
 
-from teeth_overlord import config as teeth_config
-from teeth_overlord import models
-from teeth_overlord import service
+from carbide_overlord import config as carbide_config
+from carbide_overlord import models
+from carbide_overlord import service
 
 
 def run():
-    service.global_setup(teeth_config.get_config())
+    service.global_setup(carbide_config.get_config())
     for model in models.all_models:
         management.sync_table(model)

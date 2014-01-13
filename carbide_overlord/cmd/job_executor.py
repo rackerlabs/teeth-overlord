@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.jobs import base as jobs_base
-from teeth_overlord import service
+from carbide_overlord.jobs import base as jobs_base
+from carbide_overlord import service
 
 
 def run():
-    service.TeethServiceRunner(jobs_base.JobExecutor).run()
+    service.CarbideServiceRunner(jobs_base.JobExecutor).run()

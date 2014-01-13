@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from teeth_overlord.jobs import base
-from teeth_overlord import models
-from teeth_overlord import stats
+from carbide_overlord.jobs import base
+from carbide_overlord import models
+from carbide_overlord import stats
 
 
 class DecommissionChassis(base.Job):
