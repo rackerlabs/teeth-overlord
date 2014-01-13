@@ -12,7 +12,7 @@
 
 "MARCONI_URL": "http://localhost:8888",
 
-"IMAGE_PROVIDER": "glance",
+"IMAGE_PROVIDER": "fake",
 "OOB_PROVIDER": "fake",
 "AGENT_CLIENT": "fake",
 "PRETTY_LOGGING": true,
