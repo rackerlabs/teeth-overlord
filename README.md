@@ -1,6 +1,6 @@
-# Teeth Overlord
+# Carbide Overlord
 
-Teeth Overlord is the centralized control system for Teeth. It exposes REST
+Carbide Overlord is the centralized control system for Carbide. It exposes REST
 APIs for inventory and instance management, as well as a line-oriented JSON
 protocol used to communicate with agents which run on servers which are in a
 ready state, waiting to be deployed by a customer.
@@ -29,7 +29,7 @@ marconi-server
 ## Preparing a Dev Environment
 
 With Cassandra and Marconi running, run the following from the root of the
-`teeth-overlord` repository:
+`carbide-overlord` repository:
 
 ```bash
 # Create a Dev Environment
@@ -39,13 +39,13 @@ tox -e devenv
 . devenv/bin/activate
 
 # Synchronize Schema
-teeth-sync-models
+carbide-sync-models
 ```
 
-Now start `teeth-public-api` and `teeth-job-executor`. To load development
-fixtures, run `teeth-prepare-dev-environment`.
+Now start `carbide-public-api` and `carbide-job-executor`. To load development
+fixtures, run `carbide-prepare-dev-environment`.
 
 ## Builders
 
-Teeth Overlord master: https://jenkins.t.k1k.me/job/teeth-overlord-master/
-Teeth Overlord PRs: https://jenkins.t.k1k.me/job/teeth-overlord-pr/
+Carbide Overlord master: https://jenkins.t.k1k.me/job/carbide-overlord-master/
+Carbide Overlord PRs: https://jenkins.t.k1k.me/job/carbide-overlord-pr/
