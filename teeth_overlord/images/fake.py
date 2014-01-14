@@ -32,7 +32,7 @@ class FakeImageProvider(base.BaseImageProvider):
 
     def list_images(self):
         """Returns an list of ImageInfo instances."""
-        return [self.get_image_info(self, 'image_id')]
+        return [self.get_image_info('image_id')]
 
     def get_image_info(self, image_id):
         """Returns an ImageInfo instance with information about the
