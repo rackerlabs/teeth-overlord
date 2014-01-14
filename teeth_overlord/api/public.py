@@ -118,6 +118,9 @@ class TeethPublicAPI(component.APIComponent):
         self.route('DELETE', '/instances/<string:instance_id>',
                    self.delete_instance)
 
+        self.route('GET', '/images', self.list_images)
+        self.route('GET', '/images/<string:image_id>', self.fetch_image)
+
     def _validate_relation(self, instance, field_name, cls):
         id = getattr(instance, field_name)
 
@@ -164,6 +167,30 @@ class TeethPublicAPI(component.APIComponent):
             return responses.ItemResponse(query.get())
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
+
+    @stats.incr_stat('images.list')
+    def list_images(self, request):
+        """List Images.
+        Returns 200 along with a list of Images upon success.
+        """
+        images = [i.serialize() for i in self.image_provider.list_images()]
+        return responses.PaginatedResponse(request,
+                                           images,
+                                           self.list_images,
+                                           None,
+                                           DEFAULT_LIMIT)
+
+    @stats.incr_stat('images.fetch')
+    def fetch_image(self, request, image_id):
+        """Retreive an Image.
+        Returns 200 along with an Image upon success.
+        """
+        try:
+            image = self.image_provider.get_image_info(image_id)
+            return responses.ItemResponse(image.serialize())
+        except self.image_provider.ImageDoesNotExist:
+            raise errors.RequestedObjectNotFoundError(
+                self.image_provider.__class__, image_id)
 
     @stats.incr_stat('chassis_models.create')
     def create_chassis_model(self, request):
@@ -594,8 +621,11 @@ class TeethPublicAPI(component.APIComponent):
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
-        # Validate the image ID
-        self.image_provider.get_image_info(instance.image_id)
+        try:
+            self.image_provider.get_image_info(instance.image_id)
+        except self.image_provider.ImageDoesNotExist:
+            msg = 'Invalid image_id, no such Image.'
+            raise rest_errors.InvalidContentError(msg)
 
         self._validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()

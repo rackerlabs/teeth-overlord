@@ -30,6 +30,10 @@ FAKE_IMAGE_INFO = {
 class FakeImageProvider(base.BaseImageProvider):
     """A static image provider useful in a dev environment."""
 
+    def list_images(self):
+        """Returns an list of ImageInfo instances."""
+        return [self.get_image_info(self, 'image_id')]
+
     def get_image_info(self, image_id):
         """Returns an ImageInfo instance with information about the
         requested image.
