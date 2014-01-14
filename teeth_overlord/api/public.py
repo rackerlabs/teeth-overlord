@@ -121,9 +121,6 @@ class TeethPublicAPI(component.APIComponent):
         self.route('GET', '/images', self.list_images)
         self.route('GET', '/images/<string:image_id>', self.fetch_image)
 
-        self.route('GET', '/agents/<string:mac_address>/configuration',
-            self.fetch_agent_configuration)
-
     def _validate_relation(self, instance, field_name, cls):
         id = getattr(instance, field_name)
 
@@ -170,21 +167,6 @@ class TeethPublicAPI(component.APIComponent):
             return responses.ItemResponse(query.get())
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
-
-    @stats.incr_stat('agents.fetch_configuration')
-    def fetch_agent_configuration(self, request, mac_address):
-        """Find the Chassis for a given mac address.
-
-        Returns 200 along with the requested Chassis state upon success.
-        """
-        try:
-            ma2c = models.MacAddressToChassis.get(mac_address=mac_address)
-        except models.MacAddressToChassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.MacAddressToChassis, mac_address)
-
-        query = models.Chassis.filter(id=ma2c.chassis_id)
-        return self._crud_fetch(request, models.Chassis, query)
 
     @stats.incr_stat('images.list')
     def list_images(self, request):
