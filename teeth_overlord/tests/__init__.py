@@ -308,7 +308,6 @@ class TeethMockTestUtilities(unittest.TestCase):
         """
         self._mock_attr(cls, 'save', autospec=True)
         self._mock_attr(cls, 'delete', autospec=True)
-        self._mock_attr(cls, 'batch')
 
         query = FakeQuerySet(return_value, side_effect)
         patcher = mock.patch.object(cls, 'objects', new=query)

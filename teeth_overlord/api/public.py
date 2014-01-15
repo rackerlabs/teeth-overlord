@@ -514,7 +514,15 @@ class TeethPublicAPI(component.APIComponent):
                                                 models.ChassisModel)
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
-        chassis.save()
+
+        ma2c = models.MacAddressToChassis.deserialize({
+            'mac_address': chassis.primary_mac_address,
+            'chassis_id': chassis.id})
+
+        batch = cqlengine.BatchQuery()
+        chassis.batch(batch).save()
+        ma2c.batch(batch).save()
+        batch.execute()
 
         return responses.CreatedResponse(request,
                                          self.fetch_chassis,

@@ -252,6 +252,31 @@ class Chassis(MetadataBase):
         return chassis
 
 
+class MacAddressToChassis(Base):
+    """Map of Mac Addresses to Chassis."""
+    mac_address = columns.Text(primary_key=True)
+    chassis_id = columns.Text(index=True,
+                              required=True,
+                              max_length=MAX_ID_LENGTH)
+
+    def serialize(self, view):
+        """Turn a Chassis into a dict."""
+        return collections.OrderedDict([
+            ('mac_address', self.mac_address),
+            ('chassis_id', self.chassis_id)
+        ])
+
+    @classmethod
+    def deserialize(cls, params):
+        """Turn a dict into a Chassis."""
+        m = cls(
+            mac_address=params.get('mac_address'),
+            chassis_id=params.get('chassis_id')
+        )
+        m.validate()
+        return m
+
+
 class InstanceState(object):
     """Possible states than an Instance can be in."""
     BUILD = 'BUILD'
@@ -396,6 +421,7 @@ class JobRequest(Base):
 
 all_models = [
     Chassis,
+    MacAddressToChassis,
     Instance,
     Agent,
     JobRequest,
