@@ -42,8 +42,9 @@ class TeethAgentAPI(component.APIComponent):
         # Agent Handlers
         self.route('PUT', '/agents/<string:mac_address>', self.update_agent)
 
-        self.route('GET', '/agents/<string:mac_address>/configuration',
-            self.fetch_agent_configuration)
+        self.route('GET',
+                   '/agents/<string:mac_address>/configuration',
+                   self.fetch_agent_configuration)
 
     @stats.incr_stat('agents.update')
     def update_agent(self, request, mac_address):

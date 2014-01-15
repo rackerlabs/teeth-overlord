@@ -25,6 +25,9 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
     def setUp(self):
         super(TestInstanceScheduler, self).setUp()
 
+        self.add_mock(models.Instance, 'batch')
+        self.add_mock(models.Chassis, 'batch')
+
         self.scheduler = scheduler.TeethInstanceScheduler()
 
         self.instance1 = models.Instance(id='instance1',

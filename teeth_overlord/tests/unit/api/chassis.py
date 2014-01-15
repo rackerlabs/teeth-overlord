@@ -28,6 +28,7 @@ class TestChassisAPI(tests.TeethAPITestCase):
         self.url = '/v1/chassis'
 
         self.chassis_objects_mock = self.add_mock(models.Chassis)
+        self.ma2c_objects_mock = self.add_mock(models.MacAddressToChassis)
         self.chassis1 = models.Chassis(id='chassis1',
                                        state=models.ChassisState.READY,
                                        primary_mac_address='1:2:3:4:5')
@@ -71,6 +72,7 @@ class TestChassisAPI(tests.TeethAPITestCase):
             models.ChassisModel(id='chassis_model_id', name='chassis_model'),
         ]
         self.add_mock(models.ChassisModel, return_value=return_value)
+        self.add_mock(models.MacAddressToChassis)
 
         data = {
             'chassis_model_id': 'chassis_model_id',
@@ -79,9 +81,17 @@ class TestChassisAPI(tests.TeethAPITestCase):
         response = self.make_request('POST', self.url, data=data)
 
         # get the saved instance
-        save_mock = self.get_mock(models.Chassis, 'save')
-        self.assertEqual(save_mock.call_count, 1)
-        chassis = save_mock.call_args[0][0]
+        chassis_save_mock = self.get_mock(models.Chassis, 'save')
+        ma2c_save_mock = self.get_mock(models.MacAddressToChassis, 'save')
+
+        self.assertEqual(chassis_save_mock.call_count, 1)
+        self.assertEqual(ma2c_save_mock.call_count, 1)
+
+        chassis = chassis_save_mock.call_args[0][0]
+        ma2c = ma2c_save_mock.call_args[0][0]
+
+        self.assertEqual(ma2c.mac_address, 'mac_addr')
+        self.assertEqual(ma2c.chassis_id, chassis.id)
 
         self.assertEqual(chassis.chassis_model_id, 'chassis_model_id')
         self.assertEqual(chassis.primary_mac_address, 'mac_addr')
