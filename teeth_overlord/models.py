@@ -252,7 +252,7 @@ class Chassis(MetadataBase):
         return chassis
 
 
-class MacAddressToChassis(MetadataBase):
+class MacAddressToChassis(Base):
     """Map of Mac Addresses to Chassis."""
     mac_address = columns.Text(primary_key=True)
     chassis_id = columns.Text(index=True,
@@ -271,8 +271,7 @@ class MacAddressToChassis(MetadataBase):
         """Turn a dict into a Chassis."""
         m = cls(
             mac_address=params.get('mac_address'),
-            chassis_id=params.get('chassis_id'),
-            metadata=params.get('metadata')
+            chassis_id=params.get('chassis_id')
         )
         m.validate()
         return m
