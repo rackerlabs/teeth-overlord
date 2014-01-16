@@ -30,7 +30,7 @@ class ImageInfo(encoding.Serializable):
         self.urls = kwargs['urls']
         self.hashes = kwargs['hashes']
 
-    def serialize(self, view):
+    def serialize(self):
         """Turn an ImageInfo into a dict."""
         return collections.OrderedDict([
             ('id', self.id),
@@ -41,7 +41,12 @@ class ImageInfo(encoding.Serializable):
 
 
 class BaseImageProvider(object):
-    """A provider of images. Basically an abstraction of a glance client."""
+
+    class ImageProviderException(Exception):
+        pass
+
+    class ImageDoesNotExist(ImageProviderException):
+        pass
 
     __metaclass__ = abc.ABCMeta
 
@@ -53,6 +58,10 @@ class BaseImageProvider(object):
         """Returns an ImageInfo instance with information about the
         requested image.
         """
+
+    @abc.abstractmethod
+    def list_images(self):
+        """Returns an list of ImageInfo instances."""
 
 
 def get_image_provider(config):

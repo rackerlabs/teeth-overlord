@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
 import mock
 
 from teeth_overlord.api import agent as agent_api
@@ -55,3 +56,76 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(response.status_code, 204)
         heartbeat_before = response.headers['Heartbeat-Before']
         self.assertEqual(heartbeat_before, str(models.Agent.TTL))
+
+    def test_fetch_agent_configuration(self):
+
+        ma2c = models.MacAddressToChassis(mac_address='a:b:c:d',
+                                          chassis_id='chassis1')
+
+        ma2c_objects_mock = self.add_mock(
+            models.MacAddressToChassis, return_value=[ma2c])
+
+        chassis = models.Chassis(id='chassis1',
+                                 primary_mac_address='a:b:c:d',
+                                 chassis_model_id='chassismodel1',
+                                 state=models.ChassisState.READY)
+
+        chassis_objects_mock = self.add_mock(
+            models.Chassis, return_value=[chassis])
+
+        # standby
+        response = self.make_request(
+            'GET', '{}/configuration'.format(self.url))
+        self.assertEqual(
+            models.AgentState.STANDBY, json.loads(response.data)['mode'])
+
+        ma2c_objects_mock.assert_called_with(
+            'get', mac_address='00:00:00:00:00:00')
+        chassis_objects_mock.assert_called_with(
+            'get', id='chassis1')
+
+        # decom
+        chassis.state = models.ChassisState.CLEAN
+        response = self.make_request(
+            'GET', '{}/configuration'.format(self.url))
+        self.assertEqual(
+            models.AgentState.DECOM, json.loads(response.data)['mode'])
+
+        # unknown
+        chassis.state = models.ChassisState.ACTIVE
+        response = self.make_request(
+            'GET', '{}/configuration'.format(self.url))
+        self.assertEqual(
+            'UNKNOWN', json.loads(response.data)['mode'])
+
+    def test_fetch_agent_configuration_no_mac(self):
+        self.add_mock(
+            models.MacAddressToChassis,
+            side_effect=models.MacAddressToChassis.DoesNotExist
+        )
+
+        response = self.make_request(
+            'GET', '{}/configuration'.format(self.url))
+
+        self.assertEqual(
+            response.status_code, 404)
+        self.assertEqual(
+            json.loads(response.data)['details'],
+            'MacAddressToChassis with id 00:00:00:00:00:00 not found.'
+        )
+
+    def test_fetch_agent_configuration_no_chassis(self):
+        ma2c = models.MacAddressToChassis(mac_address='a:b:c:d',
+                                          chassis_id='chassis1')
+
+        self.add_mock(models.MacAddressToChassis, return_value=[ma2c])
+
+        self.add_mock(
+            models.Chassis, side_effect=models.Chassis.DoesNotExist)
+
+        response = self.make_request(
+            'GET', '{}/configuration'.format(self.url))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(json.loads(response.data)['details'],
+                         'Chassis with id chassis1 not found.')
