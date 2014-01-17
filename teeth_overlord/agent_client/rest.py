@@ -37,7 +37,7 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def _get_command_body(self, method, params):
         return self.encoder.encode({
-            'method': method,
+            'name': method,
             'params': params,
         })
 
@@ -72,11 +72,13 @@ class RESTAgentClient(base.BaseAgentClient):
             'image_ids': image_ids,
         })
 
-    def prepare_image(self, agent, image_id):
+    def prepare_image(self, agent, image_info, configdrive, device):
         """Call the `prepare_image` method on the agent."""
         return self._command(agent, 'prepare_image', {
+            'image_info': image_info,
+            'configdrive': configdrive,
+            'device': device,
             'task_id': self.new_task_id(),
-            'image_id': image_id,
         })
 
     def run_image(self, agent, image_id):

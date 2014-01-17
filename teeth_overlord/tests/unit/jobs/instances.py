@@ -40,7 +40,11 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                       state=models.ChassisState.READY,
                                       chassis_model_id='chassis_model_id',
                                       primary_mac_address='00:00:00:00:00:00')
-        request_params = {'instance_id': 'test_instance'}
+        request_params = {
+            'instance_id': 'test_instance',
+            'configdrive': {},
+            'device': '/dev/sda'
+        }
         self.job_request = models.JobRequest(id='test_request',
                                              job_type='instances.create',
                                              params=request_params)
@@ -66,14 +70,26 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         image_info = self.executor.image_provider.get_image_info('image_id')
         client = self.executor.agent_client
         agent = None
+        configdrive = self.job_request.params.get('configdrive')
+        device = self.job_request.params.get('device')
 
         client.get_agent.assert_called_once_with(self.chassis)
-        client.prepare_image.assert_called_once_with(agent, image_info)
+        client.prepare_image.assert_called_once_with(agent,
+                                                     image_info,
+                                                     configdrive,
+                                                     device)
         client.run_image.assert_called_once_with(agent, image_info)
 
     def test_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
-        self.job.prepare_and_run_image(self.instance, self.chassis, image_info)
+        configdrive = self.job_request.params.get('configdrive')
+        device = self.job_request.params.get('device')
+
+        self.job.prepare_and_run_image(self.instance,
+                                       self.chassis,
+                                       image_info,
+                                       configdrive,
+                                       device)
         self._did_prepare_and_run_image()
 
     def _instance_is_marked_active(self):
