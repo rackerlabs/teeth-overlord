@@ -1,7 +1,7 @@
-from teeth/overlord_base:latest
+FROM jayofdoom/docker-ubuntu-14.04
 
-ADD ./teeth_overlord /opt/teeth-overlord/teeth_overlord
-ADD ./twisted /opt/teeth-overlord/twisted
-ENV PYTHONPATH /opt/teeth-overlord
-EXPOSE 8080
-ENTRYPOINT ["/usr/local/bin/twistd", "--nodaemon"]
+ADD . /tmp/teeth-overlord
+
+RUN apt-get update && apt-get -y install python python-pip python-dev git 
+
+RUN pip install /tmp/teeth-overlord
