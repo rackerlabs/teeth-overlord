@@ -57,9 +57,9 @@ class CreateInstance(base.Job):
         image_id = instance.image_id
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(image_id)
-        # TODO(jimrollenhagen) generate this from other params
-        configdrive = params.get('configdrive')
-        device = params.get('device')
+        configdrive = params.get('configdrive') or {}
+        # TODO(jimrollenhagen) where do we want to pull this from?
+        device = params.get('device') or '/dev/sda'
 
         self.prepare_and_run_image(instance,
                                    chassis,

@@ -620,12 +620,16 @@ class TeethPublicAPI(component.APIComponent):
                 "name": "web0",
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                 "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f"
+                "configdrive": {
+                    "meta_data.json": "base64-content"
+                }
             }
 
         Returns 201 with a Location header upon success.
         """
+        params = self.parse_content(request)
         try:
-            instance = models.Instance.deserialize(self.parse_content(request))
+            instance = models.Instance.deserialize(params)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
@@ -638,7 +642,8 @@ class TeethPublicAPI(component.APIComponent):
         self._validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
         self.job_client.submit_job('instances.create',
-                                   instance_id=instance.id)
+                                   instance_id=instance.id,
+                                   configdrive=params.get('config_drive_data'))
 
         return responses.CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,

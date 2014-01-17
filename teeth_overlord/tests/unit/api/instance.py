@@ -78,10 +78,12 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]
         self.add_mock(models.Flavor, return_value=return_value)
 
+        configdrive = {'meta_data.json': {'some': 'content'}}
         data = {
             'name': 'created_instance',
             'flavor_id': 'flavor',
             'image_id': self.valid_image_id,
+            'config_drive_data': configdrive
         }
 
         response = self.make_request('POST', self.url, data=data)
@@ -97,7 +99,8 @@ class TestInstanceAPI(tests.TeethAPITestCase):
 
         self.job_client_mock.submit_job.assert_called_once_with(
             'instances.create',
-            instance_id=instance.id)
+            instance_id=instance.id,
+            configdrive=configdrive)
 
         self.assertEqual(response.status_code, 201)
 
