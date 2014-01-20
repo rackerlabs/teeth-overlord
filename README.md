@@ -1,5 +1,7 @@
 # Teeth Overlord
 
+[![Build Status](https://travis-ci.org/rackerlabs/teeth-overlord.png?branch=master)](https://travis-ci.org/rackerlabs/teeth-overlord)
+
 Teeth Overlord is the centralized control system for Teeth. It exposes REST
 APIs for inventory and instance management, as well as a line-oriented JSON
 protocol used to communicate with agents which run on servers which are in a
