@@ -44,8 +44,3 @@ teeth-sync-models
 
 Now start `teeth-public-api` and `teeth-job-executor`. To load development
 fixtures, run `teeth-prepare-dev-environment`.
-
-## Builders
-
-Teeth Overlord master: https://jenkins.t.k1k.me/job/teeth-overlord-master/
-Teeth Overlord PRs: https://jenkins.t.k1k.me/job/teeth-overlord-pr/
