@@ -620,8 +620,12 @@ class TeethPublicAPI(component.APIComponent):
                 "name": "web0",
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                 "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f"
-                "configdrive": {
-                    "meta_data.json": "base64-content"
+                "extra_data": {
+                    "admin_pass": "password",
+                    "hostname": "web0"
+                }
+                "files": {
+                    "/etc/network/interfaces": "contents"
                 }
             }
 
@@ -643,7 +647,8 @@ class TeethPublicAPI(component.APIComponent):
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id,
-                                   configdrive=params.get('config_drive_data'))
+                                   extra=params.get('extra_data', {}),
+                                   files=params.get('files', {}))
 
         return responses.CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,

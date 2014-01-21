@@ -16,6 +16,7 @@ limitations under the License.
 
 import cqlengine
 
+from teeth_overlord import configdrive
 from teeth_overlord.jobs import base
 from teeth_overlord import models
 from teeth_overlord import stats
@@ -50,6 +51,14 @@ class CreateInstance(base.Job):
         chassis.batch(batch).save()
         batch.execute()
 
+    def prepare_configdrive(self, metadata, files):
+        _configdrive = configdrive.ConfigDriveWriter()
+        for k, v in metadata.items():
+            _configdrive.add_metadata(k, v)
+        for path, contents in files.items():
+            _configdrive.add_file(path, contents)
+        return _configdrive.serialize()
+
     @stats.incr_stat('instances.create')
     def _execute(self):
         params = self.request.params
@@ -57,14 +66,16 @@ class CreateInstance(base.Job):
         image_id = instance.image_id
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(image_id)
-        configdrive = params.get('configdrive') or {}
+        extra = params.get('extra', {})
+        files = params.get('files', {})
         # TODO(jimrollenhagen) where do we want to pull this from?
         device = params.get('device') or '/dev/sda'
 
+        _configdrive = self.prepare_configdrive(extra, files)
         self.prepare_and_run_image(instance,
                                    chassis,
                                    image_info,
-                                   configdrive,
+                                   _configdrive,
                                    device)
         self.mark_active(instance, chassis)
 

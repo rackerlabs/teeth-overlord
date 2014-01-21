@@ -22,12 +22,6 @@ class ConfigDriveWriter(object):
     def __init__(self):
         self.metadata = {}
         self.files = collections.OrderedDict()
-        self.required_keys = [
-            'uuid',
-            'admin_pass',
-            'name',
-            'hostname',
-        ]
 
     def add_metadata(self, key, value):
         self.metadata[key] = value
