@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
 import collections
 import json
 
@@ -48,11 +49,11 @@ class ConfigDriveWriter(object):
             metadata['files'].append(file_info)
 
             metadata_path = prefix + content_path
-            out[metadata_path] = contents.encode('base64')
+            out[metadata_path] = base64.b64encode(contents)
             filenumber += 1
 
         json_metadata = json.dumps(metadata)
         metadata_path = '{}/latest/meta_data.json'.format(prefix)
-        out[metadata_path] = json_metadata.encode('base64')
+        out[metadata_path] = base64.b64encode(json_metadata)
 
         return out

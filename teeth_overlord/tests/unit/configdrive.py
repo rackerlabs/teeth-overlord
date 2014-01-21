@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
 import json
 import unittest
 
@@ -40,7 +41,7 @@ class ConfigDriveWriterTestCase(unittest.TestCase):
         self.writer.add_metadata('hostname', 'test')
 
         metadata = self.writer.metadata
-        metadata = json.dumps(metadata).encode('base64')
+        metadata = base64.b64encode(json.dumps(metadata))
         expected = {'openstack/latest/meta_data.json': metadata}
 
         data = self.writer.serialize()
@@ -51,7 +52,7 @@ class ConfigDriveWriterTestCase(unittest.TestCase):
         self.writer.add_metadata('hostname', 'test')
 
         metadata = self.writer.metadata
-        metadata = json.dumps(metadata).encode('base64')
+        metadata = base64.b64encode(json.dumps(metadata))
         expected = {'teeth/latest/meta_data.json': metadata}
 
         data = self.writer.serialize(prefix='teeth')
@@ -68,19 +69,19 @@ class ConfigDriveWriterTestCase(unittest.TestCase):
             {'content_path': '/content/0000', 'path': '/etc/conf0'},
             {'content_path': '/content/0001', 'path': '/etc/conf1'},
         ]
-        metadata = json.dumps(metadata).encode('base64')
+        metadata = base64.b64encode(json.dumps(metadata))
         expected = {
             'openstack/latest/meta_data.json': metadata,
-            'openstack/content/0000': 'contents0'.encode('base64'),
-            'openstack/content/0001': 'contents1'.encode('base64'),
+            'openstack/content/0000': base64.b64encode('contents0'),
+            'openstack/content/0001': base64.b64encode('contents1')
         }
 
         data = self.writer.serialize()
         self.assertEqual(len(data.keys()), len(expected.keys()))
         for k, v in expected.items():
             if '.json' in k:
-                _actual = json.loads(data[k].decode('base64'))
-                _expected = json.loads(v.decode('base64'))
+                _actual = json.loads(base64.b64decode(data[k]))
+                _expected = json.loads(base64.b64decode(v))
                 self.assertEqual(_actual, _expected)
             else:
                 self.assertEqual(data[k], v)
