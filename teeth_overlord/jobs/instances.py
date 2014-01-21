@@ -32,11 +32,11 @@ class CreateInstance(base.Job):
     max_retries = 10
 
     def prepare_and_run_image(self, instance, chassis, image_info, extra,
-                              files, device):
+                              files):
         """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
         agent = client.get_agent(chassis)
-        client.prepare_image(agent, image_info, extra, files, device)
+        client.prepare_image(agent, image_info, extra, files)
         client.run_image(agent, image_info)
 
     def mark_active(self, instance, chassis):
@@ -59,15 +59,12 @@ class CreateInstance(base.Job):
         image_info = self.executor.image_provider.get_image_info(image_id)
         extra = params.get('extra', {})
         files = params.get('files', {})
-        # TODO(jimrollenhagen) where do we want to pull this from?
-        device = params.get('device') or '/dev/sda'
 
         self.prepare_and_run_image(instance,
                                    chassis,
                                    image_info,
                                    extra,
-                                   files,
-                                   device)
+                                   files)
         self.mark_active(instance, chassis)
 
 

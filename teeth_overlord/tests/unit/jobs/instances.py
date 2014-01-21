@@ -42,7 +42,6 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                       primary_mac_address='00:00:00:00:00:00')
         request_params = {
             'instance_id': 'test_instance',
-            'device': '/dev/sda',
             'extra': {'admin_pass': 'password'},
             'files': {}
         }
@@ -71,7 +70,6 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         image_info = self.executor.image_provider.get_image_info('image_id')
         client = self.executor.agent_client
         agent = None
-        device = self.job_request.params.get('device')
         extra = self.job_request.params.get('extra')
         files = self.job_request.params.get('files')
 
@@ -79,13 +77,11 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         client.prepare_image.assert_called_once_with(agent,
                                                      image_info,
                                                      extra,
-                                                     files,
-                                                     device)
+                                                     files)
         client.run_image.assert_called_once_with(agent, image_info)
 
     def test_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
-        device = self.job_request.params.get('device')
         extra = self.job_request.params.get('extra')
         files = self.job_request.params.get('files')
 
@@ -93,8 +89,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                        self.chassis,
                                        image_info,
                                        extra,
-                                       files,
-                                       device)
+                                       files)
         self._did_prepare_and_run_image()
 
     def _instance_is_marked_active(self):

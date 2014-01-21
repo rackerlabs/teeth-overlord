@@ -48,7 +48,7 @@ class BaseAgentClient(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def prepare_image(self, agent, image_info, extra, files, device):
+    def prepare_image(self, agent, image_info, extra, files):
         """Call the `prepare_image` method on the agent."""
         raise NotImplementedError
 

@@ -72,13 +72,12 @@ class RESTAgentClient(base.BaseAgentClient):
             'image_ids': image_ids,
         })
 
-    def prepare_image(self, agent, image_info, extra, files, device):
+    def prepare_image(self, agent, image_info, extra, files):
         """Call the `prepare_image` method on the agent."""
         return self._command(agent, 'prepare_image', {
             'image_info': image_info,
             'extra': extra,
             'files': files,
-            'device': device,
             'task_id': self.new_task_id(),
         })
 
