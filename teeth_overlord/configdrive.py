@@ -49,7 +49,7 @@ class ConfigDriveWriter(object):
             metadata['files'].append(file_info)
 
             metadata_path = prefix + content_path
-            out[metadata_path] = base64.b64encode(contents)
+            out[metadata_path] = contents
             filenumber += 1
 
         json_metadata = json.dumps(metadata)

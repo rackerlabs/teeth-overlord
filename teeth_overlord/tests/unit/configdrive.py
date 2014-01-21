@@ -72,8 +72,8 @@ class ConfigDriveWriterTestCase(unittest.TestCase):
         metadata = base64.b64encode(json.dumps(metadata))
         expected = {
             'openstack/latest/meta_data.json': metadata,
-            'openstack/content/0000': base64.b64encode('contents0'),
-            'openstack/content/0001': base64.b64encode('contents1')
+            'openstack/content/0000': 'contents0',
+            'openstack/content/0001': 'contents1'
         }
 
         data = self.writer.serialize()

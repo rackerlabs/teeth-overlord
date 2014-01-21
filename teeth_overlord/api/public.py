@@ -625,7 +625,7 @@ class TeethPublicAPI(component.APIComponent):
                     "hostname": "web0"
                 }
                 "files": {
-                    "/etc/network/interfaces": "contents"
+                    "/etc/network/interfaces": "base64_contents"
                 }
             }
 
