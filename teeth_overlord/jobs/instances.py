@@ -16,7 +16,6 @@ limitations under the License.
 
 import cqlengine
 
-from teeth_overlord import configdrive
 from teeth_overlord.jobs import base
 from teeth_overlord import models
 from teeth_overlord import stats
@@ -32,12 +31,12 @@ class CreateInstance(base.Job):
     """
     max_retries = 10
 
-    def prepare_and_run_image(self, instance, chassis, image_info, configdrive,
-                              device):
+    def prepare_and_run_image(self, instance, chassis, image_info, extra,
+                              files, device):
         """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
         agent = client.get_agent(chassis)
-        client.prepare_image(agent, image_info, configdrive, device)
+        client.prepare_image(agent, image_info, extra, files, device)
         client.run_image(agent, image_info)
 
     def mark_active(self, instance, chassis):
@@ -51,14 +50,6 @@ class CreateInstance(base.Job):
         chassis.batch(batch).save()
         batch.execute()
 
-    def prepare_configdrive(self, metadata, files):
-        _configdrive = configdrive.ConfigDriveWriter()
-        for k, v in metadata.items():
-            _configdrive.add_metadata(k, v)
-        for path, contents in files.items():
-            _configdrive.add_file(path, contents)
-        return _configdrive.serialize()
-
     @stats.incr_stat('instances.create')
     def _execute(self):
         params = self.request.params
@@ -71,11 +62,11 @@ class CreateInstance(base.Job):
         # TODO(jimrollenhagen) where do we want to pull this from?
         device = params.get('device') or '/dev/sda'
 
-        _configdrive = self.prepare_configdrive(extra, files)
         self.prepare_and_run_image(instance,
                                    chassis,
                                    image_info,
-                                   _configdrive,
+                                   extra,
+                                   files,
                                    device)
         self.mark_active(instance, chassis)
 

@@ -73,12 +73,13 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         agent = None
         device = self.job_request.params.get('device')
         extra = self.job_request.params.get('extra')
-        configdrive = self.job.prepare_configdrive(extra, {})
+        files = self.job_request.params.get('files')
 
         client.get_agent.assert_called_once_with(self.chassis)
         client.prepare_image.assert_called_once_with(agent,
                                                      image_info,
-                                                     configdrive,
+                                                     extra,
+                                                     files,
                                                      device)
         client.run_image.assert_called_once_with(agent, image_info)
 
@@ -86,12 +87,13 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         image_info = self.executor.image_provider.get_image_info('image_id')
         device = self.job_request.params.get('device')
         extra = self.job_request.params.get('extra')
-        configdrive = self.job.prepare_configdrive(extra, {})
+        files = self.job_request.params.get('files')
 
         self.job.prepare_and_run_image(self.instance,
                                        self.chassis,
                                        image_info,
-                                       configdrive,
+                                       extra,
+                                       files,
                                        device)
         self._did_prepare_and_run_image()
 

@@ -73,16 +73,22 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
     def test_prepare_image(self):
         _command = self._mock_attr(self.client, '_command')
         image_info = {}
-        configdrive = {}
+        extra = {}
+        files = {}
         device = '/dev/sda'
         params = {
             'task_id': 'uuid',
             'image_info': image_info,
-            'configdrive': configdrive,
+            'extra': extra,
+            'files': files,
             'device': device,
         }
 
-        self.client.prepare_image(self.agent, image_info, configdrive, device)
+        self.client.prepare_image(self.agent,
+                                  image_info,
+                                  extra,
+                                  files,
+                                  device)
         _command.assert_called_once_with(self.agent,
                                          'prepare_image',
                                          params)
