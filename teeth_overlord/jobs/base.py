@@ -24,6 +24,7 @@ import structlog
 
 from teeth_overlord import agent_client
 from teeth_overlord.images import base as images_base
+from teeth_overlord import locks
 from teeth_overlord import marconi
 from teeth_overlord import models
 from teeth_overlord.oob import base as oob_base
@@ -67,6 +68,7 @@ class JobExecutor(service.SynchronousTeethService):
 
     def __init__(self, config):
         super(JobExecutor, self).__init__(config)
+        self.config = config
         self.log = structlog.get_logger()
         self.agent_client = agent_client.get_agent_client(config)
         self.job_client = JobClient(config)
@@ -127,7 +129,7 @@ class JobExecutor(service.SynchronousTeethService):
 
         with self.concurrent_jobs_gauge:
             cls = self._get_job_class(job_request.job_type)
-            job = cls(self, job_request, message)
+            job = cls(self, job_request, message, self.config)
             job.execute()
 
     def _process_messages(self):
@@ -164,7 +166,6 @@ class JobClient(object):
         """
         job_request = models.JobRequest(job_type=job_type, params=params)
         job_request.save()
-        job_request.mark_assets()
 
         body = {'job_request_id': str(job_request.id)}
         return self.queue.push_message(JOB_QUEUE_NAME, body, JOB_TTL)
@@ -178,13 +179,15 @@ class Job(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, executor, request, message):
+    def __init__(self, executor, request, message, config):
         self.executor = executor
         # XXX this is a bit hacky, may want to refactor in the future
         self.stats_client = executor.stats_client
         self.params = request.params
         self.request = request
         self.message = message
+        self.config = config
+        self.lock_manager = locks.EtcdLockManager(config)
         self.log = structlog.get_logger(request_id=str(self.request.id),
                                         attempt_id=str(uuid.uuid4()),
                                         job_type=request.job_type)
@@ -196,6 +199,7 @@ class Job(object):
     def _save_request(self):
         try:
             self.request.save()
+            self._mark_assets()
         except Exception as e:
             self.log.error('error saving JobRequest, ignoring', exception=e)
 
@@ -223,6 +227,21 @@ class Job(object):
         else:
             self._save_request()
             self._update_claim(ttl=INITIAL_RETRY_DELAY)
+
+    def _mark_assets(self):
+        if self.request.job_type.startswith('instances'):
+            instance_id = self.request.params.get('instance_id')
+            lock_key = '/instances/{}'.format(instance_id)
+            with self.lock_manager.acquire(lock_key):
+                instance = models.Instance.objects.get(id=instance_id)
+                if self.request.state in (models.JobRequestState.COMPLETED,
+                                          models.JobRequestState.FAILED):
+                    instance.job_id = None
+                    instance.job_state = None
+                else:
+                    instance.job_id = self.request.id
+                    instance.job_state = self.request.state
+                instance.save()
 
     def execute(self):
         """Called to execute a job. Marks the request `RUNNING` in the

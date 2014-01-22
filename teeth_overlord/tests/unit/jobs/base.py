@@ -69,9 +69,6 @@ class TestJobClient(tests.TeethMockTestUtilities):
         job_save = self.get_mock(models.JobRequest, 'save')
         self.assertEqual(job_save.call_count, 1)
 
-        instance_save = self.get_mock(models.Instance, 'save')
-        self.assertEqual(instance_save.call_count, 1)
-
         push_message = self.job_client.queue.push_message
         self.assertEqual(push_message.call_count, 1)
 

@@ -15,7 +15,9 @@ limitations under the License.
 """
 
 import json
+import mock
 
+from teeth_overlord.jobs import instances as instance_jobs
 from teeth_overlord import models
 from teeth_overlord import tests
 
@@ -175,7 +177,8 @@ class TestInstanceAPI(tests.TeethAPITestCase):
             'instances.delete',
             instance_id='instance1')
 
-    def test_delete_instance_already_deleted(self):
+    @mock.patch('teeth_overlord.locks.EtcdLockManager', autospec=True)
+    def test_delete_instance_already_deleted(self, mock_lock):
         self.instance_objects_mock.return_value = [self.instance2]
 
         response = self.make_request('DELETE',
@@ -186,10 +189,16 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(self.job_client_mock.submit_job.call_count, 0)
 
         # test "delete in progress"
-        job = models.JobRequest(id='delete_job',
-                                job_type='instances.delete',
-                                params={'instance_id': self.instance2.id})
-        job.mark_assets()
+        job_params = {'instance_id': self.instance2.id}
+        job_request = models.JobRequest(id='delete_job',
+                                        job_type='instances.delete',
+                                        params=job_params)
+        job = instance_jobs.DeleteInstance(mock.Mock(),
+                                           job_request,
+                                           mock.Mock(),
+                                           self.config)
+        job.lock_manager = mock_lock
+        job._mark_assets()
 
         response = self.make_request('DELETE',
                                      '{url}/foobar'.format(url=self.url))
