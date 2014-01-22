@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
 import re
 
 import cqlengine
@@ -68,6 +69,51 @@ def _get_limit(request):
 
 def _hostnameify(name):
     return re.sub(r'(?![A-Z0-9\-\.]).', '', name, flags=re.IGNORECASE)
+
+
+def _validate_metadata(metadata, config):
+    admin_pass = metadata.get('admin_pass')
+    if admin_pass is not None:
+        if not isinstance(admin_pass, basestring):
+            raise errors.InvalidParametersError('admin_pass parameter must '
+                                                'be a string.')
+
+    if not isinstance(metadata['public_keys'], dict):
+        raise errors.InvalidParametersError('ssh_keys parameter must '
+                                            'be a dict.')
+
+    if not isinstance(metadata['meta'], dict):
+        raise errors.InvalidParametersError('user_metadata parameter '
+                                            'must be a dict.')
+
+    if len(metadata['meta'].keys()) > config.MAX_USER_METADATA_SIZE:
+        _msg = 'Maximum number of user_metadata keys is {}'.format(
+            config.MAX_USER_METADATA_SIZE)
+        raise errors.InvalidParametersError(_msg)
+
+
+def _validate_files(files, config):
+    # for proper base64, make sure it's a dict, size limits
+    if not isinstance(files, dict):
+        raise errors.InvalidParametersError('files parameter must be '
+                                            'a dict.')
+
+    if len(files.keys()) > config.MAX_INSTANCE_FILES:
+        _msg = 'Maximum number of files is {}'.format(
+            config.MAX_INSTANCE_FILES)
+        raise errors.InvalidParametersError(_msg)
+
+    for contents in files.values():
+        max_base64_size = config.MAX_INSTANCE_FILE_SIZE * (4./3.)
+        if len(contents) > max_base64_size:
+            _msg = 'Maximum file size is {} bytes.'.format(
+                config.MAX_INSTANCE_FILE_SIZE)
+            raise errors.InvalidParametersError(_msg)
+
+        try:
+            raw_contents = base64.b64decode(contents)  # noqa
+        except TypeError as e:
+            _msg = 'Invalid base64 data: {}.'.format(e)
 
 
 class TeethPublicAPI(component.APIComponent):
@@ -657,22 +703,23 @@ class TeethPublicAPI(component.APIComponent):
             'name': params['name'],
             'hostname': _hostnameify(params['name']),
             'public_keys': params.get('ssh_keys', {}),
-            'meta': params.get('user_metadata'),
+            'meta': params.get('user_metadata', {}),
             'availability_zone': self.config.AVAILABILITY_ZONE,
         }
-        admin_pass = params.get('admin_pass')
-        if admin_pass:
-            if not isinstance(admin_pass, basestring):
-                # TODO(jimrollenhagen) s/Exception/HorribleException/
-                raise Exception
-            metadata['admin_pass'] = admin_pass
+        if params.get('admin_pass'):
+            metadata['admin_pass'] = params['admin_pass']
+
+        files = params.get('files', {})
+
+        _validate_metadata(metadata, self.config)
+        _validate_files(files, self.config)
 
         self._validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id,
                                    metadata=metadata,
-                                   files=params.get('files', {}))
+                                   files=files)
 
         return responses.CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,
