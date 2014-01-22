@@ -334,10 +334,12 @@ class Instance(MetadataBase):
         instance.validate()
         return instance
 
-    def get_job_state(self):
+    def get_current_job(self):
+        if self.job_id is None:
+            return None
         try:
             job = JobRequest.objects.get(id=self.job_id)
-            return job.state
+            return job
         except JobRequest.DoesNotExist:
             return None
 
