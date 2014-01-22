@@ -42,7 +42,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                       primary_mac_address='00:00:00:00:00:00')
         request_params = {
             'instance_id': 'test_instance',
-            'extra': {'admin_pass': 'password'},
+            'metadata': {'admin_pass': 'password'},
             'files': {}
         }
         self.job_request = models.JobRequest(id='test_request',
@@ -70,25 +70,25 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         image_info = self.executor.image_provider.get_image_info('image_id')
         client = self.executor.agent_client
         agent = None
-        extra = self.job_request.params.get('extra')
+        metadata = self.job_request.params.get('metadata')
         files = self.job_request.params.get('files')
 
         client.get_agent.assert_called_once_with(self.chassis)
         client.prepare_image.assert_called_once_with(agent,
                                                      image_info,
-                                                     extra,
+                                                     metadata,
                                                      files)
         client.run_image.assert_called_once_with(agent, image_info)
 
     def test_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
-        extra = self.job_request.params.get('extra')
+        metadata = self.job_request.params.get('metadata')
         files = self.job_request.params.get('files')
 
         self.job.prepare_and_run_image(self.instance,
                                        self.chassis,
                                        image_info,
-                                       extra,
+                                       metadata,
                                        files)
         self._did_prepare_and_run_image()
 

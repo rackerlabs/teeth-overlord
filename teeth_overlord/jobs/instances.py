@@ -31,12 +31,12 @@ class CreateInstance(base.Job):
     """
     max_retries = 10
 
-    def prepare_and_run_image(self, instance, chassis, image_info, extra,
+    def prepare_and_run_image(self, instance, chassis, image_info, metadata,
                               files):
         """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
         agent = client.get_agent(chassis)
-        client.prepare_image(agent, image_info, extra, files)
+        client.prepare_image(agent, image_info, metadata, files)
         client.run_image(agent, image_info)
 
     def mark_active(self, instance, chassis):
@@ -57,13 +57,13 @@ class CreateInstance(base.Job):
         image_id = instance.image_id
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(image_id)
-        extra = params.get('extra', {})
+        metadata = params.get('metadata', {})
         files = params.get('files', {})
 
         self.prepare_and_run_image(instance,
                                    chassis,
                                    image_info,
-                                   extra,
+                                   metadata,
                                    files)
         self.mark_active(instance, chassis)
 

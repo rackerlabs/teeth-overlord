@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import re
+
 import cqlengine
 
 from teeth_rest import component
@@ -62,6 +64,10 @@ def _get_limit(request):
     except ValueError:
         msg = 'The provided \'limit\' query parameter was was not an integer.'
         raise errors.InvalidParametersError(msg)
+
+
+def _hostnameify(name):
+    return re.sub(r'(?![A-Z0-9\-\.]).', '', name, flags=re.IGNORECASE)
 
 
 class TeethPublicAPI(component.APIComponent):
@@ -620,9 +626,12 @@ class TeethPublicAPI(component.APIComponent):
                 "name": "web0",
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                 "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f"
-                "extra_data": {
-                    "admin_pass": "password",
-                    "hostname": "web0"
+                "admin_pass": "root_password",
+                "ssh_keys": {
+                    'key_name': 'key_data'
+                },
+                "user_metadata": {
+                    "arbitrary": "metadata"
                 }
                 "files": {
                     "/etc/network/interfaces": "base64_contents"
@@ -632,6 +641,7 @@ class TeethPublicAPI(component.APIComponent):
         Returns 201 with a Location header upon success.
         """
         params = self.parse_content(request)
+
         try:
             instance = models.Instance.deserialize(params)
         except cqlengine.ValidationError as e:
@@ -643,11 +653,25 @@ class TeethPublicAPI(component.APIComponent):
             msg = 'Invalid image_id, no such Image.'
             raise rest_errors.InvalidContentError(msg)
 
+        metadata = {
+            'name': params['name'],
+            'hostname': _hostnameify(params['name']),
+            'public_keys': params.get('ssh_keys', {}),
+            'meta': params.get('user_metadata'),
+            'availability_zone': self.config.AVAILABILITY_ZONE,
+        }
+        admin_pass = params.get('admin_pass')
+        if admin_pass:
+            if not isinstance(admin_pass, basestring):
+                # TODO(jimrollenhagen) s/Exception/HorribleException/
+                raise Exception
+            metadata['admin_pass'] = admin_pass
+
         self._validate_relation(instance, 'flavor_id', models.Flavor)
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id,
-                                   extra=params.get('extra_data', {}),
+                                   metadata=metadata,
                                    files=params.get('files', {}))
 
         return responses.CreatedResponse(request, self.fetch_instance, {

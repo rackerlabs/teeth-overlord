@@ -73,18 +73,18 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
     def test_prepare_image(self):
         _command = self._mock_attr(self.client, '_command')
         image_info = {}
-        extra = {}
+        metadata = {}
         files = {}
         params = {
             'task_id': 'uuid',
             'image_info': image_info,
-            'extra': extra,
+            'metadata': metadata,
             'files': files,
         }
 
         self.client.prepare_image(self.agent,
                                   image_info,
-                                  extra,
+                                  metadata,
                                   files)
         _command.assert_called_once_with(self.agent,
                                          'prepare_image',

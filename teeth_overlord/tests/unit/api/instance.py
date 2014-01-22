@@ -78,12 +78,25 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]
         self.add_mock(models.Flavor, return_value=return_value)
 
-        metadata = {'admin_pass': 'password'}
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': {
+                'key_name': 'key_data'
+            },
+            'meta': {
+                'some': 'data',
+            },
+            'name': 'created_instance',
+            'hostname': 'createdinstance',
+            'availability_zone': 'teeth'
+        }
         data = {
             'name': 'created_instance',
             'flavor_id': 'flavor',
             'image_id': self.valid_image_id,
-            'extra_data': metadata
+            'admin_pass': metadata['admin_pass'],
+            'ssh_keys': metadata['public_keys'],
+            'user_metadata': metadata['meta'],
         }
 
         response = self.make_request('POST', self.url, data=data)
@@ -100,7 +113,7 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.job_client_mock.submit_job.assert_called_once_with(
             'instances.create',
             instance_id=instance.id,
-            extra=metadata,
+            metadata=metadata,
             files={})
 
         self.assertEqual(response.status_code, 201)

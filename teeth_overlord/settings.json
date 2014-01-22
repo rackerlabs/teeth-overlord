@@ -8,6 +8,8 @@
 "AGENT_API_HOST": "0.0.0.0",
 "AGENT_API_PORT": 8081,
 
+"AVAILABILITY_ZONE": "teeth",
+
 "JOB_EXECUTION_THREADS": 16,
 
 "MARCONI_URL": "http://localhost:8888",
