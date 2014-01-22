@@ -306,6 +306,7 @@ class Instance(MetadataBase):
     state = columns.Ascii(index=True, default=InstanceState.INACTIVE)
     chassis_state = columns.Ascii()
     power_state = columns.Ascii()  # chassis power state
+    job_state = columns.Ascii()
 
     def serialize(self, view):
         """Turn an Instance into a dict."""
@@ -410,6 +411,7 @@ class JobRequest(Base):
         """
         self.state = JobRequestState.RUNNING
         self.touch()
+        self.mark_assets()
 
     def reset(self):
         """Mark mark the job as `READY` and update the `updated_at` field.
@@ -420,6 +422,7 @@ class JobRequest(Base):
             self.failed_attempts += 1
         self.state = JobRequestState.READY
         self.touch()
+        self.mark_assets()
 
     def fail(self):
         """Mark the job as `FAILED` and update the `udpated_at` field.
@@ -428,6 +431,7 @@ class JobRequest(Base):
         """
         self.state = JobRequestState.FAILED
         self.touch()
+        self.mark_assets()
 
     def complete(self):
         """Mark the job as `COMPLETED` and update the `udpated_at` field.
@@ -436,13 +440,20 @@ class JobRequest(Base):
         """
         self.state = JobRequestState.COMPLETED
         self.touch()
+        self.mark_assets()
 
     def mark_assets(self):
         # TODO(jimrollenhagen) lock the instance
         if self.job_type.startswith('instances'):
             instance_id = self.params.get('instance_id')
             instance = Instance.objects.get(id=instance_id)
-            instance.job_id = self.id
+            if self.state in (JobRequestState.COMPLETED,
+                              JobRequestState.FAILED):
+                instance.job_id = None
+                instance.job_state = None
+            else:
+                instance.job_id = self.id
+                instance.job_state = self.state
             instance.save()
 
 
