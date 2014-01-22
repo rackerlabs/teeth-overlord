@@ -57,8 +57,8 @@ class CreateInstance(base.Job):
         image_id = instance.image_id
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(image_id)
-        metadata = params.get('metadata', {})
-        files = params.get('files', {})
+        metadata = params['metadata']
+        files = params['files']
 
         self.prepare_and_run_image(instance,
                                    chassis,
