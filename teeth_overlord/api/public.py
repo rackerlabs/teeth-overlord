@@ -114,6 +114,7 @@ def _validate_files(files, config):
             raw_contents = base64.b64decode(contents)  # noqa
         except TypeError as e:
             _msg = 'Invalid base64 data: {}.'.format(e)
+            raise errors.InvalidParametersError(_msg)
 
 
 class TeethPublicAPI(component.APIComponent):
