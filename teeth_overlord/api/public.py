@@ -662,7 +662,7 @@ class TeethPublicAPI(component.APIComponent):
                         "name": "Test Instance C",
                         "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
                         "chassis_id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
-                        "state": "BUILD"
+                        "state": "INACTIVE"
                     }
                 ],
                 "links": []
@@ -701,13 +701,10 @@ class TeethPublicAPI(component.APIComponent):
             raise errors.RequestedObjectNotFoundError(models.Instance,
                                                       instance_id)
 
-        if instance.state in (models.InstanceState.DELETING,
-                              models.InstanceState.DELETED):
+        # TODO(jimrollenhagen) check for delete in progress
+        if instance.state in (models.InstanceState.DELETED,):
             raise errors.ObjectAlreadyDeletedError(models.Instance,
                                                    instance_id)
-
-        instance.state = models.InstanceState.DELETING
-        instance.save()
 
         self.job_client.submit_job('instances.delete',
                                    instance_id=instance.id)

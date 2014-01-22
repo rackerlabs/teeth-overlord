@@ -64,9 +64,6 @@ class CreateInstance(base.Job):
 class DeleteInstance(base.Job):
 
     """Job which deletes an instance.
-
-    Prior to the job being submitted, the Instance in the database will
-    be put in the `DELETING` state.
     """
     max_retries = 10
 

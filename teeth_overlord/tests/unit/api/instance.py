@@ -175,10 +175,6 @@ class TestInstanceAPI(tests.TeethAPITestCase):
             'instances.delete',
             instance_id='instance1')
 
-        save_mock = self.get_mock(models.Instance, 'save')
-        self.assertEqual(save_mock.call_count, 1)
-        self.assertEqual(self.instance1.state, models.InstanceState.DELETING)
-
     def test_delete_instance_already_deleted(self):
         self.instance_objects_mock.return_value = [self.instance2]
 
@@ -188,12 +184,7 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.instance2.state, models.InstanceState.DELETED)
 
-        self.instance2.state = models.InstanceState.DELETING
-        response = self.make_request('DELETE',
-                                     '{url}/foobar'.format(url=self.url))
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(self.instance2.state, models.InstanceState.DELETING)
+        # TODO(jimrollenhagen) test for delete in progress
 
     def test_delete_instance_does_not_exist(self):
         self.instance_objects_mock.side_effect = models.Instance.DoesNotExist

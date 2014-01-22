@@ -31,7 +31,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         self.add_mock(models.Chassis, 'batch')
 
         self.instance = models.Instance(id='test_instance',
-                                        state=models.InstanceState.BUILD,
+                                        state=models.InstanceState.INACTIVE,
                                         name='instance',
                                         flavor_id='flavor_id',
                                         image_id='image_id')

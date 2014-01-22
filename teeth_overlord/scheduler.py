@@ -88,7 +88,7 @@ class TeethInstanceScheduler(object):
 
         batch = cqlengine.BatchQuery()
         instance.chassis_id = chassis.id
-        instance.state = models.InstanceState.BUILD
+        instance.state = models.InstanceState.INACTIVE
         instance.batch(batch).save()
         chassis.state = models.ChassisState.BUILD
         chassis.batch(batch).save()
