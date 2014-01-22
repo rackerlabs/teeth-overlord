@@ -701,8 +701,13 @@ class TeethPublicAPI(component.APIComponent):
             raise errors.RequestedObjectNotFoundError(models.Instance,
                                                       instance_id)
 
-        # TODO(jimrollenhagen) check for delete in progress
-        if instance.state in (models.InstanceState.DELETED,):
+        if instance.state == models.InstanceState.DELETED:
+            raise errors.ObjectAlreadyDeletedError(models.Instance,
+                                                   instance_id)
+
+        # check for delete in progress
+        current_job = instance.get_current_job()
+        if current_job and current_job.job_type == 'instances.delete':
             raise errors.ObjectAlreadyDeletedError(models.Instance,
                                                    instance_id)
 

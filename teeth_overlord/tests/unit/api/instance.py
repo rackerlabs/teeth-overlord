@@ -183,8 +183,20 @@ class TestInstanceAPI(tests.TeethAPITestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.instance2.state, models.InstanceState.DELETED)
+        self.assertEqual(self.job_client_mock.submit_job.call_count, 0)
 
-        # TODO(jimrollenhagen) test for delete in progress
+        # test "delete in progress"
+        job = models.JobRequest(id='delete_job',
+                                job_type='instances.delete',
+                                params={'instance_id': self.instance2.id})
+        job.mark_assets()
+
+        response = self.make_request('DELETE',
+                                     '{url}/foobar'.format(url=self.url))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.instance2.state, models.InstanceState.DELETED)
+        self.assertEqual(self.job_client_mock.submit_job.call_count, 0)
 
     def test_delete_instance_does_not_exist(self):
         self.instance_objects_mock.side_effect = models.Instance.DoesNotExist
