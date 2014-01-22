@@ -40,3 +40,9 @@ class FakeOutOfBandProvider(base.BaseOutOfBandProvider):
         self.log.info('faking chassis power-on command',
                       chassis_id=chassis.id)
         return True
+
+    def set_boot_device(self, chassis, device, persistent=False):
+        """Set boot device for next reboot."""
+        self.log.info('faking set boot device command',
+                      chassis_id=chassis.id)
+        return True

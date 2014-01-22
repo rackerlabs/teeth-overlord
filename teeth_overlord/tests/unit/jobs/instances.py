@@ -27,6 +27,9 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         self.instance_objects_mock = self.add_mock(models.Instance)
         self.chassis_objects_mock = self.add_mock(models.Chassis)
 
+        self.add_mock(models.Instance, 'batch')
+        self.add_mock(models.Chassis, 'batch')
+
         self.instance = models.Instance(id='test_instance',
                                         state=models.InstanceState.BUILD,
                                         name='instance',
@@ -103,6 +106,9 @@ class DeleteInstanceTestCase(tests.TeethAPITestCase):
 
         self.instance_objects_mock = self.add_mock(models.Instance)
         self.chassis_objects_mock = self.add_mock(models.Chassis)
+
+        self.add_mock(models.Instance, 'batch')
+        self.add_mock(models.Chassis, 'batch')
 
         self.instance = models.Instance(id='test_instance',
                                         state=models.InstanceState.ACTIVE,

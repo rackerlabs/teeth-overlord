@@ -231,6 +231,8 @@ class Chassis(MetadataBase):
                                     required=True,
                                     max_length=MAX_ID_LENGTH)
     instance_id = columns.Text(max_length=MAX_ID_LENGTH)
+    ipmi_host = columns.Text()
+    ipmi_port = columns.Integer(default=623)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
     primary_mac_address = columns.Ascii(index=True, required=True)
@@ -256,6 +258,31 @@ class Chassis(MetadataBase):
         )
         chassis.validate()
         return chassis
+
+
+class MacAddressToChassis(Base):
+    """Map of Mac Addresses to Chassis."""
+    mac_address = columns.Text(primary_key=True)
+    chassis_id = columns.Text(index=True,
+                              required=True,
+                              max_length=MAX_ID_LENGTH)
+
+    def serialize(self, view):
+        """Turn a Chassis into a dict."""
+        return collections.OrderedDict([
+            ('mac_address', self.mac_address),
+            ('chassis_id', self.chassis_id)
+        ])
+
+    @classmethod
+    def deserialize(cls, params):
+        """Turn a dict into a Chassis."""
+        m = cls(
+            mac_address=params.get('mac_address'),
+            chassis_id=params.get('chassis_id')
+        )
+        m.validate()
+        return m
 
 
 class InstanceState(object):
@@ -421,6 +448,7 @@ class JobRequest(Base):
 
 all_models = [
     Chassis,
+    MacAddressToChassis,
     Instance,
     Agent,
     JobRequest,

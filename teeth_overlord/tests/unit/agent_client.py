@@ -46,7 +46,7 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
 
     def test_get_command_url(self):
         url = self.client._get_command_url(self.agent)
-        self.assertEqual(url, 'http://10.0.1.1:51200/v1/command')
+        self.assertEqual(url, 'http://10.0.1.1:51200/v1/commands')
 
     def test_get_agent(self):
         agent = self.client.get_agent(self.chassis)

@@ -33,7 +33,7 @@ class RESTAgentClient(base.BaseAgentClient):
         self.session = requests.Session()
 
     def _get_command_url(self, agent):
-        return '{}/v1/command'.format(agent.url)
+        return '{}/v1/commands'.format(agent.url)
 
     def _get_command_body(self, method, params):
         return self.encoder.encode({

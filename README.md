@@ -1,5 +1,7 @@
 # Teeth Overlord
 
+[![Build Status](https://travis-ci.org/rackerlabs/teeth-overlord.png?branch=master)](https://travis-ci.org/rackerlabs/teeth-overlord)
+
 Teeth Overlord is the centralized control system for Teeth. It exposes REST
 APIs for inventory and instance management, as well as a line-oriented JSON
 protocol used to communicate with agents which run on servers which are in a
@@ -44,8 +46,3 @@ teeth-sync-models
 
 Now start `teeth-public-api` and `teeth-job-executor`. To load development
 fixtures, run `teeth-prepare-dev-environment`.
-
-## Builders
-
-Teeth Overlord master: https://jenkins.t.k1k.me/job/teeth-overlord-master/
-Teeth Overlord PRs: https://jenkins.t.k1k.me/job/teeth-overlord-pr/
