@@ -6,5 +6,6 @@ requests==2.0.0
 stevedore==0.13
 statsd==2.0.3
 python-glanceclient==0.12.0
+python-neutronclient==2.3.3
 -e git+git@github.com:jplana/python-etcd.git@9aaf0fe6ed33d88f7cdfd656c34eaa6d405d79e2#egg=python_etcd-lock-support
 -e git+git@github.com:racker/teeth-rest.git@c62ac56cd4273e54592768ad94bb72c7c5e92508#egg=teeth_rest

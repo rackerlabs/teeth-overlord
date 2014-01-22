@@ -23,6 +23,11 @@ from teeth_overlord import errors
 from teeth_overlord import models
 from teeth_overlord import stats
 
+from teeth_overlord.networks import base as networks_base
+
+
+DEFAULT_LIMIT = 100
+
 
 class TeethAgentAPI(component.APIComponent):
 
@@ -34,6 +39,7 @@ class TeethAgentAPI(component.APIComponent):
         self.stats_client = stats_client or stats.get_stats_client(
             config,
             prefix='agent_api')
+        self.network_provider = networks_base.get_network_provider(config)
 
     def add_routes(self):
         """Called during initialization. Override to map relative routes to
@@ -45,6 +51,10 @@ class TeethAgentAPI(component.APIComponent):
         self.route('GET',
                    '/agents/<string:mac_address>/configuration',
                    self.fetch_agent_configuration)
+
+        self.route('GET',
+                   '/agents/<string:mac_address>/ports',
+                   self.fetch_ports)
 
     @stats.incr_stat('agents.update')
     def update_agent(self, request, mac_address):
@@ -85,6 +95,17 @@ class TeethAgentAPI(component.APIComponent):
             mode = 'UNKNOWN'
 
         return responses.ItemResponse({"mode": mode})
+
+    @stats.incr_stat('agents.fetch_ports')
+    def fetch_ports(self, request, mac_address):
+        """Returns 200 along with currently configured network ports."""
+        ports = self.network_provider.list_ports(mac_address)
+        ports = [p.serialize() for p in ports]
+        return responses.PaginatedResponse(request,
+                                           ports,
+                                           self.fetch_ports,
+                                           None,
+                                           DEFAULT_LIMIT)
 
 
 class TeethAgentAPIServer(component.APIServer):

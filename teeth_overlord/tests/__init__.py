@@ -45,6 +45,7 @@ TEST_CONFIG = {
     "IMAGE_PROVIDER": "fake",
     "OOB_PROVIDER": "fake",
     "AGENT_CLIENT": "fake",
+    "NETWORK_PROVIDER": "fake",
     "PRETTY_LOGGING": True,
 
     "STATSD_HOST": "localhost",

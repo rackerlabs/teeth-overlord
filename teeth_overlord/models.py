@@ -294,6 +294,7 @@ class Instance(MetadataBase):
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
+    network_ids = columns.Set(columns.Text, required=True, strict=False)
     state = columns.Ascii(index=True, default=InstanceState.BUILD)
 
     def serialize(self, view):
@@ -304,6 +305,7 @@ class Instance(MetadataBase):
             ('flavor_id', self.flavor_id),
             ('image_id', self.image_id),
             ('chassis_id', self.chassis_id),
+            ('network_ids', list(self.network_ids)),
             ('state', self.state),
             ('metadata', self.metadata),
         ])
@@ -316,6 +318,7 @@ class Instance(MetadataBase):
             name=params.get('name'),
             flavor_id=params.get('flavor_id'),
             image_id=params.get('image_id'),
+            network_ids=params.get('network_ids'),
             metadata=params.get('metadata'),
         )
 

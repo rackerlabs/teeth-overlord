@@ -31,6 +31,13 @@ class CreateInstance(base.Job):
     """
     max_retries = 10
 
+    def attach_networks(self, instance, chassis):
+
+        for network in instance.network_ids:
+            self.executor.network_provider.attach(
+                chassis.primary_mac_address,
+                network)
+
     def prepare_and_run_image(self, instance, chassis, image_info):
         """Send the `prepare_image` and `run_image` commands to the agent."""
         client = self.executor.agent_client
@@ -57,6 +64,9 @@ class CreateInstance(base.Job):
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(image_id)
 
+        self.attach_networks(instance, chassis)
+        # TODO(morgabra): After booting into an image, we need to detach
+        #                 from the service network.
         self.prepare_and_run_image(instance, chassis, image_info)
         self.mark_active(instance, chassis)
 

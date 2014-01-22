@@ -26,6 +26,7 @@ from teeth_overlord import agent_client
 from teeth_overlord.images import base as images_base
 from teeth_overlord import marconi
 from teeth_overlord import models
+from teeth_overlord.networks import base as networks_base
 from teeth_overlord.oob import base as oob_base
 from teeth_overlord import scheduler
 from teeth_overlord import service
@@ -72,6 +73,7 @@ class JobExecutor(service.SynchronousTeethService):
         self.job_client = JobClient(config)
         self.image_provider = images_base.get_image_provider(config)
         self.oob_provider = oob_base.get_oob_provider(config)
+        self.network_provider = networks_base.get_network_provider(config)
         self.scheduler = scheduler.TeethInstanceScheduler()
         self.claim_lock = threading.Lock()
         self.queue = marconi.MarconiClient(base_url=config.MARCONI_URL)
