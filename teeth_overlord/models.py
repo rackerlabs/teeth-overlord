@@ -191,6 +191,7 @@ class ChassisModel(Base):
     def deserialize(cls, params):
         """Turn a dict into a ChassisModel."""
         chassis_model = cls(
+            id=params.get('id'),
             name=params.get('name'),
             ipmi_default_password=params.get('ipmi_default_password'),
             ipmi_default_username=params.get('ipmi_default_username')
@@ -252,6 +253,7 @@ class Chassis(MetadataBase):
     def deserialize(cls, params):
         """Turn a dict into a Chassis."""
         chassis = cls(
+            id=params.get('id'),
             chassis_model_id=params.get('chassis_model_id'),
             primary_mac_address=params.get('primary_mac_address'),
             metadata=params.get('metadata')
