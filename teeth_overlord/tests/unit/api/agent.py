@@ -19,6 +19,7 @@ import mock
 
 from teeth_overlord.api import agent as agent_api
 from teeth_overlord import models
+from teeth_overlord.networks import fake as network_provider
 from teeth_overlord import tests
 
 
@@ -129,3 +130,16 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(json.loads(response.data)['details'],
                          'Chassis with id chassis1 not found.')
+
+    def test_fetch_ports(self):
+
+        response = self.make_request(
+            'GET', '{}/ports'.format(self.url))
+
+        self.assertEqual(
+            response.status_code, 200)
+
+        self.assertEqual(
+            json.loads(response.data)['items'][0],
+            network_provider.FAKE_PORT.serialize()
+        )

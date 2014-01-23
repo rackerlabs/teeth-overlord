@@ -80,6 +80,9 @@ FAKE_PORT = base.PortInfo(
     network=FAKE_NETWORKS['PUBLIC_NETWORK'].serialize()
 )
 
+DEFAULT_NETWORKS = ["PUBLIC_NETWORK", "PRIVATE_NETWORK"]
+SERVICE_NETWORK = "SERVICE_NETWORK"
+
 
 class FakeNetworkProvider(base.BaseNetworkProvider):
     def __init__(self, config):
@@ -96,14 +99,16 @@ class FakeNetworkProvider(base.BaseNetworkProvider):
         return [FAKE_PORT]
 
     def get_network_info(self, network_id):
-        return FAKE_NETWORKS[network_id]
+        try:
+            return FAKE_NETWORKS[network_id]
+        except KeyError:
+            raise self.NetworkDoesNotExist()
 
     def list_networks(self):
         return FAKE_NETWORKS.values()
 
     def get_default_networks(self):
-        return ["PUBLIC_NETWORK",
-                "PRIVATE_NETWORK"]
+        return DEFAULT_NETWORKS
 
     def get_service_network(self):
-        return "SERVICE_NETWORK"
+        return SERVICE_NETWORK

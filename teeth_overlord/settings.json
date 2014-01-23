@@ -14,7 +14,7 @@
 
 "IMAGE_PROVIDER": "fake",
 "OOB_PROVIDER": "fake",
-"NETWORK_PROVIDER": "neutron",
+"NETWORK_PROVIDER": "fake",
 "AGENT_CLIENT": "fake",
 "PRETTY_LOGGING": true,
 

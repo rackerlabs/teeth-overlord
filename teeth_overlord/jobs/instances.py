@@ -32,7 +32,7 @@ class CreateInstance(base.Job):
     max_retries = 10
 
     def attach_networks(self, instance, chassis):
-
+        """Attach chassis to any configured networks."""
         for network in instance.network_ids:
             self.executor.network_provider.attach(
                 chassis.primary_mac_address,
