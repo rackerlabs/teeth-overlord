@@ -72,10 +72,20 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
     def test_prepare_image(self):
         _command = self._mock_attr(self.client, '_command')
-        image_id = 'test_image'
-        params = {'task_id': 'uuid', 'image_id': image_id}
+        image_info = {}
+        metadata = {}
+        files = {}
+        params = {
+            'task_id': 'uuid',
+            'image_info': image_info,
+            'metadata': metadata,
+            'files': files,
+        }
 
-        self.client.prepare_image(self.agent, image_id)
+        self.client.prepare_image(self.agent,
+                                  image_info,
+                                  metadata,
+                                  files)
         _command.assert_called_once_with(self.agent,
                                          'prepare_image',
                                          params)

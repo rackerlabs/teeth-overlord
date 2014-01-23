@@ -17,6 +17,8 @@ limitations under the License.
 import json
 import mock
 
+from teeth_overlord.api import public
+from teeth_overlord import errors
 from teeth_overlord.jobs import instances as instance_jobs
 from teeth_overlord import models
 from teeth_overlord import tests
@@ -45,6 +47,100 @@ class TestInstanceAPI(tests.TeethAPITestCase):
 
         # hardcoded valid imageid from the static image provider
         self.valid_image_id = '8226c769-3739-4ee6-921c-82110da6c669'
+
+    def test_admin_pass_not_string(self):
+        metadata = {
+            'admin_pass': 0,
+            'public_keys': {'key_name': 'key_data'},
+            'meta': {'valid': 'meta'}
+        }
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_metadata,
+                          metadata,
+                          self.config)
+
+    def test_public_keys_not_dict(self):
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': 0,
+            'meta': {'valid': 'meta'}
+        }
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_metadata,
+                          metadata,
+                          self.config)
+
+    def test_meta_not_dict(self):
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': {'key_name': 'key_data'},
+            'meta': 0
+        }
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_metadata,
+                          metadata,
+                          self.config)
+
+    def test_meta_too_big(self):
+        self.config.MAX_USER_METADATA_SIZE = 1
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': {'key_name': 'key_data'},
+            'meta': {'too': 'many', 'keys': 'here'}
+        }
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_metadata,
+                          metadata,
+                          self.config)
+
+    def test_validate_metadata(self):
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': {'key_name': 'key_data'},
+            'meta': {'valid': 'meta'}
+        }
+        public._validate_metadata(metadata, self.config)
+
+    def test_admin_pass_optional(self):
+        metadata = {
+            'public_keys': {'key_name': 'key_data'},
+            'meta': {'valid': 'meta'}
+        }
+        public._validate_metadata(metadata, self.config)
+
+    def test_files_not_dict(self):
+        files = 0
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_files,
+                          files,
+                          self.config)
+
+    def test_too_many_files(self):
+        self.config.MAX_INSTANCE_FILES = 1
+        files = {'file1': 'blah', 'file2': 'blah'}
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_files,
+                          files,
+                          self.config)
+
+    def test_file_too_big(self):
+        self.config.MAX_INSTANCE_FILE_SIZE = 1
+        files = {'file1': 'blah'}
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_files,
+                          files,
+                          self.config)
+
+    def test_file_bad_base64(self):
+        files = {'file1': 'bla'}
+        self.assertRaises(errors.InvalidParametersError,
+                          public._validate_files,
+                          files,
+                          self.config)
+
+    def test_validate_files(self):
+        files = {'file1': 'blah'}
+        public._validate_files(files, self.config)
 
     def test_list_instances_some(self):
         self.list_some(models.Instance,
@@ -80,10 +176,25 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]
         self.add_mock(models.Flavor, return_value=return_value)
 
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': {
+                'key_name': 'key_data'
+            },
+            'meta': {
+                'some': 'data',
+            },
+            'name': 'created_instance',
+            'hostname': 'createdinstance',
+            'availability_zone': 'teeth'
+        }
         data = {
             'name': 'created_instance',
             'flavor_id': 'flavor',
             'image_id': self.valid_image_id,
+            'admin_pass': metadata['admin_pass'],
+            'ssh_keys': metadata['public_keys'],
+            'user_metadata': metadata['meta'],
         }
 
         response = self.make_request('POST', self.url, data=data)
@@ -99,7 +210,9 @@ class TestInstanceAPI(tests.TeethAPITestCase):
 
         self.job_client_mock.submit_job.assert_called_once_with(
             'instances.create',
-            instance_id=instance.id)
+            instance_id=instance.id,
+            metadata=metadata,
+            files={})
 
         self.assertEqual(response.status_code, 201)
 
@@ -164,6 +277,38 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         #data = json.loads(response.data)
         #self.assertEqual(response.status_code, 400)
         #self.assertEqual(data['message'], 'Image not found')
+
+    def test_create_instance_bad_metadata(self):
+        return_value = [models.Flavor(id='flavor', name='some_flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
+
+        data = {
+            'name': 'created_instance',
+            'flavor_id': 'flavor',
+            'image_id': self.valid_image_id,
+            'admin_pass': 'password',
+            'ssh_keys': 'keys as string!'
+        }
+
+        response = self.make_request('POST', self.url, data=data)
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_instance_bad_files(self):
+        return_value = [models.Flavor(id='flavor', name='some_flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
+
+        data = {
+            'name': 'created_instance',
+            'flavor_id': 'flavor',
+            'image_id': self.valid_image_id,
+            'admin_pass': 'password',
+            'files': {'/etc/hosts': 'bla'}
+        }
+
+        response = self.make_request('POST', self.url, data=data)
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
 
     def test_delete_instance(self):
         self.instance_objects_mock.return_value = [self.instance1]
