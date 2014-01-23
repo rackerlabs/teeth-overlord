@@ -250,6 +250,7 @@ class TeethPublicAPI(component.APIComponent):
         """Create a ChassisModel. Example::
 
             {
+                "id": "optional-id",
                 "name": "Supermicro  1027R-WRFT+",
                 "default_impi_username": "ADMIN",
                 "default_ipmi_password": "ADMIN"
@@ -544,6 +545,7 @@ class TeethPublicAPI(component.APIComponent):
         """Create a Chassis. Example::
 
             {
+                "id": "optional-id",
                 "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
                 "primary_mac_address": "bc:76:4e:20:03:5f",
             }
