@@ -22,6 +22,7 @@ from teeth_overlord.agent_client import fake as agent_fake
 from teeth_overlord import config
 from teeth_overlord.images import fake as image_fake
 from teeth_overlord.jobs import base as jobs_base
+from teeth_overlord.jobs import instances as instance_jobs
 from teeth_overlord import marconi
 from teeth_overlord import models
 from teeth_overlord.oob import fake as oob_fake
@@ -55,8 +56,7 @@ class TestJobClient(tests.TeethMockTestUtilities):
         self.instance = models.Instance(id='test_instance',
                                         name='test_instance',
                                         flavor_id='flavor',
-                                        image_id='image',
-                                        job_id='test_job')
+                                        image_id='image')
         self.instance_mock.return_value = [self.instance]
 
     def test_submit_instance_job(self):
@@ -87,3 +87,39 @@ class TestJobClient(tests.TeethMockTestUtilities):
 
         push_message = self.job_client.queue.push_message
         self.assertEqual(push_message.call_count, 1)
+
+    @mock.patch('teeth_overlord.locks.EtcdLockManager', autospec=True)
+    def test_mark_assets(self, locks_mock):
+        instance = models.Instance(id='test_instance',
+                                   name='test',
+                                   flavor_id='flavor',
+                                   image_id='image')
+        self.instance_mock.return_value = [instance]
+        instance_save = self.get_mock(models.Instance, 'save')
+
+        job_params = {'instance_id': 'test_instance'}
+        job_request = models.JobRequest(id='test_job',
+                                        job_type='instances.create',
+                                        params=job_params,
+                                        state=models.JobRequestState.READY)
+        self.job_request_mock.return_value = [job_request]
+
+        job = instance_jobs.CreateInstance(mock.Mock(),
+                                           job_request,
+                                           mock.Mock(),
+                                           self.config)
+        job._mark_assets()
+
+        saved_instance = instance_save.call_args[0][0]
+        self.assertEqual(saved_instance.job_id, job_request.id)
+        self.assertEqual(saved_instance.job_state, job_request.state)
+        self.assertEqual(instance_save.call_count, 1)
+        instance_save.reset_mock()
+
+        job_request.state = models.JobRequestState.COMPLETED
+        job._mark_assets()
+
+        saved_instance = instance_save.call_args[0][0]
+        self.assertEqual(saved_instance.job_id, None)
+        self.assertEqual(saved_instance.job_state, None)
+        self.assertEqual(instance_save.call_count, 1)
