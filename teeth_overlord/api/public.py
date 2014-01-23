@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
+import re
+
 import cqlengine
 
 from teeth_rest import component
@@ -63,6 +66,56 @@ def _get_limit(request):
     except ValueError:
         msg = 'The provided \'limit\' query parameter was was not an integer.'
         raise errors.InvalidParametersError(msg)
+
+
+def _hostnameify(name):
+    return re.sub(r'(?![A-Z0-9\-\.]).', '', name, flags=re.IGNORECASE)
+
+
+def _validate_metadata(metadata, config):
+    admin_pass = metadata.get('admin_pass')
+    if admin_pass is not None:
+        if not isinstance(admin_pass, basestring):
+            raise errors.InvalidParametersError('admin_pass parameter must '
+                                                'be a string.')
+
+    if not isinstance(metadata['public_keys'], dict):
+        raise errors.InvalidParametersError('ssh_keys parameter must '
+                                            'be a dict.')
+
+    if not isinstance(metadata['meta'], dict):
+        raise errors.InvalidParametersError('user_metadata parameter '
+                                            'must be a dict.')
+
+    if len(metadata['meta'].keys()) > config.MAX_USER_METADATA_SIZE:
+        _msg = 'Maximum number of user_metadata keys is {}'.format(
+            config.MAX_USER_METADATA_SIZE)
+        raise errors.InvalidParametersError(_msg)
+
+
+def _validate_files(files, config):
+    # for proper base64, make sure it's a dict, size limits
+    if not isinstance(files, dict):
+        raise errors.InvalidParametersError('files parameter must be '
+                                            'a dict.')
+
+    if len(files.keys()) > config.MAX_INSTANCE_FILES:
+        _msg = 'Maximum number of files is {}'.format(
+            config.MAX_INSTANCE_FILES)
+        raise errors.InvalidParametersError(_msg)
+
+    for contents in files.values():
+        max_base64_size = config.MAX_INSTANCE_FILE_SIZE * (4./3.)
+        if len(contents) > max_base64_size:
+            _msg = 'Maximum file size is {} bytes.'.format(
+                config.MAX_INSTANCE_FILE_SIZE)
+            raise errors.InvalidParametersError(_msg)
+
+        try:
+            raw_contents = base64.b64decode(contents)  # noqa
+        except TypeError as e:
+            _msg = 'Invalid base64 data: {}.'.format(e)
+            raise errors.InvalidParametersError(_msg)
 
 
 class TeethPublicAPI(component.APIComponent):
@@ -227,6 +280,7 @@ class TeethPublicAPI(component.APIComponent):
         """Create a ChassisModel. Example::
 
             {
+                "id": "optional-id",
                 "name": "Supermicro  1027R-WRFT+",
                 "default_impi_username": "ADMIN",
                 "default_ipmi_password": "ADMIN"
@@ -521,6 +575,7 @@ class TeethPublicAPI(component.APIComponent):
         """Create a Chassis. Example::
 
             {
+                "id": "optional-id",
                 "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
                 "primary_mac_address": "bc:76:4e:20:03:5f",
             }
@@ -652,19 +707,30 @@ class TeethPublicAPI(component.APIComponent):
                 "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
                 "network_ids": ["d6b32008-1432-4299-81c7-cbe3128ba13f",
                                 "2afa16d6-7b84-484f-a642-af243b0e5b10"]
+                "admin_pass": "root_password",
+                "ssh_keys": {
+                    'key_name': 'key_data'
+                },
+                "user_metadata": {
+                    "arbitrary": "metadata"
+                }
+                "files": {
+                    "/etc/network/interfaces": "base64_contents"
+                }
             }
 
         Returns 201 with a Location header upon success.
         """
-        body = self.parse_content(request)
+        params = self.parse_content(request)
 
         # ask the network provider for default networks if we aren't
         # provided any
-        if not body.get('network_ids'):
-            body['network_ids'] = self.network_provider.get_default_networks()
+        if not params.get('network_ids'):
+            default = self.network_provider.get_default_networks()
+            params['network_ids'] = default
 
         try:
-            instance = models.Instance.deserialize(body)
+            instance = models.Instance.deserialize(params)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
@@ -684,12 +750,29 @@ class TeethPublicAPI(component.APIComponent):
             msg = 'Invalid image_id, no such Image.'
             raise rest_errors.InvalidContentError(msg)
 
+        metadata = {
+            'name': params['name'],
+            'hostname': _hostnameify(params['name']),
+            'public_keys': params.get('ssh_keys', {}),
+            'meta': params.get('user_metadata', {}),
+            'availability_zone': self.config.AVAILABILITY_ZONE,
+        }
+        if params.get('admin_pass'):
+            metadata['admin_pass'] = params['admin_pass']
+
+        files = params.get('files', {})
+
+        _validate_metadata(metadata, self.config)
+        _validate_files(files, self.config)
+
         # validate flavor
         self._validate_relation(instance, 'flavor_id', models.Flavor)
 
         instance.save()
         self.job_client.submit_job('instances.create',
-                                   instance_id=instance.id)
+                                   instance_id=instance.id,
+                                   metadata=metadata,
+                                   files=files)
 
         return responses.CreatedResponse(request, self.fetch_instance, {
             'instance_id': instance.id,

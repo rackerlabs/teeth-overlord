@@ -30,7 +30,7 @@ class FakeAgentClient(base.BaseAgentClient):
         """
         return
 
-    def prepare_image(self, agent, image_id):
+    def prepare_image(self, agent, image_info, metadata, files):
         """Call the `prepare_image` method on the agent."""
         return
 
