@@ -256,8 +256,38 @@ class Chassis(MetadataBase):
 
     @classmethod
     def find_by_hardware(cls, hardware):
-        # TODO(jimrollenhagen) implement actual lookup
-        pass
+        """Finds a chassis uniquely matching every key in `hardware`.
+
+        If a chassis is not found, a new one is created in
+        a BOOTSTRAP state.
+        """
+        groups = []
+        for k, v in hardware.items():
+            found = HardwareToChassis.objects.filter(hardware_type=k,
+                                                     hardware_id=v)
+            found = [h2c.chassis_id for h2c in found]
+            grouped_ids.append(found)
+
+        all_ids = set()
+        for group in groups:
+            for id_ in group:
+                all_ids.add(id_)
+
+        matches = set()
+        for id_ in all_ids:
+            for group in groups:
+                if not group:
+                    continue
+                if id_ not in group:
+                    continue
+                matches.add(id_)
+
+        if len(matches) > 1:
+            raise errors.SomeHorribleException
+        if len(matches) == 1:
+            return cls.objects.get(id=matches.pop())
+
+        # TODO(jimrollenhagen) if no matches, create a chassis
 
 
 class HardwareToChassis(Base):
