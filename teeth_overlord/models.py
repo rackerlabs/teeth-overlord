@@ -77,6 +77,7 @@ class MetadataBase(Base):
 
 class ChassisState(object):
     """Possible states that a Chassis may be in."""
+    BOOTSTRAP = 'BOOTSTRAP'
     CLEAN = 'CLEAN'
     READY = 'READY'
     BUILD = 'BUILD'
@@ -253,10 +254,19 @@ class Chassis(MetadataBase):
         chassis.validate()
         return chassis
 
+    @classmethod
+    def find_by_hardware(cls, hardware):
+        # TODO(jimrollenhagen) implement actual lookup
+        pass
 
-class MacAddressToChassis(Base):
-    """Map of Mac Addresses to Chassis."""
-    mac_address = columns.Text(primary_key=True)
+
+class HardwareToChassis(Base):
+    """Map of hardware (key/value) to Chassis."""
+    # TODO(jimrollenhagen) should this be the primary key?
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
+    hardware = columns.Map(columns.Ascii, columns.Ascii)
     chassis_id = columns.Text(index=True,
                               required=True,
                               max_length=MAX_ID_LENGTH)
@@ -264,7 +274,7 @@ class MacAddressToChassis(Base):
     def serialize(self, view):
         """Turn a Chassis into a dict."""
         return collections.OrderedDict([
-            ('mac_address', self.mac_address),
+            ('hardware', self.hardware),
             ('chassis_id', self.chassis_id)
         ])
 
@@ -272,7 +282,7 @@ class MacAddressToChassis(Base):
     def deserialize(cls, params):
         """Turn a dict into a Chassis."""
         m = cls(
-            mac_address=params.get('mac_address'),
+            hardware=params.get('hardware'),
             chassis_id=params.get('chassis_id')
         )
         m.validate()
@@ -335,23 +345,23 @@ class AgentState(object):
 
 
 class Agent(Base):
-    """Model for an Agent.
-
-    `primary_mac_address` is the primary key here.
-    """
+    """Model for an Agent."""
     TTL = 180
-    primary_mac_address = columns.Ascii(primary_key=True)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     version = columns.Ascii(required=True)
     url = columns.Ascii(required=True)
     mode = columns.Ascii(required=True, index=True)
+    chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn an Agent into a dict."""
         return collections.OrderedDict([
-            ('primary_mac_address', self.primary_mac_address),
             ('version', self.version),
             ('url', self.url),
             ('mode', self.mode),
+            ('chassis_id', self.chassis_id),
         ])
 
 
@@ -426,7 +436,7 @@ class JobRequest(Base):
 
 all_models = [
     Chassis,
-    MacAddressToChassis,
+    HardwareToChassis,
     Instance,
     Agent,
     JobRequest,

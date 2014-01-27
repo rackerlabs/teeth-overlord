@@ -46,7 +46,7 @@ class TeethAgentAPI(component.APIComponent):
         methods.
         """
         # Agent Handlers
-        self.route('PUT', '/agents/<string:mac_address>', self.update_agent)
+        self.route('PUT', '/agents', self.update_agent)
 
         self.route('GET',
                    '/agents/<string:mac_address>/configuration',
@@ -57,14 +57,23 @@ class TeethAgentAPI(component.APIComponent):
                    self.fetch_ports)
 
     @stats.incr_stat('agents.update')
-    def update_agent(self, request, mac_address):
+    def update_agent(self, request):
         """Creates or updates an agent with provided data."""
         data = self.parse_content(request)
 
-        agent = models.Agent(primary_mac_address=mac_address)
+        agent_ip = request.remote_addr
+        url = '{}://{}:{}'.format(self.config.AGENT_PROTOCOL,
+                                  agent_ip,
+                                  self.config.AGENT_PORT)
+
+        chassis = models.Chassis.find_by_hardware(data['hardware'])
+
+        agent = models.Agent()
         agent.version = data.get('version')
-        agent.url = data.get('url')
+        agent.url = url
+        # TODO(jimrollenhagen) do we still want this?
         agent.mode = data.get('mode')
+        agent.chassis_id = chassis.id
         agent.ttl(models.Agent.TTL)
         agent.save()
 
