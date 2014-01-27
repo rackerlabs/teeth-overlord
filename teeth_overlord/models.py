@@ -262,11 +262,8 @@ class Chassis(MetadataBase):
 
 class HardwareToChassis(Base):
     """Map of hardware (key/value) to Chassis."""
-    # TODO(jimrollenhagen) should this be the primary key?
-    id = columns.Text(primary_key=True,
-                      default=uuid_str,
-                      max_length=MAX_ID_LENGTH)
-    hardware = columns.Map(columns.Ascii, columns.Ascii)
+    hardware_type = columns.Text(partition_key=True, required=True)
+    hardware_id = columns.Text(partition_key=True, required=True)
     chassis_id = columns.Text(index=True,
                               required=True,
                               max_length=MAX_ID_LENGTH)
@@ -274,7 +271,8 @@ class HardwareToChassis(Base):
     def serialize(self, view):
         """Turn a Chassis into a dict."""
         return collections.OrderedDict([
-            ('hardware', self.hardware),
+            ('hardware_type', self.hardware_type),
+            ('hardware_id', self.hardware_id),
             ('chassis_id', self.chassis_id)
         ])
 
@@ -282,7 +280,8 @@ class HardwareToChassis(Base):
     def deserialize(cls, params):
         """Turn a dict into a Chassis."""
         m = cls(
-            hardware=params.get('hardware'),
+            hardware_type=params.get('hardware_type'),
+            hardware_id=params.get('hardware_id'),
             chassis_id=params.get('chassis_id')
         )
         m.validate()
