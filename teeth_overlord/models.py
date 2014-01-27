@@ -229,7 +229,6 @@ class Chassis(MetadataBase):
     ipmi_port = columns.Integer(default=623)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
-    primary_mac_address = columns.Ascii(index=True, required=True)
 
     def serialize(self, view):
         """Turn a Chassis into a dict."""
@@ -238,7 +237,6 @@ class Chassis(MetadataBase):
             ('state', self.state),
             ('chassis_model_id', self.chassis_model_id),
             ('instance_id', self.instance_id),
-            ('primary_mac_address', self.primary_mac_address),
             ('metadata', self.metadata),
         ])
 
@@ -248,7 +246,6 @@ class Chassis(MetadataBase):
         chassis = cls(
             id=params.get('id'),
             chassis_model_id=params.get('chassis_model_id'),
-            primary_mac_address=params.get('primary_mac_address'),
             metadata=params.get('metadata')
         )
         chassis.validate()
