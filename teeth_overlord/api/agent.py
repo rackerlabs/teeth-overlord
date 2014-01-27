@@ -61,7 +61,8 @@ class TeethAgentAPI(component.APIComponent):
         """Creates or updates an agent with provided data."""
         data = self.parse_content(request)
 
-        agent_ip = request.remote_addr
+        forwarded_ip = request.headers.get('X-Forwarded-For')
+        agent_ip = forwarded_ip or request.remote_addr
         url = '{}://{}:{}'.format(self.config.AGENT_PROTOCOL,
                                   agent_ip,
                                   self.config.AGENT_PORT)
