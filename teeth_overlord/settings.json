@@ -20,6 +20,7 @@
 
 "IMAGE_PROVIDER": "fake",
 "OOB_PROVIDER": "fake",
+"NETWORK_PROVIDER": "fake",
 "AGENT_CLIENT": "fake",
 "PRETTY_LOGGING": true,
 
@@ -32,13 +33,19 @@
 "ETCD_PORT": 4001,
 "ETC_CONFIG_DIR": "teeth_config",
 
-"KEYSTONE_USER": "demo",
+"KEYSTONE_USER": "admin",
 "KEYSTONE_PASS": "secrete",
-"KEYSTONE_TENANT_ID": "8b03db41f7d940b5bc9281735bcdecdf",
+"KEYSTONE_TENANT_ID": "c51c5167fbca47c1a1086fdef62181ad",
 "KEYSTONE_AUTH_URL": "http://192.168.33.2:5000/v2.0/",
 
 "GLANCE_VERSION": "2",
 "GLANCE_URL": "http://192.168.33.2:9292/",
+
+"NEUTRON_VERSION": "2.0",
+"NEUTRON_URL": "http://192.168.33.2:9696/",
+"NEUTRON_PUBLIC_NETWORK": "d6b32008-1432-4299-81c7-cbe3128ba13f",
+"NEUTRON_PRIVATE_NETWORK": "2afa16d6-7b84-484f-a642-af243b0e5b10",
+"NEUTRON_SERVICE_NETWORK": "2afa16d6-7b84-484f-a642-af243b0e5b10",
 
 "CONFIG_SOURCES": [
     ["teeth_overlord.config.EnvSource"],

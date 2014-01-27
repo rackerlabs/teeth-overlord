@@ -27,6 +27,7 @@ from teeth_overlord import errors
 from teeth_overlord.images import base as images_base
 from teeth_overlord.jobs import base as jobs_base
 from teeth_overlord import models
+from teeth_overlord.networks import base as networks_base
 from teeth_overlord import stats
 
 
@@ -129,6 +130,7 @@ class TeethPublicAPI(component.APIComponent):
             config,
             prefix='api')
         self.image_provider = images_base.get_image_provider(config)
+        self.network_provider = networks_base.get_network_provider(config)
 
     def add_routes(self):
         """Called during initialization. Override to map relative routes to
@@ -173,6 +175,9 @@ class TeethPublicAPI(component.APIComponent):
 
         self.route('GET', '/images', self.list_images)
         self.route('GET', '/images/<string:image_id>', self.fetch_image)
+
+        self.route('GET', '/networks', self.list_networks)
+        self.route('GET', '/networks/<string:network_id>', self.fetch_network)
 
     def _validate_relation(self, instance, field_name, cls):
         id = getattr(instance, field_name)
@@ -220,6 +225,31 @@ class TeethPublicAPI(component.APIComponent):
             return responses.ItemResponse(query.get())
         except cls.DoesNotExist:
             raise errors.RequestedObjectNotFoundError(cls, id)
+
+    @stats.incr_stat('networks.list')
+    def list_networks(self, request):
+        """List Networks.
+        Returns 200 along with a list of Networks upon success.
+        """
+        networks = self.network_provider.list_networks()
+        networks = [n.serialize() for n in networks]
+        return responses.PaginatedResponse(request,
+                                           networks,
+                                           self.list_networks,
+                                           None,
+                                           DEFAULT_LIMIT)
+
+    @stats.incr_stat('networks.fetch')
+    def fetch_network(self, request, network_id):
+        """Retreive an Network.
+        Returns 200 along with an Network upon success.
+        """
+        try:
+            network = self.network_provider.get_network_info(network_id)
+            return responses.ItemResponse(network.serialize())
+        except self.network_provider.NetworkDoesNotExist:
+            raise errors.RequestedObjectNotFoundError(
+                self.network_provider.__class__, network_id)
 
     @stats.incr_stat('images.list')
     def list_images(self, request):
@@ -674,7 +704,9 @@ class TeethPublicAPI(component.APIComponent):
             {
                 "name": "web0",
                 "flavor_id": "d5942a92-ac78-49f6-95c8-d837cfd1f8d2",
-                "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f"
+                "image_id": "5a17df7d-6389-44c3-a01b-7ec5f9e3e33f",
+                "network_ids": ["d6b32008-1432-4299-81c7-cbe3128ba13f",
+                                "2afa16d6-7b84-484f-a642-af243b0e5b10"]
                 "admin_pass": "root_password",
                 "ssh_keys": {
                     'key_name': 'key_data'
@@ -691,11 +723,27 @@ class TeethPublicAPI(component.APIComponent):
         """
         params = self.parse_content(request)
 
+        # ask the network provider for default networks if we aren't
+        # provided any
+        if not params.get('network_ids'):
+            default = self.network_provider.get_default_networks()
+            params['network_ids'] = default
+
         try:
             instance = models.Instance.deserialize(params)
         except cqlengine.ValidationError as e:
             raise rest_errors.InvalidContentError(e.message)
 
+        # validate networks
+        for network_id in instance.network_ids:
+            try:
+                self.network_provider.get_network_info(network_id)
+            except self.network_provider.NetworkDoesNotExist:
+                msg = ('Invalid network_ids, ' +
+                       'no Network with id {}').format(network_id)
+                raise rest_errors.InvalidContentError(msg)
+
+        # validate image
         try:
             self.image_provider.get_image_info(instance.image_id)
         except self.image_provider.ImageDoesNotExist:
@@ -717,7 +765,9 @@ class TeethPublicAPI(component.APIComponent):
         _validate_metadata(metadata, self.config)
         _validate_files(files, self.config)
 
+        # validate flavor
         self._validate_relation(instance, 'flavor_id', models.Flavor)
+
         instance.save()
         self.job_client.submit_job('instances.create',
                                    instance_id=instance.id,

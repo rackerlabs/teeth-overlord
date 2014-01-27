@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 import json
-
+import random
 import requests
 
 
@@ -24,6 +24,18 @@ def post(path, item):
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, json.dumps(item), headers=headers)
     return response.headers.get('location').rsplit('/')[-1]
+
+
+def _mac_address():
+
+    mac = [
+        0x00, 0x09, 0x7B,  # cisco
+        random.randint(0x00, 0x7f),
+        random.randint(0x00, 0xff),
+        random.randint(0x00, 0xff)
+    ]
+
+    return ':'.join(map(lambda x: "%02x" % x, mac))
 
 
 def run():
@@ -44,5 +56,5 @@ def run():
     for i in xrange(0, 15):
         post('/v1/chassis', {
             'chassis_model_id': chassis_model_id,
-            'primary_mac_address': 'a:b:c:d',
+            'primary_mac_address': _mac_address(),
         })

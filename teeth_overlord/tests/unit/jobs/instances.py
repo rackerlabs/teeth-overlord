@@ -34,7 +34,8 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                         state=models.InstanceState.BUILD,
                                         name='instance',
                                         flavor_id='flavor_id',
-                                        image_id='image_id')
+                                        image_id='image_id',
+                                        network_ids=['network_id'])
         self.chassis = models.Chassis(id='test_chassis',
                                       instance_id=None,
                                       state=models.ChassisState.READY,
@@ -80,6 +81,12 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                                      files)
         client.run_image.assert_called_once_with(agent, image_info)
 
+    def _did_attach_networks(self):
+        self.executor.network_provider.attach.assert_called_once_with(
+            self.chassis.primary_mac_address,
+            list(self.instance.network_ids)[0]
+        )
+
     def test_prepare_and_run_image(self):
         image_info = self.executor.image_provider.get_image_info('image_id')
         metadata = self.job_request.params.get('metadata')
@@ -114,6 +121,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         scheduler.reserve_chassis.assert_called_once_with(self.instance)
         self._did_prepare_and_run_image()
         self._instance_is_marked_active()
+        self._did_attach_networks()
 
 
 class DeleteInstanceTestCase(tests.TeethAPITestCase):

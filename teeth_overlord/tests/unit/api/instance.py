@@ -19,6 +19,7 @@ import json
 from teeth_overlord.api import public
 from teeth_overlord import errors
 from teeth_overlord import models
+from teeth_overlord.networks import fake as network_provider
 from teeth_overlord import tests
 
 
@@ -205,6 +206,8 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(instance.name, 'created_instance')
         self.assertEqual(instance.flavor_id, 'flavor')
         self.assertEqual(instance.image_id, self.valid_image_id)
+        self.assertEqual(instance.network_ids,
+                         set(network_provider.DEFAULT_NETWORKS))
 
         self.job_client_mock.submit_job.assert_called_once_with(
             'instances.create',
@@ -217,6 +220,78 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         expected_location = 'http://localhost{url}/{id}'.format(url=self.url,
                                                                 id=instance.id)
         self.assertEqual(response.headers['Location'], expected_location)
+
+    def test_create_instance_custom_network(self):
+        network_id = network_provider.DEFAULT_NETWORKS[0]
+        return_value = [models.Flavor(id='flavor', name='some_flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
+
+        metadata = {
+            'admin_pass': 'password',
+            'public_keys': {
+                'key_name': 'key_data'
+            },
+            'meta': {
+                'some': 'data',
+            },
+            'name': 'created_instance',
+            'hostname': 'createdinstance',
+            'availability_zone': 'teeth'
+        }
+
+        data = {
+            'name': 'created_instance',
+            'flavor_id': 'flavor',
+            'image_id': self.valid_image_id,
+            'admin_pass': metadata['admin_pass'],
+            'ssh_keys': metadata['public_keys'],
+            'user_metadata': metadata['meta'],
+            'network_ids': [network_id]
+        }
+
+        response = self.make_request('POST', self.url, data=data)
+
+        # get the saved instance
+        save_mock = self.get_mock(models.Instance, 'save')
+        self.assertEqual(save_mock.call_count, 1)
+        instance = save_mock.call_args[0][0]
+
+        self.assertEqual(instance.name, 'created_instance')
+        self.assertEqual(instance.flavor_id, 'flavor')
+        self.assertEqual(instance.image_id, self.valid_image_id)
+        self.assertEqual(instance.network_ids,
+                         set([network_id]))
+
+        self.job_client_mock.submit_job.assert_called_once_with(
+            'instances.create',
+            instance_id=instance.id,
+            metadata=metadata,
+            files={})
+
+        self.assertEqual(response.status_code, 201)
+
+        expected_location = 'http://localhost{url}/{id}'.format(url=self.url,
+                                                                id=instance.id)
+        self.assertEqual(response.headers['Location'], expected_location)
+
+    def test_create_instance_invalid_network(self):
+        network_id = 'foo'
+        return_value = [models.Flavor(id='flavor', name='some_flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
+
+        data = {
+            'name': 'created_instance',
+            'flavor_id': 'flavor',
+            'image_id': self.valid_image_id,
+            'network_ids': [network_id]
+        }
+
+        response = self.make_request('POST', self.url, data=data)
+
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['message'], 'Invalid request body')
+        self.assertTrue('Invalid network_ids' in data['details'])
 
     def test_create_instance_deleted_flavor(self):
         self.add_mock(models.Flavor,

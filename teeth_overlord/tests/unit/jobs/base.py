@@ -23,6 +23,7 @@ from teeth_overlord import config
 from teeth_overlord.images import fake as image_fake
 from teeth_overlord.jobs import base as jobs_base
 from teeth_overlord import marconi
+from teeth_overlord.networks import fake as network_fake
 from teeth_overlord.oob import fake as oob_fake
 from teeth_overlord import scheduler
 
@@ -36,6 +37,8 @@ class MockJobExecutor(jobs_base.JobExecutor):
         self.job_client = mock.Mock(spec=jobs_base.JobClient)
         self.image_provider = mock.Mock(spec=image_fake.FakeImageProvider)
         self.oob_provider = mock.Mock(spec=oob_fake.FakeOutOfBandProvider)
+        self.network_provider = mock.Mock(
+            spec=network_fake.FakeNetworkProvider)
         self.scheduler = mock.Mock(spec=scheduler.TeethInstanceScheduler)
         self.queue = mock.Mock(spec=marconi.MarconiClient)
         self.stats_client = mock.Mock(spec=statsd.StatsClient)
