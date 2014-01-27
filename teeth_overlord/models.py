@@ -282,7 +282,7 @@ class HardwareToChassis(Base):
     """Map of hardware (key/value) to Chassis."""
     hardware_type = columns.Text(partition_key=True, required=True)
     hardware_id = columns.Text(partition_key=True, required=True)
-    chassis_id = columns.Text(index=True,
+    chassis_id = columns.Text(primary_key=True,
                               required=True,
                               max_length=MAX_ID_LENGTH)
 
