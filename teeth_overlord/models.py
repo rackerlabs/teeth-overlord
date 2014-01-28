@@ -280,7 +280,7 @@ class Chassis(MetadataBase):
         for k, v in hardware.iteritems():
             h2c = HardwareToChassis(hardware_type=k,
                                     hardware_id=v,
-                                    chassis_id=chassis.id)
+                                    chassis_id=chassis_id)
             h2c.batch(batch).save()
         batch.execute()
 
