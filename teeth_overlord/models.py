@@ -222,7 +222,6 @@ class Chassis(MetadataBase):
     state = columns.Ascii(index=True,
                           default=ChassisState.READY)
     chassis_model_id = columns.Text(index=True,
-                                    required=True,
                                     max_length=MAX_ID_LENGTH)
     instance_id = columns.Text(max_length=MAX_ID_LENGTH)
     ipmi_host = columns.Text()
@@ -259,7 +258,7 @@ class Chassis(MetadataBase):
         a BOOTSTRAP state.
         """
         groups = []
-        for k, v in hardware.items():
+        for k, v in hardware.iteritems():
             found = HardwareToChassis.objects.filter(hardware_type=k,
                                                      hardware_id=v)
             found = set(h2c.chassis_id for h2c in found)
@@ -272,7 +271,19 @@ class Chassis(MetadataBase):
         if len(matches) == 1:
             return cls.objects.get(id=matches.pop())
 
-        # TODO(jimrollenhagen) if no matches, create a chassis
+        batch = cqlengine.BatchQuery()
+        # make the ID here so that we can batch these
+        chassis_id = uuid.uuid4()
+        chassis = cls(state=ChassisState.BOOTSTRAP)
+        chassis.batch(batch).save()
+
+        for k, v in hardware.iteritems():
+            h2c = HardwareToChassis(hardware_type=k,
+                                    hardware_id=v,
+                                    chassis_id=chassis.id)
+            h2c.batch(batch).save()
+        batch.execute()
+
 
 
 class HardwareToChassis(Base):
