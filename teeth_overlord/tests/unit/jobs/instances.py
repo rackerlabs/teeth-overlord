@@ -39,8 +39,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         self.chassis = models.Chassis(id='test_chassis',
                                       instance_id=None,
                                       state=models.ChassisState.READY,
-                                      chassis_model_id='chassis_model_id',
-                                      primary_mac_address='00:00:00:00:00:00')
+                                      chassis_model_id='chassis_model_id')
         request_params = {
             'instance_id': 'test_instance',
             'metadata': {'admin_pass': 'password'},
@@ -143,8 +142,7 @@ class DeleteInstanceTestCase(tests.TeethAPITestCase):
         self.chassis = models.Chassis(id='test_chassis',
                                       instance_id='test_instance',
                                       state=models.ChassisState.ACTIVE,
-                                      chassis_model_id='chassis_model_id',
-                                      primary_mac_address='00:00:00:00:00:00')
+                                      chassis_model_id='chassis_model_id')
         request_params = {'instance_id': 'test_instance'}
         self.job_request = models.JobRequest(id='test_request',
                                              job_type='instances.delete',

@@ -19,7 +19,6 @@ import time
 from teeth_rest import component
 from teeth_rest import responses
 
-from teeth_overlord import errors
 from teeth_overlord import models
 from teeth_overlord import stats
 

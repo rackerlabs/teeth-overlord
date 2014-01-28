@@ -25,6 +25,8 @@ from cqlengine import models
 
 from teeth_rest import encoding
 
+from teeth_overlord import errors
+
 KEYSPACE_NAME = 'teeth'
 
 MAX_ID_LENGTH = 64
@@ -267,7 +269,7 @@ class Chassis(MetadataBase):
         matches = groups[0].intersection(*groups[1:])
 
         if len(matches) > 1:
-            raise errors.SomeHorribleException
+            raise errors.MultipleChassisFound(hardware)
         if len(matches) == 1:
             return cls.objects.get(id=matches.pop())
 

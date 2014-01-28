@@ -35,7 +35,6 @@ class TestAgentAPI(tests.TeethAPITestCase):
     @mock.patch('time.time', mock.MagicMock(return_value=0))
     def test_update_agent(self):
         data = {
-            'primary_mac_address': '00:00:00:00:00:00',
             'version': '0.1',
             'url': 'http://10.0.1.1:51200',
             'mode': models.AgentState.STANDBY,
@@ -49,7 +48,6 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(save_mock.call_count, 1)
         agent = save_mock.call_args[0][0]
 
-        self.assertEqual(agent.primary_mac_address, '00:00:00:00:00:00')
         self.assertEqual(agent.version, '0.1')
         self.assertEqual(agent.url, 'http://10.0.1.1:51200')
         self.assertEqual(agent.mode, models.AgentState.STANDBY)
@@ -59,15 +57,7 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(heartbeat_before, str(models.Agent.TTL))
 
     def test_fetch_agent_configuration(self):
-
-        ma2c = models.MacAddressToChassis(mac_address='a:b:c:d',
-                                          chassis_id='chassis1')
-
-        ma2c_objects_mock = self.add_mock(
-            models.MacAddressToChassis, return_value=[ma2c])
-
         chassis = models.Chassis(id='chassis1',
-                                 primary_mac_address='a:b:c:d',
                                  chassis_model_id='chassismodel1',
                                  state=models.ChassisState.READY)
 
@@ -80,8 +70,6 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(
             models.AgentState.STANDBY, json.loads(response.data)['mode'])
 
-        ma2c_objects_mock.assert_called_with(
-            'get', mac_address='00:00:00:00:00:00')
         chassis_objects_mock.assert_called_with(
             'get', id='chassis1')
 
@@ -100,11 +88,6 @@ class TestAgentAPI(tests.TeethAPITestCase):
             'UNKNOWN', json.loads(response.data)['mode'])
 
     def test_fetch_agent_configuration_no_mac(self):
-        self.add_mock(
-            models.MacAddressToChassis,
-            side_effect=models.MacAddressToChassis.DoesNotExist
-        )
-
         response = self.make_request(
             'GET', '{}/configuration'.format(self.url))
 
@@ -116,11 +99,6 @@ class TestAgentAPI(tests.TeethAPITestCase):
         )
 
     def test_fetch_agent_configuration_no_chassis(self):
-        ma2c = models.MacAddressToChassis(mac_address='a:b:c:d',
-                                          chassis_id='chassis1')
-
-        self.add_mock(models.MacAddressToChassis, return_value=[ma2c])
-
         self.add_mock(
             models.Chassis, side_effect=models.Chassis.DoesNotExist)
 
