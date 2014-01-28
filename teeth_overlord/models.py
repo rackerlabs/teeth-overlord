@@ -351,7 +351,7 @@ class Instance(MetadataBase):
     job_id = columns.Text(max_length=MAX_ID_LENGTH)
     network_ids = columns.Set(columns.Text, required=True, strict=False)
 
-    state = columns.Ascii(index=True, default=InstanceState.BUILD)
+    state = columns.Ascii(index=True, default=InstanceState.INACTIVE)
     chassis_state = columns.Ascii()
     power_state = columns.Ascii()  # chassis power state
     job_state = columns.Ascii()
