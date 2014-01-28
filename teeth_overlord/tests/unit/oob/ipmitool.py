@@ -30,7 +30,6 @@ class TestIPMIToolDriver(tests.TeethMockTestUtilities):
 
         self.chassis1 = models.Chassis(id='chassis1',
                                        state=models.ChassisState.READY,
-                                       primary_mac_address='1:2:3:4:5',
                                        ipmi_host='1.2.3.4',
                                        ipmi_port=623,
                                        ipmi_username='ipmi_user',

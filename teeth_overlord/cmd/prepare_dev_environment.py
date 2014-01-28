@@ -15,7 +15,6 @@ limitations under the License.
 """
 
 import json
-
 import requests
 
 
@@ -44,5 +43,4 @@ def run():
     for i in xrange(0, 15):
         post('/v1/chassis', {
             'chassis_model_id': chassis_model_id,
-            'primary_mac_address': 'a:b:c:d',
         })

@@ -44,11 +44,9 @@ class AgentNotConnectedError(errors.RESTError):
     """
     message = 'Agent not connected'
 
-    def __init__(self, chassis_id, primary_mac_address):
-        self.details = ('No agent is connected for chassis {chassis_id} (mac '
-                        'adddress {primary_mac_address}).').format(
-                            chassis_id=chassis_id,
-                            primary_mac_address=primary_mac_address)
+    def __init__(self, chassis_id):
+        self.details = 'No agent is connected for chassis {chassis_id}'
+        self.details = self.details.format(chassis_id=chassis_id)
 
 
 class AgentConnectionLostError(errors.RESTError):
@@ -125,3 +123,15 @@ class RequestedObjectNotFoundError(errors.RESTError):
         super(RequestedObjectNotFoundError, self).__init__(cls, id)
         self.details = '{type} with id {id} not found.'.format(
             type=cls.__name__, id=id)
+
+
+class MultipleChassisFound(errors.RESTError):
+    """Error when chassis lookup is done by hardware keys,
+    and more than one matching chassis is found.
+    """
+    message = 'Multiple chassis found'
+    status_code = 400
+
+    def __init__(self, hardware):
+        self.details = 'Multiple chassis with hardware {} were found.'
+        self.details = self.details.format(hardware)

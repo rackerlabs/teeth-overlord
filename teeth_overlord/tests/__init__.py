@@ -38,6 +38,9 @@ TEST_CONFIG = {
     "AGENT_API_HOST": "0.0.0.0",
     "AGENT_API_PORT": 8081,
 
+    "AGENT_PROTOCOL": "http",
+    "AGENT_PORT": 9999,
+
     "AVAILABILITY_ZONE": "teeth",
 
     "MAX_USER_METADATA_SIZE": 1000,
@@ -51,6 +54,7 @@ TEST_CONFIG = {
     "IMAGE_PROVIDER": "fake",
     "OOB_PROVIDER": "fake",
     "AGENT_CLIENT": "fake",
+    "NETWORK_PROVIDER": "fake",
     "PRETTY_LOGGING": True,
 
     "STATSD_HOST": "localhost",
@@ -288,11 +292,15 @@ class TeethMockTestUtilities(unittest.TestCase):
         if data:
             data = json.dumps(data)
 
+        # makes remote_addr work correctly
+        environ_base = {'REMOTE_ADDR': '127.0.0.1'}
+
         return test.EnvironBuilder(method=method,
                                    path=path,
                                    data=data,
                                    content_type='application/json',
-                                   query_string=query)
+                                   query_string=query,
+                                   environ_base=environ_base)
 
     def build_request(self, method, path, data=None, query=None):
         env_builder = self._get_env_builder(method, path, data, query)

@@ -15,13 +15,20 @@ limitations under the License.
 """
 
 import time
+import uuid
+
+import cqlengine
 
 from teeth_rest import component
 from teeth_rest import responses
 
-from teeth_overlord import errors
 from teeth_overlord import models
 from teeth_overlord import stats
+
+from teeth_overlord.networks import base as networks_base
+
+
+DEFAULT_LIMIT = 100
 
 
 class TeethAgentAPI(component.APIComponent):
@@ -34,57 +41,61 @@ class TeethAgentAPI(component.APIComponent):
         self.stats_client = stats_client or stats.get_stats_client(
             config,
             prefix='agent_api')
+        self.network_provider = networks_base.get_network_provider(config)
 
     def add_routes(self):
         """Called during initialization. Override to map relative routes to
         methods.
         """
         # Agent Handlers
-        self.route('PUT', '/agents/<string:mac_address>', self.update_agent)
+        self.route('PUT', '/agents', self.update_agent)
 
         self.route('GET',
-                   '/agents/<string:mac_address>/configuration',
-                   self.fetch_agent_configuration)
+                   '/agents/<string:mac_address>/ports',
+                   self.fetch_ports)
 
     @stats.incr_stat('agents.update')
-    def update_agent(self, request, mac_address):
+    def update_agent(self, request):
         """Creates or updates an agent with provided data."""
         data = self.parse_content(request)
 
-        agent = models.Agent(primary_mac_address=mac_address)
+        forwarded_ip = request.headers.get('X-Forwarded-For')
+        agent_ip = forwarded_ip or request.remote_addr
+        url = '{}://{}:{}'.format(self.config.AGENT_PROTOCOL,
+                                  agent_ip,
+                                  self.config.AGENT_PORT)
+
+        chassis = models.Chassis.find_by_hardware(data['hardware'])
+
+        agent_id = str(uuid.uuid4())
+        agent = models.Agent(id=agent_id)
         agent.version = data.get('version')
-        agent.url = data.get('url')
+        agent.url = url
+        # TODO(jimrollenhagen) do we still want this?
         agent.mode = data.get('mode')
         agent.ttl(models.Agent.TTL)
-        agent.save()
+
+        chassis.agent_id = agent_id
+
+        batch = cqlengine.BatchQuery()
+        chassis.batch(batch).save()
+        agent.batch(batch).save()
+        batch.execute()
 
         expiry = time.time() + models.Agent.TTL
         headers = {'Heartbeat-Before': expiry}
         return responses.UpdatedResponse(headers=headers)
 
-    @stats.incr_stat('agents.fetch_configuration')
-    def fetch_agent_configuration(self, request, mac_address):
-        """Returns 200 along with the current agent configuration."""
-        try:
-            ma2c = models.MacAddressToChassis.get(mac_address=mac_address)
-        except models.MacAddressToChassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.MacAddressToChassis, mac_address)
-
-        try:
-            chassis = models.Chassis.get(id=ma2c.chassis_id)
-        except models.Chassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.Chassis, ma2c.chassis_id)
-
-        if chassis.state in [models.ChassisState.CLEAN]:
-            mode = models.AgentState.DECOM
-        elif chassis.state in [models.ChassisState.READY]:
-            mode = models.AgentState.STANDBY
-        else:
-            mode = 'UNKNOWN'
-
-        return responses.ItemResponse({"mode": mode})
+    @stats.incr_stat('agents.fetch_ports')
+    def fetch_ports(self, request, mac_address):
+        """Returns 200 along with currently configured network ports."""
+        ports = self.network_provider.list_ports(mac_address)
+        ports = [p.serialize() for p in ports]
+        return responses.PaginatedResponse(request,
+                                           ports,
+                                           self.fetch_ports,
+                                           None,
+                                           DEFAULT_LIMIT)
 
 
 class TeethAgentAPIServer(component.APIServer):

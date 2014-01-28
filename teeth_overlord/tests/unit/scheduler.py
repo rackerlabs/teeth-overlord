@@ -42,8 +42,7 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
 
         self.chassis1 = models.Chassis(
             id='chassis1',
-            state=models.ChassisState.READY,
-            primary_mac_address='1:2:3:4:5')
+            state=models.ChassisState.READY)
 
     def test_reserve_chassis(self):
         self.add_mock(models.Instance)

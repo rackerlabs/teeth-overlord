@@ -31,6 +31,16 @@ class CreateInstance(base.Job):
     """
     max_retries = 10
 
+    def attach_networks(self, instance, chassis):
+        """Attach chassis to any configured networks."""
+        # TODO(jimrollenhagen) we don't have primary mac address any more.
+        #                      revisit after restructuring network provider
+        return
+        for network in instance.network_ids:
+            self.executor.network_provider.attach(
+                chassis.primary_mac_address,
+                network)
+
     def prepare_and_run_image(self, instance, chassis, image_info, metadata,
                               files):
         """Send the `prepare_image` and `run_image` commands to the agent."""
@@ -57,6 +67,11 @@ class CreateInstance(base.Job):
         image_id = instance.image_id
         chassis = self.executor.scheduler.reserve_chassis(instance)
         image_info = self.executor.image_provider.get_image_info(image_id)
+
+        # TODO(morgabra): After booting into an image, we need to detach
+        #                 from the service network.
+        self.attach_networks(instance, chassis)
+
         metadata = params['metadata']
         files = params['files']
 
@@ -65,6 +80,7 @@ class CreateInstance(base.Job):
                                    image_info,
                                    metadata,
                                    files)
+
         self.mark_active(instance, chassis)
 
 
