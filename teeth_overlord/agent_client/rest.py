@@ -54,14 +54,12 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def get_agent(self, chassis):
         """Retrieve an agent for the specified Chassis."""
-        query = models.Agent.objects
-        query = query.filter(primary_mac_address=chassis.primary_mac_address)
+        query = models.Agent.objects.filter(id=chassis.agent_id)
 
         try:
             return query.get()
         except models.Agent.DoesNotExist:
-            raise errors.AgentNotConnectedError(chassis.id,
-                                                chassis.primary_mac_address)
+            raise errors.AgentNotConnectedError(chassis.id)
 
     def cache_images(self, agent, image_ids):
         """Attempt to cache the specified images. Images are specified in

@@ -25,6 +25,8 @@ from cqlengine import models
 
 from teeth_rest import encoding
 
+from teeth_overlord import errors
+
 KEYSPACE_NAME = 'teeth'
 
 MAX_ID_LENGTH = 64
@@ -77,6 +79,7 @@ class MetadataBase(Base):
 
 class ChassisState(object):
     """Possible states that a Chassis may be in."""
+    BOOTSTRAP = 'BOOTSTRAP'
     CLEAN = 'CLEAN'
     READY = 'READY'
     BUILD = 'BUILD'
@@ -221,14 +224,13 @@ class Chassis(MetadataBase):
     state = columns.Ascii(index=True,
                           default=ChassisState.READY)
     chassis_model_id = columns.Text(index=True,
-                                    required=True,
                                     max_length=MAX_ID_LENGTH)
     instance_id = columns.Text(max_length=MAX_ID_LENGTH)
     ipmi_host = columns.Text()
     ipmi_port = columns.Integer(default=623)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
-    primary_mac_address = columns.Ascii(index=True, required=True)
+    agent_id = columns.Text(max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn a Chassis into a dict."""
@@ -237,8 +239,8 @@ class Chassis(MetadataBase):
             ('state', self.state),
             ('chassis_model_id', self.chassis_model_id),
             ('instance_id', self.instance_id),
-            ('primary_mac_address', self.primary_mac_address),
             ('metadata', self.metadata),
+            ('agent_id', self.agent_id),
         ])
 
     @classmethod
@@ -247,24 +249,66 @@ class Chassis(MetadataBase):
         chassis = cls(
             id=params.get('id'),
             chassis_model_id=params.get('chassis_model_id'),
-            primary_mac_address=params.get('primary_mac_address'),
             metadata=params.get('metadata')
         )
         chassis.validate()
         return chassis
 
+    @classmethod
+    def find_by_hardware(cls, hardware):
+        """Finds a chassis uniquely matching every key in `hardware`.
 
-class MacAddressToChassis(Base):
-    """Map of Mac Addresses to Chassis."""
-    mac_address = columns.Text(primary_key=True)
-    chassis_id = columns.Text(index=True,
+        If a chassis is not found, a new one is created in
+        a BOOTSTRAP state.
+        """
+        groups = []
+        for item in hardware:
+            found = HardwareToChassis.objects.filter(
+                hardware_type=item['type'],
+                hardware_id=item['id'])
+            found = set(h2c.chassis_id for h2c in found)
+            groups.append(found)
+
+        if not groups:
+            # TODO(jimrollenhagen) how do we handle no hardware passed in?
+            return None
+
+        matches = groups[0].intersection(*groups[1:])
+
+        if len(matches) > 1:
+            raise errors.MultipleChassisFound(hardware)
+        if len(matches) == 1:
+            return cls.objects.get(id=matches.pop())
+
+        batch = cqlengine.BatchQuery()
+        # make the ID here so that we can batch these
+        chassis_id = str(uuid.uuid4())
+        chassis = cls(id=chassis_id, state=ChassisState.BOOTSTRAP)
+        chassis.batch(batch).save()
+
+        for item in hardware:
+            h2c = HardwareToChassis(hardware_type=item['type'],
+                                    hardware_id=item['id'],
+                                    chassis_id=chassis_id)
+            h2c.batch(batch).save()
+        batch.execute()
+
+        return chassis
+
+
+class HardwareToChassis(Base):
+    """Map of hardware (key/value) to Chassis."""
+    hardware_type = columns.Text(partition_key=True, required=True)
+    hardware_id = columns.Text(partition_key=True, required=True)
+    chassis_id = columns.Text(primary_key=True,
                               required=True,
                               max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn a Chassis into a dict."""
         return collections.OrderedDict([
-            ('mac_address', self.mac_address),
+            ('hardware_type', self.hardware_type),
+            ('hardware_id', self.hardware_id),
             ('chassis_id', self.chassis_id)
         ])
 
@@ -272,7 +316,8 @@ class MacAddressToChassis(Base):
     def deserialize(cls, params):
         """Turn a dict into a Chassis."""
         m = cls(
-            mac_address=params.get('mac_address'),
+            hardware_type=params.get('hardware_type'),
+            hardware_id=params.get('hardware_id'),
             chassis_id=params.get('chassis_id')
         )
         m.validate()
@@ -335,12 +380,11 @@ class AgentState(object):
 
 
 class Agent(Base):
-    """Model for an Agent.
-
-    `primary_mac_address` is the primary key here.
-    """
+    """Model for an Agent."""
     TTL = 180
-    primary_mac_address = columns.Ascii(primary_key=True)
+    id = columns.Text(primary_key=True,
+                      default=uuid_str,
+                      max_length=MAX_ID_LENGTH)
     version = columns.Ascii(required=True)
     url = columns.Ascii(required=True)
     mode = columns.Ascii(required=True, index=True)
@@ -348,7 +392,6 @@ class Agent(Base):
     def serialize(self, view):
         """Turn an Agent into a dict."""
         return collections.OrderedDict([
-            ('primary_mac_address', self.primary_mac_address),
             ('version', self.version),
             ('url', self.url),
             ('mode', self.mode),
@@ -426,7 +469,7 @@ class JobRequest(Base):
 
 all_models = [
     Chassis,
-    MacAddressToChassis,
+    HardwareToChassis,
     Instance,
     Agent,
     JobRequest,

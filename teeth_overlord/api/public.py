@@ -577,7 +577,6 @@ class TeethPublicAPI(component.APIComponent):
             {
                 "id": "optional-id",
                 "chassis_model_id": "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                "primary_mac_address": "bc:76:4e:20:03:5f",
             }
 
         When we rack and connect a new physical server, this call should
@@ -600,13 +599,10 @@ class TeethPublicAPI(component.APIComponent):
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
 
-        ma2c = models.MacAddressToChassis.deserialize({
-            'mac_address': chassis.primary_mac_address,
-            'chassis_id': chassis.id})
+        # TODO(jimrollenhagen) create HardwareToChassis objects?
 
         batch = cqlengine.BatchQuery()
         chassis.batch(batch).save()
-        ma2c.batch(batch).save()
         batch.execute()
 
         return responses.CreatedResponse(request,
@@ -624,21 +620,18 @@ class TeethPublicAPI(component.APIComponent):
                         "state": "ACTIVE",
                         "chassis_model_id":
                             "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                        "primary_mac_address": "bc:76:4e:20:03:5f"
                     },
                     {
                         "id": "3ddee7bd-7a35-489b-bf5d-54fd8f09496c",
                         "state": "BUILD",
                         "chassis_model_id":
                             "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                        "primary_mac_address": "bc:76:4e:20:12:44"
                     },
                     {
                         "id": "e2c328c7-fcb5-4989-8bbd-bdd5877dc219",
                         "state": "READY",
                         "chassis_model_id":
                             "e0d4774b-daa6-4361-b4d9-ab367e40d885",
-                        "primary_mac_address": "40:6c:8f:19:14:17"
                     }
                 ],
                 "links": [
