@@ -260,11 +260,16 @@ class Chassis(MetadataBase):
         a BOOTSTRAP state.
         """
         groups = []
-        for k, v in hardware.iteritems():
-            found = HardwareToChassis.objects.filter(hardware_type=k,
-                                                     hardware_id=v)
+        for item in hardware:
+            found = HardwareToChassis.objects.filter(
+                hardware_type=item['type'],
+                hardware_id=item['id'])
             found = set(h2c.chassis_id for h2c in found)
             groups.append(found)
+
+        if not groups:
+            # TODO(jimrollenhagen) how do we handle no hardware passed in?
+            return None
 
         matches = groups[0].intersection(*groups[1:])
 
@@ -279,9 +284,9 @@ class Chassis(MetadataBase):
         chassis = cls(id=chassis_id, state=ChassisState.BOOTSTRAP)
         chassis.batch(batch).save()
 
-        for k, v in hardware.iteritems():
-            h2c = HardwareToChassis(hardware_type=k,
-                                    hardware_id=v,
+        for item in hardware:
+            h2c = HardwareToChassis(hardware_type=item['type'],
+                                    hardware_id=item['id'],
                                     chassis_id=chassis_id)
             h2c.batch(batch).save()
         batch.execute()

@@ -29,12 +29,10 @@ class TestChassisAPI(tests.TeethAPITestCase):
 
         self.chassis_objects_mock = self.add_mock(models.Chassis)
         self.chassis1 = models.Chassis(id='chassis1',
-                                       state=models.ChassisState.READY,
-                                       primary_mac_address='1:2:3:4:5')
+                                       state=models.ChassisState.READY)
         self.chassis2 = models.Chassis(id='chassis2',
                                        state=models.ChassisState.BUILD,
-                                       instance_id="instance_id",
-                                       primary_mac_address='6:7:8:9:0')
+                                       instance_id="instance_id")
 
     def test_list_chassis_some(self):
         self.list_some(models.Chassis,
@@ -74,7 +72,6 @@ class TestChassisAPI(tests.TeethAPITestCase):
 
         data = {
             'chassis_model_id': 'chassis_model_id',
-            'primary_mac_address': 'mac_addr',
         }
         response = self.make_request('POST', self.url, data=data)
 
@@ -86,22 +83,11 @@ class TestChassisAPI(tests.TeethAPITestCase):
         chassis = chassis_save_mock.call_args[0][0]
 
         self.assertEqual(chassis.chassis_model_id, 'chassis_model_id')
-        self.assertEqual(chassis.primary_mac_address, 'mac_addr')
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.headers['Location'],
                          'http://localhost{url}/{id}'.format(url=self.url,
                                                              id=chassis.id))
-
-    def test_create_chassis_missing_data(self):
-        response = self.make_request(
-            'POST',
-            self.url,
-            data={'chassis_model_id': 'chassis_model_id'})
-
-        data = json.loads(response.data)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_chassis_deleted_chassis_model(self):
         self.add_mock(models.ChassisModel,
@@ -112,8 +98,7 @@ class TestChassisAPI(tests.TeethAPITestCase):
         response = self.make_request(
             'POST',
             self.url,
-            data={'chassis_model_id': 'chassis_model_id',
-                  'primary_mac_address': '1:2:3:4:5'})
+            data={'chassis_model_id': 'chassis_model_id'})
 
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 400)
@@ -126,7 +111,6 @@ class TestChassisAPI(tests.TeethAPITestCase):
 
         data = {
             'chassis_model_id': 'does_not_exist',
-            'primary_mac_address': 'mac_addr',
         }
         response = self.make_request('POST', self.url, data=data)
 

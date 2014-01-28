@@ -39,12 +39,14 @@ class DecommissionChassis(base.Job):
         if self.executor.oob_provider.is_chassis_on(chassis):
             self.executor.oob_provider.power_chassis_off(chassis)
 
+        # TODO(jimrollenhagen) we don't have primary mac address any more.
+        #                      revisit after restructuring network provider
         # move to decom network
-        self.executor.network_provider.detach(
-            chassis.primary_mac_address)
-        self.executor.network_provider.attach(
-            chassis.primary_mac_address,
-            self.executor.network_provider.get_service_network())
+        #self.executor.network_provider.detach(
+            #chassis.primary_mac_address)
+        #self.executor.network_provider.attach(
+            #chassis.primary_mac_address,
+            #self.executor.network_provider.get_service_network())
 
         self.executor.oob_provider.power_chassis_on(chassis)
 

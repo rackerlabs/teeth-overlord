@@ -292,11 +292,15 @@ class TeethMockTestUtilities(unittest.TestCase):
         if data:
             data = json.dumps(data)
 
+        # makes remote_addr work correctly
+        environ_base = {'REMOTE_ADDR': '127.0.0.1'}
+
         return test.EnvironBuilder(method=method,
                                    path=path,
                                    data=data,
                                    content_type='application/json',
-                                   query_string=query)
+                                   query_string=query,
+                                   environ_base=environ_base)
 
     def build_request(self, method, path, data=None, query=None):
         env_builder = self._get_env_builder(method, path, data, query)
