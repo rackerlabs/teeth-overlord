@@ -54,7 +54,7 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def get_agent(self, chassis):
         """Retrieve an agent for the specified Chassis."""
-        query = models.Agent.objects.filter(chassis_id=chassis.id)
+        query = models.Agent.objects.filter(id=chassis.agent_id)
 
         try:
             return query.get()
