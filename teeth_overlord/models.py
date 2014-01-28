@@ -264,7 +264,7 @@ class Chassis(MetadataBase):
             found = set(h2c.chassis_id for h2c in found)
             groups.append(found)
 
-        matches = found[0].union(*found[1:])
+        matches = groups[0].intersection(*groups[1:])
 
         if len(matches) > 1:
             raise errors.SomeHorribleException
@@ -273,8 +273,8 @@ class Chassis(MetadataBase):
 
         batch = cqlengine.BatchQuery()
         # make the ID here so that we can batch these
-        chassis_id = uuid.uuid4()
-        chassis = cls(state=ChassisState.BOOTSTRAP)
+        chassis_id = str(uuid.uuid4())
+        chassis = cls(id=chassis_id, state=ChassisState.BOOTSTRAP)
         chassis.batch(batch).save()
 
         for k, v in hardware.iteritems():
@@ -284,6 +284,7 @@ class Chassis(MetadataBase):
             h2c.batch(batch).save()
         batch.execute()
 
+        return chassis
 
 
 class HardwareToChassis(Base):
