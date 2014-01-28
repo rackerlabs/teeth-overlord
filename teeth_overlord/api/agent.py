@@ -49,10 +49,6 @@ class TeethAgentAPI(component.APIComponent):
         self.route('PUT', '/agents', self.update_agent)
 
         self.route('GET',
-                   '/agents/<string:mac_address>/configuration',
-                   self.fetch_agent_configuration)
-
-        self.route('GET',
                    '/agents/<string:mac_address>/ports',
                    self.fetch_ports)
 
@@ -81,30 +77,6 @@ class TeethAgentAPI(component.APIComponent):
         expiry = time.time() + models.Agent.TTL
         headers = {'Heartbeat-Before': expiry}
         return responses.UpdatedResponse(headers=headers)
-
-    @stats.incr_stat('agents.fetch_configuration')
-    def fetch_agent_configuration(self, request, mac_address):
-        """Returns 200 along with the current agent configuration."""
-        try:
-            ma2c = models.MacAddressToChassis.get(mac_address=mac_address)
-        except models.MacAddressToChassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.MacAddressToChassis, mac_address)
-
-        try:
-            chassis = models.Chassis.get(id=ma2c.chassis_id)
-        except models.Chassis.DoesNotExist:
-            raise errors.RequestedObjectNotFoundError(
-                models.Chassis, ma2c.chassis_id)
-
-        if chassis.state in [models.ChassisState.CLEAN]:
-            mode = models.AgentState.DECOM
-        elif chassis.state in [models.ChassisState.READY]:
-            mode = models.AgentState.STANDBY
-        else:
-            mode = 'UNKNOWN'
-
-        return responses.ItemResponse({"mode": mode})
 
     @stats.incr_stat('agents.fetch_ports')
     def fetch_ports(self, request, mac_address):
