@@ -599,7 +599,7 @@ class TeethPublicAPI(component.APIComponent):
         chassis.ipmi_username = chassis_model.ipmi_default_username
         chassis.ipmi_password = chassis_model.ipmi_default_password
 
-        # TODO(jimrollenhagen) create HardwareToChassis objects
+        # TODO(jimrollenhagen) create HardwareToChassis objects?
 
         batch = cqlengine.BatchQuery()
         chassis.batch(batch).save()

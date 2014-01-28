@@ -15,6 +15,9 @@ limitations under the License.
 """
 
 import time
+import uuid
+
+import cqlengine
 
 from teeth_rest import component
 from teeth_rest import responses
@@ -64,14 +67,20 @@ class TeethAgentAPI(component.APIComponent):
 
         chassis = models.Chassis.find_by_hardware(data['hardware'])
 
-        agent = models.Agent()
+        agent_id = str(uuid.uuid4())
+        agent = models.Agent(id=agent_id)
         agent.version = data.get('version')
         agent.url = url
         # TODO(jimrollenhagen) do we still want this?
         agent.mode = data.get('mode')
-        agent.chassis_id = chassis.id
         agent.ttl(models.Agent.TTL)
-        agent.save()
+
+        chassis.agent_id = agent_id
+
+        batch = cqlengine.BatchQuery()
+        chassis.batch(batch).save()
+        agent.batch(batch).save()
+        batch.execute()
 
         expiry = time.time() + models.Agent.TTL
         headers = {'Heartbeat-Before': expiry}

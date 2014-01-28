@@ -34,13 +34,14 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
         super(TestRESTAgentClient, self).setUp()
         self.client = agent_client.RESTAgentClient(tests.TEST_CONFIG)
         self.client.session = mock.Mock(autospec=requests.Session)
-        self.agent = models.Agent(chassis_id='test_chassis',
+        self.agent = models.Agent(id='test_agent',
                                   version='8',
                                   url='http://10.0.1.1:51200',
                                   mode='STANDBY')
         self.agent_mock = self._mock_model(models.Agent,
                                            return_value=[self.agent])
         self.chassis = models.Chassis(id='test_chassis',
+                                      agent_id='test_agent',
                                       chassis_model_id='chassis_model')
 
     def test_get_command_url(self):

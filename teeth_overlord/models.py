@@ -230,6 +230,7 @@ class Chassis(MetadataBase):
     ipmi_port = columns.Integer(default=623)
     ipmi_username = columns.Text()
     ipmi_password = columns.Text()
+    agent_id = columns.Text(max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn a Chassis into a dict."""
@@ -239,6 +240,7 @@ class Chassis(MetadataBase):
             ('chassis_model_id', self.chassis_model_id),
             ('instance_id', self.instance_id),
             ('metadata', self.metadata),
+            ('agent_id', self.agent_id),
         ])
 
     @classmethod
@@ -386,7 +388,6 @@ class Agent(Base):
     version = columns.Ascii(required=True)
     url = columns.Ascii(required=True)
     mode = columns.Ascii(required=True, index=True)
-    chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
 
     def serialize(self, view):
         """Turn an Agent into a dict."""
@@ -394,7 +395,6 @@ class Agent(Base):
             ('version', self.version),
             ('url', self.url),
             ('mode', self.mode),
-            ('chassis_id', self.chassis_id),
         ])
 
 
