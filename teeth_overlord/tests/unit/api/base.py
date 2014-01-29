@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import json
+import urlparse
 
 from teeth_overlord.api import public
 
@@ -27,8 +28,8 @@ class TestAPI(tests.TeethAPITestCase):
     def setUp(self):
         super(TestAPI, self).setUp()
 
-        self.url = 'v1/instances'
-        self.test_host = 'http://localhost/'
+        self.url = '/v1/instances'
+        self.test_host = 'http://localhost'
 
         self.instance1 = models.Instance(id='instance1',
                                          name='instance1_name',
@@ -60,11 +61,19 @@ class TestAPI(tests.TeethAPITestCase):
         self.assertEqual(len(data['items']), 1)
         self.assertModelContains(data['items'][0], self.instance1)
 
-        self.assertEqual(
-            data['links'],
-            [{'href': '{}{}?marker=instance1&limit=1'.format(self.test_host,
-                                                             self.url),
-              'rel': 'next'}])
+        self.assertEqual(len(data['links']), 1)
+
+        link = urlparse.urlparse(data['links'][0]['href'])
+
+        self.assertEqual(data['links'][0]['rel'], 'next')
+
+        self.assertEqual(link.scheme, 'http')
+        self.assertEqual(link.netloc, 'localhost')
+        self.assertEqual(link.path, self.url)
+
+        query = urlparse.parse_qs(link.query)
+        self.assertEqual(query, {'marker': ['instance1'],
+                                 'limit': ['1']})
 
         instance_mock.assert_called_with('limit', 1)
         instance_mock.assert_called_once('all')
