@@ -42,13 +42,20 @@ def _format_event(logger, method, event):
     """Formats the log message using keyword args.
     log('hello {keyword}', keyword='world') should log: "hello world"
     Removes the keywords used for formatting from the logged message.
+    Throws a KeyError if the log message requires formatting but doesn't
+    have enough keys to format.
     """
     # Get a list of fields that need to be filled.
     formatter = string.Formatter()
-    formatted = formatter.format(event['event'], **event)     
-    # Remove keys that were used in formatting from event.
-    for field in formatter.parse(event['event']):
-        del event[field[1]]
+    try:
+        formatted = formatter.format(event['event'], **event)
+    except KeyError:
+        keys = formatter.parse(event['event'])
+        # index 1 is the key name
+        keys = [item[1] for item in keys]
+        missing_keys = list(set(keys) - set(event))
+        raise KeyError("Log formatter missing keys: {}, cannot format."
+                       .format(missing_keys))
     event['event'] = formatted
     return event
 
