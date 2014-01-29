@@ -303,6 +303,11 @@ class Chassis(MetadataBase):
 
         return chassis
 
+    def get_mac_addresses(self):
+        macs = HardwareToChassis.objects.filter(chassis_id=self.id,
+                                                hardware_type='mac_address')
+        return [m.hardware_id for m in macs]
+
 
 class HardwareToChassis(Base):
     """Map of hardware (key/value) to Chassis."""

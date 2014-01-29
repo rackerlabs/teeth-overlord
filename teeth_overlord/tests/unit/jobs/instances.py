@@ -26,6 +26,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
 
         self.instance_objects_mock = self.add_mock(models.Instance)
         self.chassis_objects_mock = self.add_mock(models.Chassis)
+        self.h2c_objects_mock = self.add_mock(models.HardwareToChassis)
 
         self.add_mock(models.Instance, 'batch')
         self.add_mock(models.Chassis, 'batch')
@@ -40,6 +41,9 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
                                       instance_id=None,
                                       state=models.ChassisState.READY,
                                       chassis_model_id='chassis_model_id')
+        self.mac = models.HardwareToChassis(hardware_type='mac_address',
+                                            hardware_id='1:2:3:4:5:6',
+                                            chassis_id='test_chassis')
         request_params = {
             'instance_id': 'test_instance',
             'metadata': {'admin_pass': 'password'},
@@ -51,6 +55,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
 
         self.instance_objects_mock.return_value = [self.instance]
         self.chassis_objects_mock.return_value = [self.chassis]
+        self.h2c_objects_mock.return_value = [self.mac]
 
         self.executor = jobs_tests_base.MockJobExecutor()
         self.message = {
@@ -82,11 +87,8 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         client.run_image.assert_called_once_with(agent, image_info)
 
     def _did_attach_networks(self):
-        # TODO(jimrollenhagen) we don't have primary mac address any more.
-        #                      revisit after restructuring network provider
-        return
         self.executor.network_provider.attach.assert_called_once_with(
-            self.chassis.primary_mac_address,
+            self.mac.hardware_id,
             list(self.instance.network_ids)[0]
         )
 
