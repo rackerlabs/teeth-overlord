@@ -21,7 +21,23 @@ from teeth_overlord import models
 from teeth_overlord import stats
 
 
-class CreateInstance(base.Job):
+class InstanceJob(base.Job):
+    def _mark_assets(self):
+        instance_id = self.request.params.get('instance_id')
+        lock_key = '/instances/{}'.format(instance_id)
+        with self.lock_manager.acquire(lock_key):
+            instance = models.Instance.objects.get(id=instance_id)
+            if self.request.state in (models.JobRequestState.COMPLETED,
+                                      models.JobRequestState.FAILED):
+                instance.job_id = None
+                instance.job_state = None
+            else:
+                instance.job_id = self.request.id
+                instance.job_state = self.request.state
+            instance.save()
+
+
+class CreateInstance(InstanceJob):
 
     """Job which creates an instance. In order to return a 201 response
     to the user, we actually create an Instance in the database in the
@@ -84,7 +100,7 @@ class CreateInstance(base.Job):
         self.mark_active(instance, chassis)
 
 
-class DeleteInstance(base.Job):
+class DeleteInstance(InstanceJob):
 
     """Job which deletes an instance.
     """

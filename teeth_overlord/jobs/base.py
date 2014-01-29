@@ -230,20 +230,9 @@ class Job(object):
             self._save_request()
             self._update_claim(ttl=INITIAL_RETRY_DELAY)
 
+    @abc.abstractmethod
     def _mark_assets(self):
-        if self.request.job_type.startswith('instances'):
-            instance_id = self.request.params.get('instance_id')
-            lock_key = '/instances/{}'.format(instance_id)
-            with self.lock_manager.acquire(lock_key):
-                instance = models.Instance.objects.get(id=instance_id)
-                if self.request.state in (models.JobRequestState.COMPLETED,
-                                          models.JobRequestState.FAILED):
-                    instance.job_id = None
-                    instance.job_state = None
-                else:
-                    instance.job_id = self.request.id
-                    instance.job_state = self.request.state
-                instance.save()
+        raise NotImplementedError()
 
     def execute(self):
         """Called to execute a job. Marks the request `RUNNING` in the
