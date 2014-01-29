@@ -106,3 +106,7 @@ class EtcdLockManager(object):
         except etcd.EtcdException:
             # lock was already released or expired
             pass
+
+
+def get_lock_manager(config):
+    return EtcdLockManager(config)

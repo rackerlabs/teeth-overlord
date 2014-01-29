@@ -189,7 +189,7 @@ class Job(object):
         self.request = request
         self.message = message
         self.config = config
-        self.lock_manager = locks.EtcdLockManager(config)
+        self.lock_manager = locks.get_lock_manager(config)
         self.log = structlog.get_logger(request_id=str(self.request.id),
                                         attempt_id=str(uuid.uuid4()),
                                         job_type=request.job_type)
