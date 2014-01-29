@@ -77,6 +77,13 @@ class MetadataBase(Base):
                     MAX_METADATA_KEY_COUNT))
 
 
+class ChassisPowerState(object):
+    """Possible power states that a chassis may be in."""
+    ON = 'ON'
+    OFF = 'OFF'
+    UNKNOWN = 'UNKNOWN'
+
+
 class ChassisState(object):
     """Possible states that a Chassis may be in."""
     BOOTSTRAP = 'BOOTSTRAP'
@@ -223,6 +230,7 @@ class Chassis(MetadataBase):
                       max_length=MAX_ID_LENGTH)
     state = columns.Ascii(index=True,
                           default=ChassisState.READY)
+    power_state = columns.Ascii(index=True, default=ChassisPowerState.ON)
     chassis_model_id = columns.Text(index=True,
                                     max_length=MAX_ID_LENGTH)
     instance_id = columns.Text(max_length=MAX_ID_LENGTH)
@@ -326,9 +334,8 @@ class HardwareToChassis(Base):
 
 class InstanceState(object):
     """Possible states than an Instance can be in."""
-    BUILD = 'BUILD'
+    INACTIVE = 'INACTIVE'
     ACTIVE = 'ACTIVE'
-    DELETING = 'DELETING'
     DELETED = 'DELETED'
 
 
@@ -341,8 +348,13 @@ class Instance(MetadataBase):
     flavor_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     image_id = columns.Text(required=True, max_length=MAX_ID_LENGTH)
     chassis_id = columns.Text(max_length=MAX_ID_LENGTH)
+    job_id = columns.Text(max_length=MAX_ID_LENGTH)
     network_ids = columns.Set(columns.Text, required=True, strict=False)
-    state = columns.Ascii(index=True, default=InstanceState.BUILD)
+
+    state = columns.Ascii(index=True, default=InstanceState.INACTIVE)
+    chassis_state = columns.Ascii()
+    power_state = columns.Ascii()  # chassis power state
+    job_state = columns.Ascii()
 
     def serialize(self, view):
         """Turn an Instance into a dict."""
@@ -371,6 +383,15 @@ class Instance(MetadataBase):
 
         instance.validate()
         return instance
+
+    def get_current_job(self):
+        if self.job_id is None:
+            return None
+        try:
+            job = JobRequest.objects.get(id=self.job_id)
+            return job
+        except JobRequest.DoesNotExist:
+            return None
 
 
 class AgentState(object):
@@ -466,6 +487,7 @@ class JobRequest(Base):
         """
         self.state = JobRequestState.COMPLETED
         self.touch()
+
 
 all_models = [
     Chassis,

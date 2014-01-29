@@ -66,7 +66,7 @@ class TestInstanceScheduler(tests.TeethMockTestUtilities):
             chassis_model_id=self.flavorprovider1.chassis_model_id)
 
         self.assertEqual(self.instance1.chassis_id, self.chassis1.id)
-        self.assertEqual(self.instance1.state, models.InstanceState.BUILD)
+        self.assertEqual(self.instance1.state, models.InstanceState.INACTIVE)
         self.assertEqual(self.chassis1.state, models.ChassisState.BUILD)
 
         instance_batch_mock = self.get_mock(models.Instance, 'batch')

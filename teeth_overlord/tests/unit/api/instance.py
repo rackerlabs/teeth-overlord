@@ -15,9 +15,11 @@ limitations under the License.
 """
 
 import json
+import mock
 
 from teeth_overlord.api import public
 from teeth_overlord import errors
+from teeth_overlord.jobs import instances as instance_jobs
 from teeth_overlord import models
 from teeth_overlord.networks import fake as network_provider
 from teeth_overlord import tests
@@ -395,11 +397,8 @@ class TestInstanceAPI(tests.TeethAPITestCase):
             'instances.delete',
             instance_id='instance1')
 
-        save_mock = self.get_mock(models.Instance, 'save')
-        self.assertEqual(save_mock.call_count, 1)
-        self.assertEqual(self.instance1.state, models.InstanceState.DELETING)
-
-    def test_delete_instance_already_deleted(self):
+    @mock.patch('teeth_overlord.locks.EtcdLockManager', autospec=True)
+    def test_delete_instance_already_deleted(self, mock_lock):
         self.instance_objects_mock.return_value = [self.instance2]
 
         response = self.make_request('DELETE',
@@ -407,13 +406,26 @@ class TestInstanceAPI(tests.TeethAPITestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.instance2.state, models.InstanceState.DELETED)
+        self.assertEqual(self.job_client_mock.submit_job.call_count, 0)
 
-        self.instance2.state = models.InstanceState.DELETING
+        # test "delete in progress"
+        job_params = {'instance_id': self.instance2.id}
+        job_request = models.JobRequest(id='delete_job',
+                                        job_type='instances.delete',
+                                        params=job_params)
+        job = instance_jobs.DeleteInstance(mock.Mock(),
+                                           job_request,
+                                           mock.Mock(),
+                                           self.config)
+        job.lock_manager = mock_lock
+        job._mark_assets()
+
         response = self.make_request('DELETE',
                                      '{url}/foobar'.format(url=self.url))
 
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(self.instance2.state, models.InstanceState.DELETING)
+        self.assertEqual(self.instance2.state, models.InstanceState.DELETED)
+        self.assertEqual(self.job_client_mock.submit_job.call_count, 0)
 
     def test_delete_instance_does_not_exist(self):
         self.instance_objects_mock.side_effect = models.Instance.DoesNotExist

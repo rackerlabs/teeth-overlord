@@ -31,7 +31,7 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         self.add_mock(models.Chassis, 'batch')
 
         self.instance = models.Instance(id='test_instance',
-                                        state=models.InstanceState.BUILD,
+                                        state=models.InstanceState.INACTIVE,
                                         name='instance',
                                         flavor_id='flavor_id',
                                         image_id='image_id',
@@ -59,7 +59,8 @@ class CreateInstanceTestCase(tests.TeethAPITestCase):
         }
         self.job = instance_jobs.CreateInstance(self.executor,
                                                 self.job_request,
-                                                self.message)
+                                                self.message,
+                                                self.config)
 
         client = self.executor.agent_client
         client.get_agent.return_value = None
@@ -161,7 +162,8 @@ class DeleteInstanceTestCase(tests.TeethAPITestCase):
         }
         self.job = instance_jobs.DeleteInstance(self.executor,
                                                 self.job_request,
-                                                self.message)
+                                                self.message,
+                                                self.config)
 
     def test_instance_delete_job(self):
         self.job._execute()
