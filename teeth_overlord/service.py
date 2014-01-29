@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import signal
+import string
 import threading
 import traceback
 
@@ -34,7 +35,21 @@ EXCEPTION_LOG_METHODS = ['error']
 def _capture_stack_trace(logger, method, event):
     if method in EXCEPTION_LOG_METHODS:
         event['exception'] = traceback.format_exc()
+    return event
 
+
+def _format_event(logger, method, event):
+    """Formats the log message using keyword args.
+    log('hello {keyword}', keyword='world') should log: "hello world"
+    Removes the keywords used for formatting from the logged message.
+    """
+    # Get a list of fields that need to be filled.
+    formatter = string.Formatter()
+    formatted = formatter.format(event['event'], **event)     
+    # Remove keys that were used in formatting from event.
+    for field in formatter.parse(event['event']):
+        del event[field[1]]
+    event['event'] = formatted
     return event
 
 
@@ -52,6 +67,7 @@ def global_setup(config):
 
         processors = [
             _capture_stack_trace,
+            _format_event,
         ]
 
         if config.PRETTY_LOGGING:
