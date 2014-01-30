@@ -50,10 +50,6 @@ class TeethAgentAPI(component.APIComponent):
         # Agent Handlers
         self.route('PUT', '/agents', self.update_agent)
 
-        self.route('GET',
-                   '/agents/<string:mac_address>/ports',
-                   self.fetch_ports)
-
     @stats.incr_stat('agents.update')
     def update_agent(self, request):
         """Creates or updates an agent with provided data."""
@@ -85,17 +81,6 @@ class TeethAgentAPI(component.APIComponent):
         expiry = time.time() + models.Agent.TTL
         headers = {'Heartbeat-Before': expiry}
         return responses.UpdatedResponse(headers=headers)
-
-    @stats.incr_stat('agents.fetch_ports')
-    def fetch_ports(self, request, mac_address):
-        """Returns 200 along with currently configured network ports."""
-        ports = self.network_provider.list_ports(mac_address)
-        ports = [p.serialize() for p in ports]
-        return responses.PaginatedResponse(request,
-                                           ports,
-                                           self.fetch_ports,
-                                           None,
-                                           DEFAULT_LIMIT)
 
 
 class TeethAgentAPIServer(component.APIServer):

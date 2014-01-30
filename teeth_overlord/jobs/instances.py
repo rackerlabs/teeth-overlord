@@ -49,13 +49,10 @@ class CreateInstance(InstanceJob):
 
     def attach_networks(self, instance, chassis):
         """Attach chassis to any configured networks."""
-        # TODO(jimrollenhagen) we don't have primary mac address any more.
-        #                      revisit after restructuring network provider
-        return
+        macs = chassis.get_mac_addresses()
         for network in instance.network_ids:
-            self.executor.network_provider.attach(
-                chassis.primary_mac_address,
-                network)
+            for mac in macs:
+                self.executor.network_provider.attach(mac, network)
 
     def prepare_and_run_image(self, instance, chassis, image_info, metadata,
                               files):

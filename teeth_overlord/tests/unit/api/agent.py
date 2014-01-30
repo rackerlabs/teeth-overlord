@@ -14,12 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 import mock
 
 from teeth_overlord.api import agent as agent_api
 from teeth_overlord import models
-from teeth_overlord.networks import fake as network_provider
 from teeth_overlord import tests
 
 
@@ -67,19 +65,3 @@ class TestAgentAPI(tests.TeethAPITestCase):
         self.assertEqual(response.status_code, 204)
         heartbeat_before = response.headers['Heartbeat-Before']
         self.assertEqual(heartbeat_before, str(models.Agent.TTL))
-
-    def test_fetch_ports(self):
-        # TODO(jimrollenhagen) we don't have primary mac address any more.
-        #                      revisit after restructuring network provider
-        return
-
-        response = self.make_request(
-            'GET', '{}/ports'.format(self.url))
-
-        self.assertEqual(
-            response.status_code, 200)
-
-        self.assertEqual(
-            json.loads(response.data)['items'][0],
-            network_provider.FAKE_PORT.serialize()
-        )
