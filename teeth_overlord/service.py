@@ -45,6 +45,9 @@ def _format_event(logger, method, event):
     Throws a KeyError if the log message requires formatting but doesn't
     have enough keys to format.
     """
+    if 'event' not in event:
+        # nothing to format, e.g. _log_request in teeth_rest/component
+        return event
     # Get a list of fields that need to be filled.
     formatter = string.Formatter()
     try:
