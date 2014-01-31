@@ -17,6 +17,8 @@ limitations under the License.
 import abc
 import uuid
 
+import structlog
+
 
 class BaseAgentClient(object):
     """Client for interacting with agents.
@@ -30,6 +32,7 @@ class BaseAgentClient(object):
 
     def __init__(self, config):
         self.config = config
+        self.log = structlog.get_logger()
 
     def new_task_id(self):
         """Generate a serialized UUID for use as a task ID."""

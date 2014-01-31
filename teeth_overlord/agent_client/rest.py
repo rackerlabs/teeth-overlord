@@ -88,6 +88,9 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def secure_drives(self, agent, drives, key):
         """Secures given drives with given key."""
+        self.log.info('Securing drives {drives} for agent {agent}',
+                      drives=drives,
+                      agent=agent.url)
         return self._command(agent, 'decom.secure_drives', {
             'drives': drives,
             'key': key,
@@ -95,6 +98,9 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def erase_drives(self, agent, drives, key):
         """Erases given drives."""
+        self.log.info('Erasing drives {drives} for agent {agent}',
+                      drives=drives,
+                      agent=agent.url)
         return self._command(agent, 'decom.erase_drives', {
             'drives': drives,
             'key': key,
