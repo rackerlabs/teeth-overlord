@@ -72,7 +72,7 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
     def test_prepare_image(self):
         _command = self._mock_attr(self.client, '_command')
-        image_info = {}
+        image_info = {'image_id': 'image'}
         metadata = {}
         files = {}
         params = {

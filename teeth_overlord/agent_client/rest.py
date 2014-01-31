@@ -74,7 +74,7 @@ class RESTAgentClient(base.BaseAgentClient):
     def prepare_image(self, agent, image_info, metadata, files):
         """Call the `prepare_image` method on the agent."""
         self.log.debug('Preparing image {image} on agent {agent}.',
-                       image=image_info['image_id'],
+                       image=image_info.get('image_id'),
                        agent=agent.url)
         return self._command(agent, 'standby.prepare_image', {
             'image_info': image_info,
