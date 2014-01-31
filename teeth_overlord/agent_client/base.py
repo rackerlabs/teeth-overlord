@@ -56,3 +56,13 @@ class BaseAgentClient(object):
     def run_image(self, agent, image_id):
         """Run the specified image."""
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def secure_drives(self, agent, drives, key):
+        """Secures given drives with given key."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def erase_drives(self, agent, drives, key):
+        """Erases given drives."""
+        raise NotImplementedError

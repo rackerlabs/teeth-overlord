@@ -85,3 +85,17 @@ class RESTAgentClient(base.BaseAgentClient):
             'task_id': self.new_task_id(),
             'image_id': image_id,
         })
+
+    def secure_drives(self, agent, drives, key):
+        """Secures given drives with given key."""
+        return self._command(agent, 'decom.secure_drives', {
+            'drives': drives,
+            'key': key,
+        })
+
+    def erase_drives(self, agent, drives, key):
+        """Erases given drives."""
+        return self._command(agent, 'decom.erase_drives', {
+            'drives': drives,
+            'key': key,
+        })
