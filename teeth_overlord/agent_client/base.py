@@ -44,10 +44,8 @@ class BaseAgentClient(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def cache_images(self, agent, image_ids):
-        """Attempt to cache the specified images. Images are specified in
-        priority order, and may not all be cached.
-        """
+    def cache_image(self, agent, image_id):
+        """Attempt to cache the specified image."""
         raise NotImplementedError
 
     @abc.abstractmethod

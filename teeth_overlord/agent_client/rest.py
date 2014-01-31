@@ -61,13 +61,11 @@ class RESTAgentClient(base.BaseAgentClient):
         except models.Agent.DoesNotExist:
             raise errors.AgentNotConnectedError(chassis.id)
 
-    def cache_images(self, agent, image_ids):
-        """Attempt to cache the specified images. Images are specified in
-        priority order, and may not all be cached.
-        """
-        return self._command(agent, 'standby.cache_images', {
+    def cache_image(self, agent, image_id):
+        """Attempt to cache the specified image."""
+        return self._command(agent, 'standby.cache_image', {
             'task_id': self.new_task_id(),
-            'image_ids': image_ids,
+            'image_id': image_id,
         })
 
     def prepare_image(self, agent, image_info, metadata, files):

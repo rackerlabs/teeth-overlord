@@ -59,14 +59,14 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
                           self.chassis)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
-    def test_cache_images(self):
+    def test_cache_image(self):
         _command = self._mock_attr(self.client, '_command')
-        image_ids = ['test_image', 'test_image_2']
-        params = {'task_id': 'uuid', 'image_ids': image_ids}
+        image_id = 'test_image'
+        params = {'task_id': 'uuid', 'image_id': image_id}
 
-        self.client.cache_images(self.agent, image_ids)
+        self.client.cache_image(self.agent, image_id)
         _command.assert_called_once_with(self.agent,
-                                         'standby.cache_images',
+                                         'standby.cache_image',
                                          params)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
