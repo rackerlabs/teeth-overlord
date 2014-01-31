@@ -65,14 +65,14 @@ class RESTAgentClient(base.BaseAgentClient):
         """Attempt to cache the specified images. Images are specified in
         priority order, and may not all be cached.
         """
-        return self._command(agent, 'cache_images', {
+        return self._command(agent, 'standby.cache_images', {
             'task_id': self.new_task_id(),
             'image_ids': image_ids,
         })
 
     def prepare_image(self, agent, image_info, metadata, files):
         """Call the `prepare_image` method on the agent."""
-        return self._command(agent, 'prepare_image', {
+        return self._command(agent, 'standby.prepare_image', {
             'image_info': image_info,
             'metadata': metadata,
             'files': files,
@@ -81,7 +81,7 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def run_image(self, agent, image_id):
         """Run the specified image."""
-        return self._command(agent, 'run_image', {
+        return self._command(agent, 'standby.run_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
         })
