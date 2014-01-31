@@ -63,6 +63,9 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def cache_image(self, agent, image_id):
         """Attempt to cache the specified image."""
+        self.log.debug('Caching image {image} on agent {agent}.',
+                       image=image_id,
+                       agent=agent.url)
         return self._command(agent, 'standby.cache_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
@@ -70,6 +73,9 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def prepare_image(self, agent, image_info, metadata, files):
         """Call the `prepare_image` method on the agent."""
+        self.log.debug('Preparing image {image} on agent {agent}.',
+                       image=image_info['image_id'],
+                       agent=agent.url)
         return self._command(agent, 'standby.prepare_image', {
             'image_info': image_info,
             'metadata': metadata,
@@ -79,6 +85,9 @@ class RESTAgentClient(base.BaseAgentClient):
 
     def run_image(self, agent, image_id):
         """Run the specified image."""
+        self.log.debug('Running image {image} on agent {agent}.',
+                       image=image_id,
+                       agent=agent.url)
         return self._command(agent, 'standby.run_image', {
             'task_id': self.new_task_id(),
             'image_id': image_id,
