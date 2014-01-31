@@ -101,6 +101,28 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
                                          'standby.run_image',
                                          params)
 
+    def test_secure_drives(self):
+        _command = self._mock_attr(self.client, '_command')
+        key = 'lol'
+        drives = ['/dev/sda']
+        params = {'key': key, 'drives': drives}
+
+        self.client.secure_drives(self.agent, drives, key)
+        _command.assert_called_once_with(self.agent,
+                                         'decom.secure_drives',
+                                         params)
+
+    def test_erase_drives(self):
+        _command = self._mock_attr(self.client, '_command')
+        key = 'lol'
+        drives = ['/dev/sda']
+        params = {'key': key, 'drives': drives}
+
+        self.client.erase_drives(self.agent, drives, key)
+        _command.assert_called_once_with(self.agent,
+                                         'decom.erase_drives',
+                                         params)
+
     def test_command(self):
         response_data = {'status': 'ok'}
         self.client.session.post.return_value = MockResponse(response_data)

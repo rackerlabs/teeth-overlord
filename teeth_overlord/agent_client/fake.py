@@ -37,3 +37,11 @@ class FakeAgentClient(base.BaseAgentClient):
     def run_image(self, agent, image_id):
         """Run the specified image."""
         return
+
+    def secure_drives(self, agent, drives, key):
+        """Secures given drives with given key."""
+        pass
+
+    def erase_drives(self, agent, drives, key):
+        """Erases given drives."""
+        pass

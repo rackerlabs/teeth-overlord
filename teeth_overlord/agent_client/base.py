@@ -17,6 +17,8 @@ limitations under the License.
 import abc
 import uuid
 
+import structlog
+
 
 class BaseAgentClient(object):
     """Client for interacting with agents.
@@ -30,6 +32,7 @@ class BaseAgentClient(object):
 
     def __init__(self, config):
         self.config = config
+        self.log = structlog.get_logger()
 
     def new_task_id(self):
         """Generate a serialized UUID for use as a task ID."""
@@ -55,4 +58,14 @@ class BaseAgentClient(object):
     @abc.abstractmethod
     def run_image(self, agent, image_id):
         """Run the specified image."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def secure_drives(self, agent, drives, key):
+        """Secures given drives with given key."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def erase_drives(self, agent, drives, key):
+        """Erases given drives."""
         raise NotImplementedError
