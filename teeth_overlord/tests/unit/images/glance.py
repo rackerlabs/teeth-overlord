@@ -121,7 +121,9 @@ class TestGlanceProvider(tests.TeethMockTestUtilities):
             'KEYSTONE_TENANT_ID': 'tenant',
             'KEYSTONE_AUTH_URL': 'auth_url',
             'GLANCE_VERSION': '2',
-            'GLANCE_URL': 'glance_url'
+            'GLANCE_URL': 'glance_url',
+            'SWIFT_URL': 'http://10.127.75.253:8080/',
+            'SWIFT_TEMP_URL_KEY': 'b3968d0207b54ece87cccc06515a89d4'
         })
 
         self.glance_mock = self.add_mock(glanceclient, 'Client')
