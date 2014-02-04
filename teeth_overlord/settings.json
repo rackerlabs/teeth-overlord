@@ -43,6 +43,7 @@
 
 "GLANCE_VERSION": "2",
 "GLANCE_URL": "http://192.168.33.2:9292/",
+"GLANCE_SWIFT_CONTAINER": "glance",
 
 "SWIFT_VERSION": "2",
 "SWIFT_URL": "http://192.168.33.2:8080/",

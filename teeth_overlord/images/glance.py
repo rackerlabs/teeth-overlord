@@ -53,14 +53,25 @@ class GlanceImageProvider(base.BaseImageProvider):
                 'Cannot Initialize Glance Client: {}'.format(str(e)))
 
     def _get_temp_url(self, url, temp_url_duration=3600):
+        # Parse out filename from glance url
+        try:
+            object_name = url.split('/')[3]
+        except KeyError as e:
+            raise self.ImageProviderException(
+                'Image URL {} improperly formatted'.format(str(e))
+            )
+        template = "/v1/AUTH_{tenant}/{container}/{object_name}"
+        url = template.format(tenant=self.config.KEYSTONE_TENANT_ID,
+                              container=self.config.GLANCE_SWIFT_CONTAINER,
+                              object_name=object_name)
         method = "GET"
         key = self.config.SWIFT_TEMP_URL_KEY.encode('ascii', 'ignore')
         expiration = int(time.time() + temp_url_duration)
         hmac_body = "\n".join([method, str(expiration), url])
         sig = hmac.new(key, hmac_body, hashlib.sha1).hexdigest()
-
+        host = self.config.GLANCE_URL.rstrip('/')
         return "{url}?temp_url_sig={sig}&temp_url_expires={exp}".format(
-            url=url, sig=sig, exp=expiration)
+            host=host, url=url, sig=sig, exp=expiration).lstrip('/')
 
     def _get_urls(self, image):
         host = self.config.GLANCE_URL
@@ -68,13 +79,14 @@ class GlanceImageProvider(base.BaseImageProvider):
         return ['{}/{}'.format(host.rstrip('/'), path.lstrip('/'))]
 
     def _get_hashes(self, image):
-        return {'md5': image['checksum']}
+
+        return {'md5': image.get('checksum', None)}
 
     def _make_image_info(self, image):
         host = self.config.SWIFT_URL
 
         urls = ['{}/{}'.format(host.rstrip('/'),
-                               self._get_temp_url(image['file']).lstrip('/'))]
+                               self._get_temp_url(image['file'])).lstrip('/')]
 
         return base.ImageInfo(id=image['id'],
                               name=image['name'],

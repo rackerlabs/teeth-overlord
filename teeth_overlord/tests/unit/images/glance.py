@@ -21,6 +21,10 @@ from glanceclient import exc as glance_exceptions
 from keystoneclient.apiclient import exceptions as keystone_exceptions
 from keystoneclient.v2_0 import client as keystoneclient
 
+import hmac
+import mock
+import time
+
 from teeth_overlord import config
 from teeth_overlord.images import glance
 from teeth_overlord import tests
@@ -89,22 +93,25 @@ FAKE_IMAGE_INFO = [
     collections.OrderedDict([
         ('id', u'cab0fa89-4bcc-41d2-b500-3642c544d174'),
         ('name', u'cirros-0.3.1-x86_64-uec'),
-        ('urls', [('glance_url/v2/images/') +
-                  ('cab0fa89-4bcc-41d2-b500-3642c544d174/file')]),
+        ('urls', [('http://10.127.75.253:8080/v1/AUTH_tenant/glance/') +
+                  ('cab0fa89-4bcc-41d2-b500-3642c544d174?temp_url_sig=') +
+                  ('4a23aaec863f1bd0974d4e83910d3e17&temp_url_expires=3642')]),
         ('hashes', {'md5': u'f8a2eeee2dc65b3d9b6e63678955bd83'})
     ]),
     collections.OrderedDict([
         ('id', u'a45a26c5-2813-4b15-9220-180c581bf16c'),
         ('name', u'cirros-0.3.1-x86_64-uec-ramdisk'),
-        ('urls', [('glance_url/v2/images/') +
-                  ('a45a26c5-2813-4b15-9220-180c581bf16c/file')]),
+        ('urls', [('http://10.127.75.253:8080/v1/AUTH_tenant/glance/') +
+                  ('a45a26c5-2813-4b15-9220-180c581bf16c?temp_url_sig=') +
+                  ('4a23aaec863f1bd0974d4e83910d3e17&temp_url_expires=3642')]),
         ('hashes', {'md5': u'69c33642f44ca552ba4bb8b66ad97e85'})
     ]),
     collections.OrderedDict([
         ('id', u'b134ff0b-1d27-48d5-9a5b-fbd0c1f559cc'),
         ('name', u'cirros-0.3.1-x86_64-uec-kernel'),
-        ('urls', [('glance_url/v2/images/') +
-                  ('b134ff0b-1d27-48d5-9a5b-fbd0c1f559cc/file')]),
+        ('urls', [('http://10.127.75.253:8080/v1/AUTH_tenant/glance/') +
+                  ('b134ff0b-1d27-48d5-9a5b-fbd0c1f559cc?temp_url_sig=') +
+                  ('4a23aaec863f1bd0974d4e83910d3e17&temp_url_expires=3642')]),
         ('hashes', {'md5': u'c352f4e7121c6eae958bc1570324f17e'})
     ])
 ]
@@ -122,10 +129,12 @@ class TestGlanceProvider(tests.TeethMockTestUtilities):
             'KEYSTONE_AUTH_URL': 'auth_url',
             'GLANCE_VERSION': '2',
             'GLANCE_URL': 'glance_url',
+            'GLANCE_SWIFT_CONTAINER': 'glance',
             'SWIFT_URL': 'http://10.127.75.253:8080/',
             'SWIFT_TEMP_URL_KEY': 'b3968d0207b54ece87cccc06515a89d4'
-        })
 
+
+        })
         self.glance_mock = self.add_mock(glanceclient, 'Client')
 
         self.keystone_mock = self.add_mock(keystoneclient, 'Client')
@@ -139,6 +148,8 @@ class TestGlanceProvider(tests.TeethMockTestUtilities):
         self.glance_mock.return_value.images.get.return_value = r
 
         p = self.provider(self.config)
+        hmac.new = mock.Mock(return_value=hmac.new('abc'))
+        time.time = mock.Mock(return_value=42)
 
         info = p.get_image_info('foo')
 
@@ -158,7 +169,6 @@ class TestGlanceProvider(tests.TeethMockTestUtilities):
         self.assertEqual(info.serialize(), FAKE_IMAGE_INFO[0])
 
     def test_list_images(self):
-
         r = FAKE_IMAGES_RESPONSE
         self.glance_mock.return_value.images.list.return_value = r
 
