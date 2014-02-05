@@ -32,6 +32,7 @@ from teeth_overlord.oob import base as oob_base
 from teeth_overlord import scheduler
 from teeth_overlord import service
 from teeth_overlord import stats
+from teeth_overlord import util
 
 
 JOB_QUEUE_NAME = 'teeth_jobs'
@@ -60,7 +61,8 @@ JITTER = .2
 CLAIM_GRACE = 60 * 60 * 12
 
 # Poll frequently. Help keep build times low.
-POLLING_INTERVAL = 0.1
+BASE_POLLING_INTERVAL = 0.1
+MAX_POLLING_INTERVAL = 30
 
 
 class JobExecutor(service.SynchronousTeethService):
@@ -72,6 +74,8 @@ class JobExecutor(service.SynchronousTeethService):
         self.config = config
         self.log = structlog.get_logger()
         self.agent_client = agent_client.get_agent_client(config)
+        self.interval_timer = util.IntervalTimer(BASE_POLLING_INTERVAL,
+                                                 MAX_POLLING_INTERVAL)
         self.job_client = JobClient(config)
         self.image_provider = images_base.get_image_provider(config)
         self.oob_provider = oob_base.get_oob_provider(config)
@@ -105,15 +109,14 @@ class JobExecutor(service.SynchronousTeethService):
                                                    CLAIM_TTL,
                                                    CLAIM_GRACE)
             except Exception as e:
-                # TODO(russellhaering): some sort of backoff if queueing system
-                # is down
                 self.log.error('error claiming message', exception=e)
-                message = None
+                self.interval_timer.wait(event=self.stopping, error=True)
+                return
 
             if not message:
-                # Wait up to POLLING_INTERVAL seconds before releasing the
+                # Wait up to BASE_POLLING_INTERVAL seconds before releasing the
                 # lock, but bail out early if the stopping flag gets set.
-                self.stopping.wait(POLLING_INTERVAL)
+                self.interval_timer.wait(event=self.stopping)
                 return
 
         job_request_id = message.body['job_request_id']
