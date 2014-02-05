@@ -60,17 +60,17 @@ class GlanceImageProvider(base.BaseImageProvider):
             raise self.ImageProviderException(
                 'Image URL {} improperly formatted'.format(str(e))
             )
-        template = "/v1/AUTH_{tenant}/{container}/{object_name}"
+        template = '/v1/AUTH_{tenant}/{container}/{object_name}'
         url = template.format(tenant=self.config.KEYSTONE_TENANT_ID,
                               container=self.config.GLANCE_SWIFT_CONTAINER,
                               object_name=object_name)
-        method = "GET"
+        method = 'GET'
         key = self.config.SWIFT_TEMP_URL_KEY.encode('ascii', 'ignore')
         expiration = int(time.time() + temp_url_duration)
-        hmac_body = "\n".join([method, str(expiration), url])
+        hmac_body = '\n'.join([method, str(expiration), url])
         sig = hmac.new(key, hmac_body, hashlib.sha1).hexdigest()
         host = self.config.GLANCE_URL.rstrip('/')
-        return "{url}?temp_url_sig={sig}&temp_url_expires={exp}".format(
+        return '{url}?temp_url_sig={sig}&temp_url_expires={exp}'.format(
             host=host, url=url, sig=sig, exp=expiration).lstrip('/')
 
     def _get_urls(self, image):
