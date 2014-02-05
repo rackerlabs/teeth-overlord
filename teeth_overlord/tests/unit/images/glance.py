@@ -116,6 +116,16 @@ FAKE_IMAGE_INFO = [
     ])
 ]
 
+FAKE_GLANCE_IMAGE_INFO = [
+    collections.OrderedDict([
+        ('id', u'cab0fa89-4bcc-41d2-b500-3642c544d174'),
+        ('name', u'cirros-0.3.1-x86_64-uec'),
+        ('urls', ['http://glance/v2/images/cab0fa89-4bcc-41d2-b500-' +
+                  '3642c544d174/file']),
+        ('hashes', {'md5': u'f8a2eeee2dc65b3d9b6e63678955bd83'})
+    ])
+]
+
 
 class TestGlanceProvider(tests.TeethMockTestUtilities):
 
@@ -168,6 +178,47 @@ class TestGlanceProvider(tests.TeethMockTestUtilities):
         self.glance_mock().images.get.assert_called_with('foo')
 
         self.assertEqual(info.serialize(), FAKE_IMAGE_INFO[0])
+
+    def test_get_glance_image_info(self):
+        # Switch glance_backend to test default url handler
+        self.config = config.LazyConfig(config={
+            'KEYSTONE_USER': 'user',
+            'KEYSTONE_PASS': 'pass',
+            'KEYSTONE_TENANT_ID': 'tenant',
+            'KEYSTONE_AUTH_URL': 'auth_url',
+            'GLANCE_VERSION': '2',
+            'GLANCE_URL': 'http://glance/',
+            'GLANCE_SWIFT_CONTAINER': '',
+            'GLANCE_BACKEND': 'glance',
+            'SWIFT_URL': 'http://10.127.75.253:8080/',
+            'SWIFT_TEMP_URL_KEY': 'b3968d0207b54ece87cccc06515a89d4',
+            'SWIFT_TEMP_URL_DURATION': 3600,
+            'SWIFT_TEMP_URL_METHOD': 'GET'
+        })
+
+        r = FAKE_IMAGES_RESPONSE[0]
+        self.glance_mock.return_value.images.get.return_value = r
+
+        p = self.provider(self.config)
+        hmac.new = mock.Mock(return_value=hmac.new('abc'))
+        time.time = mock.Mock(return_value=42)
+
+        info = p.get_image_info('foo')
+
+        self.keystone_mock.assertCalledWith(
+            username=self.config.KEYSTONE_USER,
+            password=self.config.KEYSTONE_PASS,
+            tenant_id=self.config.KEYSTONE_TENANT_ID,
+            auth_url=self.config.KEYSTONE_AUTH_URL)
+
+        self.glance_mock.assertCalledWith(
+            self.config.GLANCE_VERSION,
+            endpoint=self.config.GLANCE_URL,
+            token='auth_token')
+
+        self.glance_mock().images.get.assert_called_with('foo')
+
+        self.assertEqual(info.serialize(), FAKE_GLANCE_IMAGE_INFO[0])
 
     def test_list_images(self):
         r = FAKE_IMAGES_RESPONSE

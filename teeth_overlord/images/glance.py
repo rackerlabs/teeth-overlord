@@ -79,7 +79,7 @@ class GlanceImageProvider(base.BaseImageProvider):
             raise self.ImageProviderException(
                 'Image URL {} improperly formatted'.format(str(e))
             )
- 
+
         template = '/v1/AUTH_{tenant}/{container}/{object_name}'
         url = template.format(tenant=self.config.KEYSTONE_TENANT_ID,
                               container=self.config.GLANCE_SWIFT_CONTAINER,
