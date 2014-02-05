@@ -30,6 +30,13 @@ import time
 class GlanceImageProvider(base.BaseImageProvider):
     """A static image provider useful in a dev environment."""
 
+    # A map of possible values for Glance backend
+    def __init__(self, config):
+        super(GlanceImageProvider, self).__init__(config)
+        self.backend_map = {}
+        self.backend_map['swift'] = self._get_swift_temp_urls
+        self.backend_map['glance'] = self._get_glance_urls
+
     def _get_auth_token(self):
         try:
             auth = keystone_client.Client(
@@ -52,52 +59,62 @@ class GlanceImageProvider(base.BaseImageProvider):
             raise self.ImageProviderException(
                 'Cannot Initialize Glance Client: {}'.format(str(e)))
 
-    def _get_temp_url(self, url, temp_url_duration=3600):
+    def _get_swift_temp_urls(self, url):
+        try:
+            key = self.config.SWIFT_TEMP_URL_KEY.encode('ascii', 'ignore')
+        except UnicodeDecodeError:
+            raise ValueError('SWIFT_TEMP_URL_KEY must be an ascii key.')
+        try:
+            temp_url_duration = int(self.config.SWIFT_TEMP_URL_DURATION)
+        except ValueError:
+            raise ValueError('SWIFT_TEMP_URL_DURATION must be an integer.')
+        method = self.config.SWIFT_TEMP_URL_METHOD
+        if method not in ['GET', 'PUT']:
+            raise ValueError('SWIFT_TEMP_URL_METHOD must be either GET or PUT')
+
         # Parse out filename from glance url
         try:
-            object_name = url.split('/')[3]
+            object_name = url['file'].split('/')[3]
         except KeyError as e:
             raise self.ImageProviderException(
                 'Image URL {} improperly formatted'.format(str(e))
             )
+
         template = '/v1/AUTH_{tenant}/{container}/{object_name}'
         url = template.format(tenant=self.config.KEYSTONE_TENANT_ID,
                               container=self.config.GLANCE_SWIFT_CONTAINER,
-                              object_name=object_name)
-        method = 'GET'
-        key = self.config.SWIFT_TEMP_URL_KEY.encode('ascii', 'ignore')
+                              object_name=object_name).lstrip('/')
+
         expiration = int(time.time() + temp_url_duration)
         hmac_body = '\n'.join([method, str(expiration), url])
         sig = hmac.new(key, hmac_body, hashlib.sha1).hexdigest()
-        host = self.config.GLANCE_URL.rstrip('/')
-        return '{url}?temp_url_sig={sig}&temp_url_expires={exp}'.format(
-            host=host, url=url, sig=sig, exp=expiration).lstrip('/')
+        host = self.config.SWIFT_URL.rstrip('/')
+        return ['{host}/{url}?temp_url_sig={sig}&temp_url_expires={exp}'
+                .format(host=host, url=url, sig=sig, exp=expiration)]
 
-    def _get_urls(self, image):
+    def _get_glance_urls(self, image):
+        """Warning: provides a protected URL.
+        """
         host = self.config.GLANCE_URL
         path = image['file']
         return ['{}/{}'.format(host.rstrip('/'), path.lstrip('/'))]
 
     def _get_hashes(self, image):
-
         return {'md5': image.get('checksum', None)}
 
     def _make_image_info(self, image):
-        host = self.config.SWIFT_URL
+        # Decide which url function we should use, defaulting to glance.
+        glance_backend = self.config.GLANCE_BACKEND or "glance"
+        if glance_backend not in self.backend_map.keys():
+            raise ValueError("GLANCE_BACKEND must be one of: {}".format(
+                self.backend_map.keys()
+            ))
 
-        urls = ['{}/{}'.format(host.rstrip('/'),
-                               self._get_temp_url(image['file'])).lstrip('/')]
-
+        urls = self.backend_map[glance_backend](image)
         return base.ImageInfo(id=image['id'],
                               name=image['name'],
                               urls=urls,
                               hashes=self._get_hashes(image))
-
-    def _set_swift_temp_key(self):
-        pass
-
-    def _get_swift_temp_key(self):
-        pass
 
     def get_image_info(self, image_id):
         glance = self._get_glance_client()
@@ -115,9 +132,6 @@ class GlanceImageProvider(base.BaseImageProvider):
         return image_info
 
     def list_images(self):
-        """Lists the images, including a Swift temp url
-        :param temp_url_duration: how long the temp url is good for (in secs)
-        """
         glance = self._get_glance_client()
 
         try:

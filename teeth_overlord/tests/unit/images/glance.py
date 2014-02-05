@@ -130,10 +130,11 @@ class TestGlanceProvider(tests.TeethMockTestUtilities):
             'GLANCE_VERSION': '2',
             'GLANCE_URL': 'glance_url',
             'GLANCE_SWIFT_CONTAINER': 'glance',
+            'GLANCE_BACKEND': 'swift',
             'SWIFT_URL': 'http://10.127.75.253:8080/',
-            'SWIFT_TEMP_URL_KEY': 'b3968d0207b54ece87cccc06515a89d4'
-
-
+            'SWIFT_TEMP_URL_KEY': 'b3968d0207b54ece87cccc06515a89d4',
+            'SWIFT_TEMP_URL_DURATION': 3600,
+            'SWIFT_TEMP_URL_METHOD': 'GET'
         })
         self.glance_mock = self.add_mock(glanceclient, 'Client')
 
