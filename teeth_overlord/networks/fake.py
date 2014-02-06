@@ -53,21 +53,21 @@ FAKE_NETWORKS = {
         id='PUBLIC_NETWORK',
         name='PUBLIC_NETWORK',
         status='ACTIVE',
-        subnets=FAKE_SUBNETS['PUBLIC_SUBNET'].serialize()
+        subnets=[FAKE_SUBNETS['PUBLIC_SUBNET'].serialize()]
     ),
 
     'PRIVATE_NETWORK': base.NetworkInfo(
         id='PRIVATE_NETWORK',
         name='PRIVATE_NETWORK',
         status='ACTIVE',
-        subnets=FAKE_SUBNETS['PRIVATE_SUBNET'].serialize()
+        subnets=[FAKE_SUBNETS['PRIVATE_SUBNET'].serialize()]
     ),
 
     'SERVICE_NETWORK': base.NetworkInfo(
         id='SERVICE_NETWORK',
         name='SERVICE_NETWORK',
         status='ACTIVE',
-        subnets=FAKE_SUBNETS['SERVICE_SUBNET'].serialize()
+        subnets=[FAKE_SUBNETS['SERVICE_SUBNET'].serialize()]
     )
 }
 
