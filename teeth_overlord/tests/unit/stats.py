@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import mock
+import time
 import unittest
 
 import statsd
@@ -40,6 +41,23 @@ class SomeClass(object):
     def error_func(self):
         raise SpecificException
 
+    @stats.decr_stat('somestat')
+    def decr_success_func(self):
+        pass
+
+    @stats.decr_stat('somestat')
+    def decr_error_func(self):
+        raise SpecificException
+
+    @stats.timer_stat('somestat')
+    def sleep_func(self, duration=1):
+        time.sleep(duration)
+
+    @stats.timer_stat('somestat')
+    def sleep_error_func(self, duration=1):
+        time.sleep(duration)
+        raise SpecificException
+
 
 class StatsClientTestCase(unittest.TestCase):
 
@@ -63,6 +81,29 @@ class StatsClientTestCase(unittest.TestCase):
     def test_error_incrs_error_stat(self):
         self.assertRaises(SpecificException, self.some_object.error_func)
         self.mock_stats_client.incr.assert_called_once_with('somestat.error')
+
+    def test_success_decrs_success_stat(self):
+        self.some_object.decr_success_func()
+        self.mock_stats_client.decr.assert_called_once_with('somestat.success')
+
+    def test_error_decrs_error_stat(self):
+        self.assertRaises(SpecificException, self.some_object.decr_error_func)
+        self.mock_stats_client.decr.assert_called_once_with('somestat.error')
+
+    def test_success_timing_stat(self):
+        self.some_object.sleep_func(1)
+        args = self.mock_stats_client.timing.call_args[0]
+        self.assertEqual(args[0], 'somestat.success')
+        # Assert the sent value is within 5 milliseconds of 1 sec.
+        self.assertLessEqual(args[1] - 1000, 5)
+
+    def test_error_timing_stat(self):
+        with self.assertRaises(SpecificException):
+            self.some_object.sleep_error_func(1)
+        args = self.mock_stats_client.timing.call_args[0]
+        self.assertEqual(args[0], 'somestat.error')
+        # Assert the sent value is within 5 milliseconds of 1 sec.
+        self.assertLessEqual(args[1] - 1000, 5)
 
 
 class ConcurrencyGaugeTestCase(unittest.TestCase):

@@ -18,6 +18,7 @@ import functools
 import threading
 
 import statsd
+import time
 
 
 class NoopStatsClient(object):
@@ -111,3 +112,48 @@ def incr_stat(key):
                 return ret
         return wrapper
     return incr_decorator
+
+
+def decr_stat(key):
+    """Decorator that decrements a stat with the given key. Decorated function
+    must be a bound method on a class that has a stats_client attribute.
+    Useful for rolling back stats on failures.
+    """
+    def decr_decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            client = self.stats_client
+            try:
+                ret = func(self, *args, **kwargs)
+            except Exception:
+                client.decr('{}.error'.format(key))
+                raise
+            else:
+                client.decr('{}.success'.format(key))
+                return ret
+        return wrapper
+    return decr_decorator
+
+
+def timer_stat(key):
+    """Decorator that times the execution time of a function. Decorated
+    function must be a bound method on a class that has a stats_client
+    attribute.
+    """
+    def timer_decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            client = self.stats_client
+            start = time.time()
+            try:
+                ret = func(self, *args, **kwargs)
+            except Exception:
+                dt = int((time.time() - start) * 1000)
+                client.timing('{}.error'.format(key), dt)
+                raise
+            else:
+                dt = int((time.time() - start) * 1000)
+                client.timing('{}.success'.format(key), dt)
+                return ret
+        return wrapper
+    return timer_decorator
