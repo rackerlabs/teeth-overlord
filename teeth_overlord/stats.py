@@ -148,11 +148,11 @@ def timer_stat(key):
             try:
                 ret = func(self, *args, **kwargs)
             except Exception:
-                dt = int((time.time() - start) * 1000)
+                dt = int((time.time() - start))
                 client.timing('{}.error'.format(key), dt)
                 raise
             else:
-                dt = int((time.time() - start) * 1000)
+                dt = int((time.time() - start))
                 client.timing('{}.success'.format(key), dt)
                 return ret
         return wrapper
