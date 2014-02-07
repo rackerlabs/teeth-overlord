@@ -94,7 +94,7 @@ class StatsClientTestCase(unittest.TestCase):
     @mock.patch('time.time')
     def test_success_timing_stat(self, time_mock, sleep_mock):
         sleep_mock.return_value = None
-        time_mock.side_effects = [10, 15]
+        time_mock.side_effect = [10, 15]
         self.some_object.sleep_func(1)
         args = self.mock_stats_client.timing.call_args[0]
         self.assertEqual(args[0], 'somestat.success')
@@ -104,7 +104,7 @@ class StatsClientTestCase(unittest.TestCase):
     @mock.patch('time.time')
     def test_error_timing_stat(self, time_mock, sleep_mock):
         sleep_mock.return_value = None
-        time_mock.side_effects = [10, 11]
+        time_mock.side_effect = [10, 15]
         with self.assertRaises(SpecificException):
             self.some_object.sleep_error_func(1)
         args = self.mock_stats_client.timing.call_args[0]
