@@ -466,7 +466,7 @@ class JobRequest(Base):
                       default=uuid_str,
                       max_length=MAX_ID_LENGTH)
     job_type = columns.Ascii(required=True)
-    params = columns.Map(columns.Ascii, columns.Ascii)
+    params = JSONDictionary()
     state = columns.Ascii(index=True, default=JobRequestState.READY)
     failed_attempts = columns.Integer(default=0)
     submitted_at = C2DateTime(default=datetime.datetime.now)
@@ -477,7 +477,7 @@ class JobRequest(Base):
         return collections.OrderedDict([
             ('id', self.id),
             ('job_type', self.job_type),
-            ('params', self.params.to_python),
+            ('params', self.params),
         ])
 
     def touch(self):
