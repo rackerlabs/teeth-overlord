@@ -111,6 +111,35 @@ class StatsClientTestCase(unittest.TestCase):
         self.assertEqual(args[0], 'somestat.error')
         self.assertEqual(args[1], 5)
 
+    @mock.patch('time.sleep')
+    @mock.patch('time.time')
+    def test_timing_success(self, time_mock, sleep_mock):
+        timer = stats.TimerStat(self.mock_stats_client, 'somestat')
+        sleep_mock.return_value = None
+        time_mock.side_effect = [10, 15]
+
+        with timer:
+            time.sleep(1)
+
+        args = self.mock_stats_client.timing.call_args[0]
+        self.assertEqual(args[0], 'somestat.success')
+        self.assertEqual(args[1], 5)
+
+    @mock.patch('time.sleep')
+    @mock.patch('time.time')
+    def test_timing_error(self, time_mock, sleep_mock):
+        sleep_mock.return_value = None
+        time_mock.side_effect = [10, 15]
+        timer = stats.TimerStat(self.mock_stats_client, 'somestat')
+
+        with self.assertRaises(SpecificException):
+            with timer:
+                raise SpecificException()
+
+        args = self.mock_stats_client.timing.call_args[0]
+        self.assertEqual(args[0], 'somestat.error')
+        self.assertEqual(args[1], 5)
+
 
 class ConcurrencyGaugeTestCase(unittest.TestCase):
     def test_concurrency_guage(self):

@@ -157,3 +157,31 @@ def timer_stat(key):
                 return ret
         return wrapper
     return timer_decorator
+
+
+class TimerStat(object):
+    """Context manager to send the how long code takes to run to the
+    stats_client. This is useful if there's a critical section of code you want
+    to measure, instead of the entire function::
+
+            with TimerStat('somestat'):
+                do_cool_stuff()
+
+    """
+    def __init__(self, client, name):
+        self.name = name
+        self.client = client
+        self.start = 0
+
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, type, value, traceback):
+        end = time.time()
+        if type is None:
+            status = 'success'
+        else:
+            # Exception raised
+            status = 'error'
+        self.client.timing('{}.{}'.format(self.name, status), end - self.start)
+        # No return means exceptions get raised normally.
