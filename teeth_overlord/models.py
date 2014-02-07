@@ -16,6 +16,7 @@ limitations under the License.
 
 import collections
 import datetime
+import json
 import struct
 import uuid
 
@@ -53,6 +54,33 @@ class C2DateTime(columns.DateTime):
         if isinstance(val, basestring):
             val = struct.unpack('!Q', val)[0] / 1000.0
         return super(C2DateTime, self).to_python(val)
+
+
+class JSONDictionary(columns.Column):
+    db_type = 'text'
+
+    def __init__(self):
+        super(JSONDictionary, self).__init__(default={})
+
+    def to_python(self, value):
+        if value is None or isinstance(value, dict):
+            return value
+        return self.validate(json.loads(value))
+
+    def to_database(self, value):
+        if value is not None:
+            return json.dumps(self.validate(value))
+        else:
+            return None
+
+    def validate(self, value):
+        value = super(JSONDictionary, self).validate(value)
+
+        if not isinstance(value, dict) and value is not None:
+            raise columns.ValidationError(
+                '{} is not a dictionary'.format(value))
+
+        return value
 
 
 class Base(models.Model, encoding.Serializable):
