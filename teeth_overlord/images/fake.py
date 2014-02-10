@@ -24,6 +24,7 @@ FAKE_IMAGE_INFO = {
     'hashes': {
         'md5': 'c2e5db72bd7fd153f53ede5da5a06de3',
     },
+    'id': '8226c769-3739-4ee6-921c-82110da6c669'
 }
 
 
@@ -38,5 +39,9 @@ class FakeImageProvider(base.BaseImageProvider):
         """Returns an ImageInfo instance with information about the
         requested image.
         """
+        if image_id != FAKE_IMAGE_INFO['id']:
+            raise self.ImageDoesNotExist(
+                'Image with id {} does not exist'.format(image_id))
+
         image_info = dict(FAKE_IMAGE_INFO.items() + [('id', image_id)])
         return base.ImageInfo(**image_info)
