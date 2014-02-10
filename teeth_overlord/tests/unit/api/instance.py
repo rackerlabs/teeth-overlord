@@ -337,7 +337,6 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_instance_bad_image(self):
-        # TODO(morgabra): Current fake image provider always works
         return_value = [models.Flavor(id='flavor', name='flavor')]
         self.add_mock(models.Flavor, return_value=return_value)
 
