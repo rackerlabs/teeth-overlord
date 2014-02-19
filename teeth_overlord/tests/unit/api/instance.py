@@ -337,21 +337,17 @@ class TestInstanceAPI(tests.TeethAPITestCase):
         self.assertEqual(data['message'], 'Invalid request body')
 
     def test_create_instance_bad_image(self):
+        return_value = [models.Flavor(id='flavor', name='flavor')]
+        self.add_mock(models.Flavor, return_value=return_value)
 
-        pass
-
-        # TODO(morgabra): Current fake image provider always works
-        #return_value = [models.Flavor(id='flavor', name='flavor')]
-        #self.add_mock(models.Flavor, return_value=return_value)
-
-        #response = self.make_request('POST', self.url,
-        #                             data={"name": "created_instance",
-        #                                   "flavor_id": "flavor",
-        #                                   "image_id": "does_not_exist"})
-
-        #data = json.loads(response.data)
-        #self.assertEqual(response.status_code, 400)
-        #self.assertEqual(data['message'], 'Image not found')
+        response = self.make_request('POST', self.url,
+                                     data={"name": "created_instance",
+                                           "flavor_id": "flavor",
+                                           "image_id": "does_not_exist"})
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['message'], 'Invalid request body')
+        self.assertEqual(data['details'], 'Invalid image_id, no such Image.')
 
     def test_create_instance_bad_metadata(self):
         return_value = [models.Flavor(id='flavor', name='some_flavor')]
